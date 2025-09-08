@@ -25,4 +25,4 @@ pnpm-debug.log*
 *.sql
 
 
-src/content
+src/content/*
