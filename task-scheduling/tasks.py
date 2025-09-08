@@ -16,6 +16,7 @@ from celery import Celery
 from dotenv import load_dotenv
 from celery.utils.log import get_task_logger
 
+
 logger = get_task_logger(__name__)
 
 REDIS_PREFIX = "CELERY-WIKI_"
@@ -25,26 +26,25 @@ app.conf.result_backend_transport_options = {"global_keyprefix": REDIS_PREFIX}
 app.conf.update(
     broker_url="amqp://guest:guest@localhost:5672//",
     broker_transport_options={
-        "visibility_timeout": 7200,  # 2 hours (use if long tasks)
+        # "visibility_timeout": 7200,  # 2 hours (use if long tasks)
         "heartbeat": 30,  # keep connection alive
+        "consumer_timeout": 31536000000000
     },
     task_acks_late=True,  # ACK only after task finishes
     task_reject_on_worker_lost=True,  # requeue if worker dies
-    task_time_limit=7200,  # optional: hard limit for tasks
-    task_soft_time_limit=7100,  # optional: soft limit before kill
 )
 
 
 redis = redis.Redis(host="localhost", port=6379, db=0)
 
-TASK_SCHEDULE_PATH = "./task-schedule.json"
-with open(TASK_SCHEDULE_PATH) as f:
-    task_schedule = json.load(f)
+# TASK_SCHEDULE_PATH = "./task-schedule.json"
+# with open(TASK_SCHEDULE_PATH) as f:
+#     task_schedule = json.load(f)
 
 
 def all_tasks_done():
     return all(
-        value != "RUNNING" for value in redis.hvals(REDIS_PREFIX + "wiki-tasks-status")
+        value != "RUNNING" for value in redis.hvals(REDIS_PREFIX + "wiki-tasks")
     )
 
 
@@ -67,8 +67,10 @@ env_path = Path("../.env")
 # env_path = Path("/home/gareth/dev/webdev/astro/wiki/.env")
 load_dotenv(dotenv_path=env_path)
 
-# WIKI_CLI_BINARY = "../cli"
-WIKI_CLI_BINARY = "../target/release/cli"
+WIKI_CLI_BINARY = os.getenv("WIKI_CLI_BINARY")
+if WIKI_CLI_BINARY is None:
+    print("WIKI_CLI_BINARY env var can't be None")
+    exit(-1)
 
 WIKI_BASEPATH = os.getenv("DB_WIKIS_BASEPATH")
 if WIKI_BASEPATH is None:
@@ -94,11 +96,17 @@ if os.getenv("DB_WIKIS_DIR") is None:
     print("DB_WIKIS_DIR env var can't be None")
     exit(-1)
 
-SIMULATE = False
+SIMULATE = True
 
 UPDATE_DONE_SH = "../update-done.sh"
 
-import handlers
+TABLES = ["pagelinks", "page", "linktarget"]
+
+# todo schedule so its in the night (the retry)
+# 2 hours
+INCOMPLETE_DUMP_WAIT_S = 2 * 60 * 60
+
+import handlers # imports the signal handlers
 
 
 @contextmanager
@@ -186,7 +194,7 @@ def finish_dump(dump_date):
     # result = subprocess.run([UPDATE_DONE_SH])
 
     redis.set(REDIS_PREFIX + f"wiki-tasks:{dump_date}", "DONE")
-    redis.hset(REDIS_PREFIX + "wiki-tasks-status", mapping={dump_date: "DONE"})
+    # redis.hset(REDIS_PREFIX + "wiki-tasks-status", mapping={dump_date: "DONE"})
 
     all_done = all_tasks_done()
     updated_wikis_dir = re.sub(r"(\d{8})", dump_date, os.getenv("DB_WIKIS_DIR") or "")
@@ -212,11 +220,6 @@ def build_server():
     logger.info("Finished rebuilding server")
 
 
-TABLES = ["pagelinks", "page", "linktarget"]
-
-# todo schedule so its in the night (the retry)
-# 2 hours
-INCOMPLETE_DUMP_WAIT_S = 2 * 60 * 60
 
 
 
@@ -237,7 +240,7 @@ def process_wiki(self, name, dump_date, supported_wikis: List[str]):
             logger.error(f"Failed building server {e} ")
 
     # status per dumpdate, as finish_dump also works per dumpdate
-    redis.hset(REDIS_PREFIX + "wiki-tasks-status", mapping={dump_date: "RUNNING"})
+    # redis.hset(REDIS_PREFIX + "wiki-tasks-status", mapping={dump_date: "RUNNING"})
 
     data = {
         "status": "RUNNING",
@@ -282,9 +285,13 @@ def process_wiki(self, name, dump_date, supported_wikis: List[str]):
         data["status"] = "DONE"
 
     except Exception as e:
-        print(f"Exception: {e}")
+        logger.error(f"Exception: {e}")
         data["status"] = "FAILED"
-        retry_exception = e
+        # retry_exception = e
+        data["message"] = f"Task failed. {e}"
+        redis.hset(REDIS_PREFIX + "wiki-tasks", mapping={key: json.dumps(data)})
+        # logging.error(f"Failed task  {name}. Error:", retry_exception)
+        raise e
 
     data["finishedAt"] = datetime.now(timezone.utc).isoformat()
 
@@ -293,12 +300,12 @@ def process_wiki(self, name, dump_date, supported_wikis: List[str]):
     now_utc_seconds = int(datetime.now(timezone.utc).timestamp())
     redis.hset(REDIS_PREFIX + "wiki-tasks-last-updated", mapping={name: now_utc_seconds})
 
-    if retry_exception is not None:
-        ONE_DAY_S = 24 * 60 * 60
-        data["message"] = f"Task failed. Retry in {ONE_DAY_S}s"
-        redis.hset(REDIS_PREFIX + "wiki-tasks", mapping={key: json.dumps(data)})
-        logging.error(f"Failed task  {name}, retry in one day. Error:", retry_exception)
-        raise self.retry(exc=Exception(retry_exception), countdown=ONE_DAY_S)
+    # if retry_exception is not None:
+    #     ONE_DAY_S = 24 * 60 * 60
+    #     data["message"] = f"Task failed. Retry in {ONE_DAY_S}s"
+    #     redis.hset(REDIS_PREFIX + "wiki-tasks", mapping={key: json.dumps(data)})
+    #     logging.error(f"Failed task  {name}, retry in one day. Error:", retry_exception)
+    #     raise self.retry(exc=Exception(retry_exception), countdown=ONE_DAY_S)
 
 
     # print(f"Tasks done: {tasks_done}/{num_tasks}")

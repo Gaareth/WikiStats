@@ -84,12 +84,8 @@ def simulate_check_for_tasks():
 
 
 if __name__ == "__main__":
-    # dump_date = "w"
-    # dotenv.set_key(env_path, "IS_UPDATING", "false")
-    # dotenv.set_key(env_path, "LATEST_DUMP", dump_date)
+    # process_wiki.delay("klbjcsykjyshcd", "20250901", ["dewiki", "jawiki"])
 
-    # updated_wikis_dir = re.sub(r'(\d{8})', dump_date, os.getenv("DB_WIKIS_DIR"))
-    # dotenv.set_key(env_path, "DB_WIKIS_DIR", updated_wikis_dir)
 
     if SIMULATE:
         simulate_check_for_tasks()

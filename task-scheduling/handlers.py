@@ -6,6 +6,7 @@ import os
 from celery.utils.log import get_task_logger
 
 from tasks import logger
+import traceback as tb
 
 
 ALERT_EMAIL_ADDRESS = os.getenv("ALERT_EMAIL_ADDRESS")
@@ -113,6 +114,14 @@ def task_failed_handler(sender=None, headers=None, body=None, **kwargs):
     task_name = sender.name if sender else "Unknown"
     exception = kwargs.get("exception", "No exception info")
     traceback = kwargs.get("traceback", "")
+    if traceback and isinstance(traceback, str):
+        formatted_traceback = traceback
+    elif traceback:
+        formatted_traceback = "".join(tb.format_tb(traceback))
+    else:
+        formatted_traceback = "No traceback available"
+
+    traceback = formatted_traceback
 
     subject = f"Celery Task Failed: {task_name}"
     body_text = f"Task: {task_name}\nException: {exception}\nTraceback:\n{traceback}"
