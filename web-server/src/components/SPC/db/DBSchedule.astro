@@ -1,20 +1,12 @@
 ---
-import parser from "cron-parser";
 import {
+    InfoIcon,
     MaterialSymbolsCalendarClock,
     MaterialSymbolsScheduleOutline,
 } from "../../ClientIcons/Icons";
 
 import { redisClient } from "../../../db/redis";
 import LocaleDate from "../../LocaleDate";
-
-let path = process.env.TASK_SCHEDULE_JSON_PATH;
-console.log("meta", path);
-// console.log("proc", process.env.TASK_SCHEDULE_JSON_PATH);
-
-if (!path) {
-    throw new Error("TASK_SCHEDULE_JSON_PATH environment variable is not set");
-}
 
 // let schedules: { name: string; crontab: string }[] = JSON.parse(
 //     (await fs.readFile(path)).toString(),
@@ -25,8 +17,6 @@ let lastUpdated: Record<string, Date> = Object.fromEntries(
         await redisClient.hGetAll("CELERY-WIKI_wiki-tasks-last-updated"),
     ).map(([wiki_name, last_updated_utc_seconds]) => {
         const date = new Date(Number(last_updated_utc_seconds) * 1000);
-        console.log(date);
-
         return [wiki_name, date];
     }),
 );
@@ -47,14 +37,14 @@ export let DBSCHEDULE_FORMATTER = new Intl.DateTimeFormat(
     DBSCHEDULE_FORMAT_OPTIONS,
 );
 
-const serverTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+// const serverTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-function parseCrontabDate(crontab: string) {
-    return parser
-        .parseExpression(crontab, { tz: serverTimezone })
-        .next()
-        .toDate();
-}
+// function parseCrontabDate(crontab: string) {
+//     return parser
+//         .parseExpression(crontab, { tz: serverTimezone })
+//         .next()
+//         .toDate();
+// }
 ---
 
 <div
@@ -76,11 +66,13 @@ function parseCrontabDate(crontab: string) {
         </p>
     </div>
 
-    <p class="text-secondary text-sm px-3 py-2 border-b dark:border-dark_04">
+    <div class="px-3 py-2 text-secondary text-sm border-b dark:border-dark_04">
+        <span class="w-4 inline-block -mb-0.5"><InfoIcon /></span>
+
         New dumps are typically generated on the 1st and 20th of each month.
         Availability may be delayed by a day or more depending on their size.
         The table below shows when each wiki was last updated.
-    </p>
+    </div>
 
     {
         lastUpdated == null || Object.keys(lastUpdated).length === 0 ? (
