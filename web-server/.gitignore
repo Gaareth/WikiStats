@@ -25,4 +25,4 @@ pnpm-debug.log*
 *.sql
 
 
-src/content/stats/*
+src/content/stats/*.json
