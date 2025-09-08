@@ -98,6 +98,8 @@ SIMULATE = False
 
 UPDATE_DONE_SH = "../update-done.sh"
 
+import handlers
+
 
 @contextmanager
 def file_lock(file_path):
