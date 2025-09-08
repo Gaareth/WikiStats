@@ -1,0 +1,17 @@
+FROM node:21-alpine
+WORKDIR /app
+
+# Install dependencies
+COPY package.json package-lock.json ./
+RUN npm install
+
+# Copy rest of source (except stats)
+COPY . .
+
+# Expose port
+ENV HOST=0.0.0.0
+ENV PORT=4321
+EXPOSE 4321
+
+# Build & run the site on container start
+CMD ["sh", "-c", "npm run build && node ./dist/server/entry.mjs"]

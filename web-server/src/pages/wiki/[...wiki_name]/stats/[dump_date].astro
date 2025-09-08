@@ -1,5 +1,4 @@
 ---
-import stat from "../../../../../generated-stats/stats.json";
 
 import MoreStatCards from "../../../../components/MoreStatCards.astro";
 import SampleStats from "../../../../components/SampleStats.astro";
@@ -57,8 +56,12 @@ let most_link_pages =
 let most_linked_pages =
     (await TOP_TEN_MOST_LINKED_STAT.get(dump_date, wiki_name)) || [];
 
-let most_linked_page = (await getEntry("stats", dump_date))?.data
-    .most_linked[0];
+// let most_linked_page = (await getEntry("stats", dump_date))?.data
+//     .most_linked[0];
+
+
+let bfs_sample_stats = (await getEntry("stats", dump_date))?.data.bfs_sample_stats;
+
 ---
 
 <Layout
@@ -119,10 +122,10 @@ let most_linked_page = (await getEntry("stats", dump_date))?.data
         </section>
 
         {
-            wiki_name !== undefined && stat["bfs_sample_stats"] != null && (
+            wiki_name !== undefined && bfs_sample_stats != null && (
                 <SampleStats
                     wiki_name={wiki_name}
-                    sample_stats={stat["bfs_sample_stats"]}
+                    sample_stats={bfs_sample_stats}
                 />
             )
         }

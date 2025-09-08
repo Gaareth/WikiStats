@@ -1,7 +1,12 @@
 ---
-import stats from "../../generated-stats/stats.json";
+import { getEntry } from "astro:content";
 import { version } from "../../package.json";
-const latest_dump = process.env.LATEST_DUMP;
+import { get_latest_date } from "../db/constants";
+// const latest_dump = process.env.LATEST_DUMP;
+
+const latest_dump = (await get_latest_date());
+const stats_created_at = (await getEntry("stats", latest_dump))?.data
+    .created_at;
 ---
 
 <footer
@@ -16,7 +21,7 @@ w-full text-sm text-center p-2"
         |
         <span>
             Stats generated at: {
-                new Date(stats.created_at * 1000).toDateString()
+                new Date(stats_created_at * 1000).toDateString()
             }
         </span>
     </div>

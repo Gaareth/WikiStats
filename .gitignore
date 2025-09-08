@@ -43,3 +43,7 @@ pip-wheel-metadata/
 .cache
 *.sqlite3
 .DS_Store
+gitleaks-report.json
+
+# as long as it contains secrets
+after-deploy.sh 

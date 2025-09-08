@@ -1,6 +1,5 @@
 services:
     webserver:
-        image: ghcr.io/gaareth/wiki-stats-webserver:latest
         build:
             context: ./web-server
             dockerfile: Dockerfile
@@ -19,6 +18,7 @@ services:
             - ${DB_WIKIS_DIR}:${DB_WIKIS_DIR}
             - ${GRAPHS_WIKIS_DIR}:${GRAPHS_WIKIS_DIR}
             - ${TASK_SCHEDULE_JSON_PATH}:${TASK_SCHEDULE_JSON_PATH}
+            # - ./wiki-folder/stats:
         depends_on:
             - redis
             - rabbitmq
