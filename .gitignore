@@ -1,0 +1,45 @@
+# More specific rules may be found in the respective subdirectories
+
+# Ignore node_modules, logs, and OS files
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+
+# Ignore environment files
+.env
+.env.*
+
+# Ignore build and dist directories
+dist/
+build/
+
+# Ignore IDE/editor folders
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore WikiStats generated data
+wiki-folder
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.env
+.venv
+env/
+venv/
+pip-wheel-metadata/
+*.log
+.mypy_cache/
+.pytest_cache/
+.coverage
+.cache
+*.sqlite3
+.DS_Store

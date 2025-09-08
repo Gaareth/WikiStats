@@ -1,0 +1,6 @@
+colorcet
+matplotlib
+tqdm
+python-dateutil
+requests
+igraph

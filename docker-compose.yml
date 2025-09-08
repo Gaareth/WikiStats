@@ -1,0 +1,40 @@
+services:
+    webserver:
+        build:
+            context: ./web-server
+            dockerfile: Dockerfile
+        container_name: wiki-stats-webserver
+        ports:
+            - "4321:4321"
+        environment:
+            NODE_ENV: production
+            REDIS_HOST: redis
+            REDIS_PORT: 6379
+        env_file:
+            - .env
+        restart: always
+        volumes:
+            # Mount the actual paths from .env variables
+            - ${DB_WIKIS_DIR}:${DB_WIKIS_DIR}
+            - ${GRAPHS_WIKIS_DIR}:${GRAPHS_WIKIS_DIR}
+            - ${TASK_SCHEDULE_JSON_PATH}:${TASK_SCHEDULE_JSON_PATH}
+        depends_on:
+            - redis
+            - rabbitmq
+    redis:
+        image: redis:8
+        container_name: redis
+        ports:
+            - "6379:6379"
+
+    rabbitmq:
+        image: rabbitmq:4-management
+        container_name: rabbitmq
+        ports:
+            - "5672:5672" # AMQP (Celery connects here)
+            - "15672:15672" # RabbitMQ Management GUI
+            #    environment:
+            #      RABBITMQ_DEFAULT_USER: myuser
+            #      RABBITMQ_DEFAULT_PASS: mypassword
+        volumes:
+            - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf

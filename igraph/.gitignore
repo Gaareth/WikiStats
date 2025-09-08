@@ -1,0 +1,10 @@
+*.png
+*.csv
+*.layout
+*.pkl
+*.graphml
+*.dot
+*.edges
+*.adjacency
+*.json
+

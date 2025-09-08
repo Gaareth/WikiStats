@@ -1,0 +1,8 @@
+[
+  {"name": "dewiki", "crontab": "0 3 2,21 * *"},
+  {"name": "enwiki", "crontab": "0 4 2,21 * *"},
+  {"name": "eswiki", "crontab": "0 5 2,21 * *"},
+  {"name": "frwiki", "crontab": "0 6 2,21 * *"},
+  {"name": "jawiki", "crontab": "0 7 2,21 * *"},
+  {"name": "ruwiki", "crontab": "40 7 2,21 * *"}
+]
