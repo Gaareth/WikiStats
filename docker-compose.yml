@@ -21,11 +21,13 @@ services:
         depends_on:
             - redis
             - rabbitmq
+        profiles: ["prod"]
     redis:
         image: redis:8
         container_name: redis
         ports:
             - "6379:6379"
+        profiles: ["dev", "prod"]
 
     rabbitmq:
         image: rabbitmq:4-management
