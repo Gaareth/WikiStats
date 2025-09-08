@@ -1,4 +1,5 @@
-FROM node:lts AS base
+# versions newer than 21 have issues with better-sqlite3
+FROM node:21-alpine AS base 
 WORKDIR /app
 
 # By copying only the package.json and package-lock.json here, we ensure that the following `-deps` steps are independent of the source code.
@@ -22,4 +23,4 @@ COPY --from=build /app/dist ./dist
 ENV HOST=0.0.0.0
 ENV PORT=4321
 EXPOSE 4321
-CMD node ./dist/server/entry.mjs
+CMD ["node", "./dist/server/entry.mjs"]

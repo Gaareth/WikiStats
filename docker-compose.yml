@@ -1,5 +1,6 @@
 services:
     webserver:
+        image: ghcr.io/gaareth/wiki-stats-webserver:latest
         build:
             context: ./web-server
             dockerfile: Dockerfile
@@ -39,4 +40,5 @@ services:
             #      RABBITMQ_DEFAULT_USER: myuser
             #      RABBITMQ_DEFAULT_PASS: mypassword
         volumes:
-            - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+            - ./task-scheduling/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+        profiles: ["dev", "prod"]
