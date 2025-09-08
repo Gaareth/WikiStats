@@ -247,7 +247,7 @@ input-b {
   } */
 
     .default-tooltip {
-        @apply absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-sm opacity-0 dark:bg-dark_04;
+        @apply max-w-[400px] absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-sm opacity-0 dark:bg-dark_04;
     }
 
     :where(.dark) {

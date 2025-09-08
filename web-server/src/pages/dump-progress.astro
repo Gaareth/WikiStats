@@ -4,6 +4,7 @@ export const prerender = false;
 import Layout from "../layouts/Layout.astro";
 
 import {
+    ErrorCircleIcon,
     LoadingSpinner,
     MaterialSymbolsCalendarClock,
     MaterialSymbolsDoneAllRounded,
@@ -29,7 +30,7 @@ let tasks: TaskType[] = Object.entries(keys).map(([key, value]) => {
 
 console.log(tasks);
 
-const tasksStatusi = await redisClient.hGetAll("CELERY-WIKI_wiki-tasks-status");
+// const tasksStatusi = await redisClient.hGetAll("CELERY-WIKI_wiki-tasks-status");
 
 const sortTasks = (a: TaskType, b: TaskType) => {
     // -1 comes first
@@ -55,28 +56,33 @@ let now = new Date();
 type DB_STATUS_TYPE = "DONE" | "RUNNING" | "SCHEDULED" | "FAILED";
 let dbStatus: DB_STATUS_TYPE;
 
-const isUpdatingRn = Object.entries(tasksStatusi)
-    .map(([_, v]) => v)
-    .some((v) => v === "RUNNING");
+// const isUpdatingRn = Object.entries(tasksStatusi)
+//     .map(([_, v]) => v)
+//     .some((v) => v === "RUNNING");
+const isUpdatingRn = tasks.some((t) => t.status === "RUNNING");
 console.log("isUpdatingRn: ", isUpdatingRn);
 
 if (isUpdatingRn) {
     dbStatus = "RUNNING";
 } else {
-    let lastTask = tasks
-        .filter((t) => t.finishedAt != null)
-        .sort(
-            (t1, t2) => t1.finishedAt!.getTime() - t2.finishedAt!.getTime(),
-        )[0];
-
-    let ONE_DAY_MS = 24 * 60 * 60 * 1000;
-    if (
-        lastTask != null &&
-        now.getTime() - lastTask.finishedAt!.getTime() <= ONE_DAY_MS
-    ) {
-        dbStatus = "DONE";
+    if (tasks.some((t) => t.status === "FAILED")) {
+        dbStatus = "FAILED";
     } else {
-        dbStatus = "SCHEDULED";
+        let lastTask = tasks
+            .filter((t) => t.finishedAt != null)
+            .sort(
+                (t1, t2) => t1.finishedAt!.getTime() - t2.finishedAt!.getTime(),
+            )[0];
+
+        let ONE_DAY_MS = 24 * 60 * 60 * 1000;
+        if (
+            lastTask != null &&
+            now.getTime() - lastTask.finishedAt!.getTime() <= ONE_DAY_MS
+        ) {
+            dbStatus = "DONE";
+        } else {
+            dbStatus = "SCHEDULED";
+        }
     }
 }
 ---
@@ -89,9 +95,9 @@ if (isUpdatingRn) {
                 <div
                     class={cn(
                         "ml-auto flex gap-2 items-center dark-layer-2 rounded px-3 border uppercase",
-                        dbStatus == "DONE" && "dark:border-green-300/20",
-                    )}
-                >
+                        dbStatus == "DONE" && "dark:border-green-300/20 border-green-400",
+                        dbStatus == "FAILED" && "dark:border-red-400/20 border-red-500",
+                    )}>
                     {
                         dbStatus == "RUNNING" && (
                             <>
@@ -120,6 +126,17 @@ if (isUpdatingRn) {
                                 SCHEDULED
                                 <span class="block w-5">
                                     <MaterialSymbolsCalendarClock aria-label="schedule" />
+                                </span>
+                            </>
+                        )
+                    }
+
+                    {
+                        dbStatus == "FAILED" && (
+                            <>
+                                FAILED
+                                <span class="block w-5 text-red-500 dark:text-red-400">
+                                    <ErrorCircleIcon aria-label="Failure" />
                                 </span>
                             </>
                         )

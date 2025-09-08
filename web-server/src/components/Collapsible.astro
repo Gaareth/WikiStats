@@ -7,13 +7,14 @@ const { title, open } = Astro.props;
 ---
 
 <details
-    class="dark-border-1 border rounded px-3.5 py-2.5 group dark:hover:border-dark_04 dark:open:border-dark_05
+    class="dark-border-1 border rounded px-3.5 py-2.5 group 
+    dark:hover:border-dark_05 dark:open:border-dark_04
     open:border-black/20 hover:border-black/25"
     open={open}
 >
     <summary
         class="mb-1 px-1
-        after:border-t-[10px] after:dark:border-dark_05 after:hover:dark:!border-t-white/40 group-open:after:dark:border-t-white/50
+        after:border-t-[10px] after:dark:border-dark_05 after:hover:dark:!border-t-white/50 group-open:after:dark:border-t-white/40
         after:border-t-black/50 after:hover:!border-t-black/75 after:group-open:border-t-black/70
         transition cursor-pointer"
     >

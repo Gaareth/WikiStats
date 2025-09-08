@@ -23,7 +23,7 @@ export default function LocaleDate(props: Props) {
     });
 
     return (
-        <time class="block" datetime={date().toISOString()}>
+        <time class="lg:text-nowrap" datetime={date().toISOString()}>
             {formatter().format(date())}
         </time>
     );

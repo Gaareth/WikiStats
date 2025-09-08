@@ -28,9 +28,8 @@ const { tasks, date } = Astro.props;
             <div
                 class={clsx(
                     "task dark-layer-1",
-                    t.message != null && "!grid-cols-2 sm:!grid-cols-3",
-                )}
-            >
+                    t.message != null && "grid-rows-3 lg:grid-rows-2",
+                )}>
                 <div class="flex items-center gap-2">
                     <TaskStatusIndicator status={t.status} client:load />
 
@@ -42,34 +41,25 @@ const { tasks, date } = Astro.props;
                     </div>
                 </div>
 
+                <TaskTime startedAt={t.startedAt} finishedAt={t.finishedAt} />
+
                 {t.message != null && (
                     <>
                         <span
-                            class="col-span-2 sm:col-span-1 row-start-2 sm:row-start-auto 
-                                        text-sm text-red-500 dark:text-red-400 text-ellipsis line-clamp-2"
+                            class="text-sm text-red-500 dark:text-red-400 text-ellipsis line-clamp-2"
                             data-tooltip-target={date + "tooltip-msg" + i}
-                            aria-describedby={date + "tooltip-msg" + i}
-                        >
+                            aria-describedby={date + "tooltip-msg" + i}>
                             {t.message}
                         </span>
                         <div
                             id={date + "tooltip-msg" + i}
                             role="tooltip"
-                            class="default-tooltip tooltip"
-                        >
+                            class="default-tooltip tooltip">
                             {t.message}
                             <div class="tooltip-arrow" data-popper-arrow />
                         </div>
                     </>
                 )}
-
-                <TaskTime
-                    startedAt={t.startedAt}
-                    finishedAt={t.finishedAt}
-                    className={
-                        t.message == null ? "col-span-2 col-start-2" : undefined
-                    }
-                />
             </div>
         ))
     }
@@ -77,6 +67,6 @@ const { tasks, date } = Astro.props;
 
 <style>
     .task {
-        @apply grid grid-cols-2 items-center gap-2 border rounded px-2 py-1 justify-between;
+        @apply grid grid-cols-2  grid-rows-2 lg:grid-rows-1 items-center gap-2 border rounded px-2 py-1 justify-between;
     }
 </style>
