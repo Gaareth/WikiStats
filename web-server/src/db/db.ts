@@ -3,7 +3,6 @@ import "dotenv/config";
 import { count, eq, like } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { PathEntry } from "../components/SP/SPList.tsx";
-import sp_stats from "../db/sp-stats.json";
 import { get_supported_wikis } from "./constants.ts";
 import * as schema from "./schema.ts";
 import { wikiLink, wikiPage } from "./schema.ts";
@@ -228,16 +227,16 @@ export async function get_number_of_times_linked(
     return res[0].value;
 }
 
-export async function num_supported_pages(wiki_name: string) {
-    // const res = await db_sp_connections[wiki_name]
-    //   .select({ count: countDistinct(spLink.sourceId) })
-    //   .from(spLink);
-    // return res[0].count;
+// export async function num_supported_pages(wiki_name: string) {
+//     // const res = await db_sp_connections[wiki_name]
+//     //   .select({ count: countDistinct(spLink.sourceId) })
+//     //   .from(spLink);
+//     // return res[0].count;
 
-    //@ts-ignore
-    const titles = Object.keys(sp_stats[wiki_name]);
-    return titles.length;
-}
+//     //@ts-ignore
+//     const titles = Object.keys(sp_stats[wiki_name]);
+//     return titles.length;
+// }
 
 export async function neighbours(
     page_name: string,
@@ -294,33 +293,33 @@ export async function neighbours(
     return res;
 }
 
-export async function get_supported_pages(prefix: string, wiki_name: string) {
-    // const all_pages = (
-    //   await db.selectDistinct().from(pageSchema.wikiPage)
-    // ).map((row) => row.pageTitle);
+// export async function get_supported_pages(prefix: string, wiki_name: string) {
+//     // const all_pages = (
+//     //   await db.selectDistinct().from(pageSchema.wikiPage)
+//     // ).map((row) => row.pageTitle);
 
-    // const supported_page_ids = await db_sp_connections[wiki_name]
-    //   .selectDistinct({
-    //     pageId: spLink.sourceId,
-    //   })
-    //   .from(spLink);
-    // // .leftJoin(wikiPage, eq(spLink.sourceId, wikiPage.pageId))
-    // // .where(like(wikiPage.pageTitle, `${prefix}%`))
-    // // .limit(10);
+//     // const supported_page_ids = await db_sp_connections[wiki_name]
+//     //   .selectDistinct({
+//     //     pageId: spLink.sourceId,
+//     //   })
+//     //   .from(spLink);
+//     // // .leftJoin(wikiPage, eq(spLink.sourceId, wikiPage.pageId))
+//     // // .where(like(wikiPage.pageTitle, `${prefix}%`))
+//     // // .limit(10);
 
-    // const supported_page_titles: { pageTitle: string }[] = [];
-    // for (const { pageId } of supported_page_ids) {
-    //   supported_page_titles.push({
-    //     pageTitle: (await page_id_to_name(pageId, wiki_name))!,
-    //   });
-    // }
+//     // const supported_page_titles: { pageTitle: string }[] = [];
+//     // for (const { pageId } of supported_page_ids) {
+//     //   supported_page_titles.push({
+//     //     pageTitle: (await page_id_to_name(pageId, wiki_name))!,
+//     //   });
+//     // }
 
-    //@ts-ignore
-    const titles = Object.keys(sp_stats[wiki_name]);
-    return titles.map((title) => {
-        return { pageTitle: title };
-    });
-}
+//     //@ts-ignore
+//     const titles = Object.keys(sp_stats[wiki_name]);
+//     return titles.map((title) => {
+//         return { pageTitle: title };
+//     });
+// }
 
 export async function get_pages_starts_with(prefix: string, wiki_name: string) {
     console.log("Loading get pages");
