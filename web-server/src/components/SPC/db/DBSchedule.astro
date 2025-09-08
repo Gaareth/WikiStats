@@ -1,0 +1,112 @@
+---
+import parser from "cron-parser";
+import {
+    MaterialSymbolsCalendarClock,
+    MaterialSymbolsScheduleOutline,
+} from "../../ClientIcons/Icons";
+
+import { redisClient } from "../../../db/redis";
+import LocaleDate from "../../LocaleDate";
+
+let path = process.env.TASK_SCHEDULE_JSON_PATH;
+console.log("meta", path);
+// console.log("proc", process.env.TASK_SCHEDULE_JSON_PATH);
+
+if (!path) {
+    throw new Error("TASK_SCHEDULE_JSON_PATH environment variable is not set");
+}
+
+// let schedules: { name: string; crontab: string }[] = JSON.parse(
+//     (await fs.readFile(path)).toString(),
+// );
+
+let lastUpdated: Record<string, Date> = Object.fromEntries(
+    Object.entries(
+        await redisClient.hGetAll("CELERY-WIKI_wiki-tasks-last-updated"),
+    ).map(([wiki_name, last_updated_utc_seconds]) => {
+        const date = new Date(Number(last_updated_utc_seconds) * 1000);
+        console.log(date);
+
+        return [wiki_name, date];
+    }),
+);
+
+export let DBSCHEDULE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZoneName: "short",
+    timeZone: "UTC", // by default show in UTC, client will convert to local time as long javascript is enabled
+};
+
+export let DBSCHEDULE_FORMATTER = new Intl.DateTimeFormat(
+    undefined,
+    DBSCHEDULE_FORMAT_OPTIONS,
+);
+
+const serverTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+function parseCrontabDate(crontab: string) {
+    return parser
+        .parseExpression(crontab, { tz: serverTimezone })
+        .next()
+        .toDate();
+}
+---
+
+<div
+    class="border rounded dark-layer-1 inline-block mb-5 w-full sm:w-auto sm:ml-auto">
+    <div class="px-3 py-2 border-b dark:border-dark_04">
+        <p class="text-xl flex items-center gap-2">
+            Schedule
+            <span class="w-[1.15rem]">
+                <MaterialSymbolsCalendarClock aria-label="Schedule" />
+            </span>
+        </p>
+        <p class="text-secondary text-sm">
+            <noscript>Dates are in UTC time</noscript>
+            Dates are in your locale timezone <span id="client-tz"></span>
+            <script type="module" is:inline>
+                document.getElementById("client-tz").textContent =
+                    `(${Intl.DateTimeFormat().resolvedOptions().timeZone})`;
+            </script>
+        </p>
+    </div>
+
+    <p class="text-secondary text-sm px-3 py-2 border-b dark:border-dark_04">
+        New dumps are typically generated on the 1st and 20th of each month.
+        Availability may be delayed by a day or more depending on their size.
+        The table below shows when each wiki was last updated.
+    </p>
+
+    {
+        lastUpdated == null || Object.keys(lastUpdated).length === 0 ? (
+            <div class="px-3 py-2 text-base text-secondary text-center">
+                No data available
+            </div>
+        ) : null
+    }
+
+    <div class="px-3 py-2 text-base flex flex-col gap-2">
+        {
+            Object.entries(lastUpdated).map(([wiki_name, last_updated]) => (
+                <div class="flex gap-1 sm:gap-2 lg:gap-5">
+                    <div>{wiki_name}</div>
+                    <span class="flex items-center gap-1 text-base text-secondary ml-auto">
+                        <LocaleDate
+                            client:load
+                            date={last_updated}
+                            formatOption={DBSCHEDULE_FORMAT_OPTIONS}
+                        />
+                        <span class="block w-4">
+                            <MaterialSymbolsScheduleOutline aria-label="datetime" />
+                        </span>
+                    </span>
+                </div>
+            ))
+        }
+    </div>
+</div>

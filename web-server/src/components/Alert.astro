@@ -1,0 +1,27 @@
+---
+import { cn } from "../utils";
+
+interface Props {
+    type: "warning" | "error" | "info";
+    className?: string;
+}
+
+const { type, className } = Astro.props;
+
+const colors = {
+    warning:
+        "text-yellow-800 bg-yellow-50 border-yellow-200 dark:text-yellow-300 dark:bg-dark_01",
+    error: "text-red-800 bg-red-50 border-red-100 dark:text-red-400  dark:bg-dark_01",
+    info: "text-blue-800 bg-blue-50 border-blue-100 dark:text-blue-400 dark:bg-dark_01",
+};
+---
+
+<div
+    class={cn(
+        "text-sm p-2 my-2 border dark:border-dark_01 rounded-sm",
+        colors[type],
+        className,
+    )}
+>
+    <slot />
+</div>

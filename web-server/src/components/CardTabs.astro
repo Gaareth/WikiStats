@@ -1,0 +1,124 @@
+---
+import { twMerge } from "tailwind-merge";
+import Card from "./Card";
+
+import { v4 as uuidv4 } from "uuid";
+
+interface Props {
+    className?: string;
+    tabs: string[];
+}
+
+const { className, tabs } = Astro.props;
+const component_uuid = uuidv4();
+---
+
+<Card className={twMerge("py-0", className)}>
+    <span class="hidden">Credit: https://codepen.io/markcaron/pen/MvGRYV</span>
+    <div class="tabset">
+        {
+            tabs.map((tab_name, index) => (
+                <>
+                    <input
+                        type="radio"
+                        name={"tabset" + component_uuid}
+                        id={
+                            "tab" +
+                            tab_name.replaceAll(" ", "_") +
+                            "-" +
+                            component_uuid
+                        }
+                        tabindex="0"
+                        checked={index == 0 || undefined}
+                        aria-label={"Switch to tab " + tab_name}
+                    />
+                    <label
+                        for={
+                            "tab" +
+                            tab_name.replaceAll(" ", "_") +
+                            "-" +
+                            component_uuid
+                        }
+                        class="radiotab"
+                    >
+                        {tab_name}
+                    </label>
+                </>
+            ))
+        }
+        <hr class="tab-separator" />
+
+        <div class="tab-panels">
+            <!-- // slot name has to be a static string -->
+            <section class="tab-panel">
+                <slot name="tab1" />
+            </section>
+            <section class="tab-panel">
+                <slot name="tab2" />
+            </section>
+            <section class="tab-panel">
+                <slot name="tab3" />
+            </section>
+        </div>
+    </div>
+</Card>
+
+<style>
+    .radiotab {
+        padding: 0 0.75rem;
+        font-size: medium;
+    }
+
+    .radiotab:hover {
+        text-decoration: underline;
+        text-underline-offset: 0.25rem;
+        cursor: pointer;
+    }
+
+    .tab-separator {
+        width: 100%;
+        /* height: 0rem; */
+        /* border-color: var(--accent); */
+        /* border-color: gray; */
+        @apply border-gray-300 dark:border-gray-600;
+    }
+
+    input:not(:checked):not(input:hover) + .radiotab {
+        /* @apply text-slate-400 dark:text-slate-400; */
+        @apply text-gray-500 dark:text-slate-400;
+    }
+
+    .tabset > input[type="radio"] {
+        position: absolute;
+        left: -200vw;
+    }
+
+    .tabset .tab-panel {
+        display: none;
+        padding: 0.25rem 0;
+    }
+
+    .tabset > input:first-child:checked ~ .tab-panels > .tab-panel:first-child,
+    .tabset
+        > input:nth-child(3):checked
+        ~ .tab-panels
+        > .tab-panel:nth-child(2),
+    .tabset
+        > input:nth-child(5):checked
+        ~ .tab-panels
+        > .tab-panel:nth-child(3),
+    .tabset
+        > input:nth-child(7):checked
+        ~ .tab-panels
+        > .tab-panel:nth-child(4),
+    .tabset
+        > input:nth-child(9):checked
+        ~ .tab-panels
+        > .tab-panel:nth-child(5),
+    .tabset
+        > input:nth-child(11):checked
+        ~ .tab-panels
+        > .tab-panel:nth-child(6) {
+        display: block;
+    }
+</style>

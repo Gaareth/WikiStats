@@ -1,0 +1,45 @@
+---
+import { formatTimeDiff } from "../../utils";
+import {
+    LoadingSpinner,
+    MaterialSymbolsClockLoader40,
+} from "../ClientIcons/Icons";
+import type { TaskType } from "./Task.astro";
+
+interface Props {
+    runningTasks: TaskType[];
+}
+
+const { runningTasks } = Astro.props;
+let now = new Date();
+---
+
+{runningTasks.length > 0 && <p>Running</p>}
+<div class="flex flex-col gap-2">
+    {
+        runningTasks.map((t) => (
+            <div class="task dark-layer-1 !grid-cols-2">
+                <div class="flex items-center gap-2">
+                    <span class="block min-w-5 w-5 mt-0.5">
+                        <LoadingSpinner />
+                    </span>
+                    <span>{t.name}</span>
+                    <span>[{t.dumpDate}]</span>
+                </div>
+                <span class="flex items-center gap-1 text-base text-secondary ml-auto">
+                    running for
+                    {formatTimeDiff(now, new Date(t.startedAt))}
+                    <span class="block w-4">
+                        <MaterialSymbolsClockLoader40 aria-label="in progress time" />
+                    </span>
+                </span>
+            </div>
+        ))
+    }
+</div>
+
+<style>
+    .task {
+        @apply grid grid-cols-2 items-center gap-2 border rounded px-2 py-1 justify-between;
+    }
+</style>

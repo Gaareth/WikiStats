@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /wiki/*/mirror/
+
+Sitemap: https://wiki-stats.gaareth.com/sitemap-index.xml

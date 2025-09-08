@@ -1,0 +1,112 @@
+---
+import Layout from "../../../../layouts/Layout.astro";
+//@ts-ignore
+import { parse } from "node-html-parser";
+import Alert from "../../../../components/Alert.astro";
+import rawStylesCSS from "../../../../styles/wiki.css?raw";
+export const prerender = false;
+
+const { wiki_name, page_name } = Astro.params;
+let params = Astro.url.searchParams;
+let link = params.get("link");
+
+if (wiki_name === undefined || page_name === undefined) {
+    return Astro.redirect("/");
+}
+
+const base_wiki_url = `https://${wiki_name.slice(0, 2)}.wikipedia.org/wiki/`;
+const wiki_url = `${base_wiki_url}${page_name}`;
+const url = `https://${wiki_name.slice(0, 2)}.wikipedia.org/api/rest_v1/page/html/${page_name}`;
+let content = await (await fetch(url)).text();
+
+const root = parse(content);
+
+for (const node of root.querySelectorAll("base")) {
+    node.remove();
+}
+
+for (const node of root.querySelectorAll("link")) {
+    node.setAttribute(
+        "href",
+        "http://de.wikipedia.org/" + node.getAttribute("href"),
+    );
+}
+
+let links_found = 0;
+
+for (const node of root.querySelectorAll("a")) {
+    const href = node.getAttribute("href");
+    if (href && href.slice(2) == link) {
+        // node.setAttribute(
+        node.classList.add("link-highlight");
+        node.setAttribute("id", "scroll");
+        links_found += 1;
+    }
+
+    node.setAttribute("href", "http://de.wikipedia.org/wiki/" + href);
+}
+
+// https://de.wikipedia.org/w/load.php?lang=de&modules=ext.cite.parsoid.styles|ext.cite.styles|ext.tmh.player.styles|mediawiki.skinning.content.parsoid|mediawiki.skinning.interface|site.styles&only=styles&skin=vector
+---
+
+<Layout title={"WikiStats - " + page_name}>
+    <main class="max-w-screen-2xl w-full">
+        <div class="w-fit">
+            <!-- TODO: Search -->
+            {
+                link && (
+                    <Alert type="info">
+                        <div class="flex gap-2  justify-between items-center">
+                            <span>
+                                Highlighting Link:{" "}
+                                <a href={base_wiki_url + link}>{link}</a>
+                                <span>(Found {links_found})</span>
+                            </span>
+                            <button
+                                class="button bg-white dark-layer-2 py-1 text-dark_00 dark:text-neutral-100"
+                                id="scroll-btn"
+                            >
+                                Scroll to it
+                            </button>
+                        </div>
+                    </Alert>
+                )
+            }
+
+            {
+                links_found == 0 && (
+                    <Alert type="error">
+                        No Links found. It's possible that this link was removed
+                        since {process.env.LATEST_DUMP}, as the wikimedia dumps
+                        are not realtime synchronized.
+                    </Alert>
+                )
+            }
+        </div>
+        <h1
+            class="text-xl sm:text-4xl flex flex-wrap gap-2 items-center break-all"
+        >
+            {page_name}
+            <Alert type="warning">
+                This content is directly taken from <a href={wiki_url}
+                    >{wiki_url}</a
+                ></Alert
+            >
+        </h1>
+        <div set:html={root.toString()} id="mirror" />
+    </main>
+    <!-- <iframe src={`https://${wiki_name.slice(0, 2)}.wikipedia.org/wiki/${page_name}`} 
+  height="1920" width="1080" 
+  style="background-color: black;"
+  ></iframe>  -->
+</Layout>
+
+<style is:inline set:html={rawStylesCSS}></style>
+
+<script>
+    const link = document.getElementById("scroll");
+
+    document
+        .getElementById("scroll-btn")
+        ?.addEventListener("click", () => link?.scrollIntoView());
+</script>

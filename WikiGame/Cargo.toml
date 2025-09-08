@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "cli",
+    "lib",
+    "server"
+]
+
+#[workspace.dependencies]
+#rusqlite = "0.31.0"
+
+[patch.crates-io]
+parse-mediawiki-sql = { path = "parse-mediawiki-sql" }

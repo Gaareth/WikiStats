@@ -1,0 +1,134 @@
+---
+import {
+    get_supported_wikis,
+    MAX_NUM_LINKS_STAT,
+    MAX_NUM_PAGES_STAT,
+    MIN_NUM_LINKS_STAT,
+    MIN_NUM_PAGES_STAT,
+    NUM_DEAD_PAGES_STAT,
+    NUM_LINKS_LOADED_STAT,
+    NUM_PAGES_LOADED_STAT,
+    NUM_ROOT_PAGES_STAT,
+} from "../../../db/constants";
+import { big_num_format, flattenGroupedData } from "../../../utils";
+import Card from "../../Card";
+import DatasetSelection from "../../Charts/DatasetSelection";
+import Pill from "../../Pill";
+
+interface Props {
+    dump_date: string;
+}
+
+const { dump_date } = Astro.props;
+
+let datasets: Record<string, number[]> = {
+    "Amount of pages": [],
+    "Amount of links": [],
+    "Amount of dead pages": [],
+    "Amount of orphan pages": [],
+};
+
+const wikis = await get_supported_wikis(dump_date);
+for (const w of wikis) {
+    datasets["Amount of pages"].push(
+        await NUM_PAGES_LOADED_STAT.get(dump_date, w),
+    );
+    datasets["Amount of links"].push(
+        await NUM_LINKS_LOADED_STAT.get(dump_date, w),
+    );
+    datasets["Amount of dead pages"].push(
+        await NUM_DEAD_PAGES_STAT.get(dump_date, w),
+    );
+
+    datasets["Amount of orphan pages"].push(
+        await NUM_ROOT_PAGES_STAT.get(dump_date, w),
+    );
+}
+
+const flattendDataset = flattenGroupedData(datasets);
+
+const max_num_pages = await MAX_NUM_PAGES_STAT(dump_date);
+const min_num_pages = await MIN_NUM_PAGES_STAT(dump_date);
+const max_num_links = await MAX_NUM_LINKS_STAT(dump_date);
+const min_num_links = await MIN_NUM_LINKS_STAT(dump_date);
+---
+
+<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
+    <Card>
+        <div class="flex justify-between">
+            <p class="text-lg">Most pages</p>
+            <Pill>{max_num_pages[0]}</Pill>
+        </div>
+
+        <p class="font-bold mt-0.5">
+            {big_num_format(max_num_pages[1])}
+        </p>
+    </Card>
+
+    <!-- <Stat title="Avg pages wiki" value={`${AVG_NUM_PAGES_STAT[0]}`} /> -->
+    <Card>
+        <div class="flex justify-between">
+            <p class="text-lg">Min pages wiki</p>
+            <Pill>{min_num_pages[0]}</Pill>
+        </div>
+        <p class="font-bold mt-0.5">
+            {big_num_format(min_num_pages[1])}
+        </p>
+    </Card>
+
+    <Card>
+        <div class="flex justify-between">
+            <p class="text-lg">Most links wiki</p>
+            <Pill>{max_num_links[0]}</Pill>
+        </div>
+        <p class="font-bold mt-0.5">
+            {big_num_format(max_num_links[1])}
+        </p>
+    </Card>
+
+    <Card>
+        <div class="flex justify-between">
+            <p class="text-lg">Min links wiki</p>
+            <Pill>{min_num_links[0]}</Pill>
+        </div>
+        <p class="font-bold mt-0.5">
+            {big_num_format(min_num_links[1])}
+        </p>
+    </Card>
+</div>
+<!-- 
+datasets={[
+    [flattendDataset[0], flattendDataset[1]],
+    [flattendDataset[2], flattendDataset[3]],
+]} -->
+<div class="my-10 mb-40 sm:mb-10 h-[400px]">
+    <DatasetSelection
+        chartType="bar"
+        labels={wikis}
+        datasets={[
+            [flattendDataset[0]],
+            [flattendDataset[1]],
+            [flattendDataset[2]],
+            [flattendDataset[3]],
+            flattendDataset,
+        ]}
+        selectionLabels={[
+            "pages",
+            "links",
+            "dead-ends",
+            "orphans",
+            "all log scale",
+        ]}
+        client:load
+        height={350}
+        chartOptionsAll={{}}
+        chartOptions={[
+            {},
+            {},
+            {},
+            {},
+            { scales: { y: { type: "logarithmic" } } },
+        ]}
+        title="Number of pages by category"
+    />
+</div>

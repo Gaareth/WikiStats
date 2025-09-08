@@ -1,0 +1,76 @@
+---
+import { SqliteError } from "better-sqlite3";
+import {
+    ArrowBack,
+    MaterialSymbolsDatabase,
+} from "../components/ClientIcons/Icons";
+import Layout from "../layouts/Layout.astro";
+
+const headlines = [
+    "Internal Server Error",
+    "Total Meltdown!",
+    "Catastrophic Error",
+    "Apocalypse Now!",
+    "Unprecedented Catastrophe",
+    "Catastrophic System Failure",
+];
+const randomHeadline = headlines[Math.floor(Math.random() * headlines.length)];
+
+// interface Props {
+//     error: unknown;
+// }
+
+// const { error } = Astro.props;
+// console.log("error", error);
+---
+
+<Layout title="Internal Server Error - 500">
+    <main>
+        <h1
+            class="mt-20 mx-auto text-center text-2xl sm:text-4xl flex flex-wrap justify-center"
+        >
+            {randomHeadline} - {" "}
+            <!-- {
+                error instanceof SqliteError ? (
+                    <span class="inline-flex items-center gap-1 ml-2">
+                        <span class="inline-block w-8">
+                            <MaterialSymbolsDatabase />
+                        </span>
+                        Database problems{" "}
+                    </span>
+                ) : (
+                    <span>?Unknown cause</span>
+                )
+            } -->
+        </h1>
+        <div
+            class="mt-4 text-center text-base text-gray-500 dark:text-gray-400"
+        >
+            <!-- {
+                error instanceof SqliteError ? (
+                    <p>
+                        The database seems to have some problems with the
+                        requested resource. It's possible that the data does not
+                        exist.
+                    </p>
+                ) : (
+                    <p>
+                        Something went
+                        <span class="underline decoration-red-400 decoration-2">
+                            horribly
+                        </span>{" "}
+                        wrong.
+                    </p>
+                )
+            } -->
+
+            Please try again later or return to the homepage.
+        </div>
+        <div class="mt-5 flex justify-center">
+            <a href="/" class="btn-light icon-wrapper group">
+                <span class="icon-back"><ArrowBack /></span>
+                Back
+            </a>
+        </div>
+    </main>
+</Layout>

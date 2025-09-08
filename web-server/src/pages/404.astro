@@ -1,0 +1,25 @@
+---
+import { ArrowBack } from "../components/ClientIcons/Icons";
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Not found - 404">
+    <main class="">
+        <h1 class="mt-20 text-center text-2xl sm:text-5xl">
+            404 - Page not found
+        </h1>
+        <p
+            class="mt-4 text-center text-sm text-gray-500 dark:text-gray-400 max-w-xl mx-auto"
+        >
+            The requested page does not exist. This can be an error on our end
+            or an incorrect URL. Please go back to the homepage or check the
+            URL.
+        </p>
+        <div class="mt-5 flex justify-center">
+            <a href="/" class="btn-light icon-wrapper group">
+                <span class="icon-back"><ArrowBack /></span>
+                Back
+            </a>
+        </div>
+    </main>
+</Layout>

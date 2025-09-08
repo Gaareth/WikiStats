@@ -1,0 +1,123 @@
+@tailwind utilities;
+
+@keyframes rotate {
+    100% {
+        transform: rotate(1turn);
+    }
+}
+
+@layer utilities {
+    /* https://dev.to/chokcoco/fantastic-css-border-animation-5166 */
+    .border-cool {
+        position: relative;
+        z-index: 0;
+
+        border-radius: 0.5rem;
+        overflow: hidden;
+        /* padding: 2rem; */
+
+        &::before {
+            content: "";
+            position: absolute;
+            z-index: -2;
+            left: -100%;
+            top: -100%;
+            width: 300%;
+            height: 300%;
+
+            /* left: -50%;
+            top: -50%;
+            width: 200%;
+            height: 200%; */
+
+            /* background-color: #399953; */
+            background-repeat: no-repeat;
+            background-size:
+                50% 50%,
+                50% 50%;
+            background-position:
+                0 0,
+                100% 0,
+                100% 100%,
+                0 100%;
+
+            background-size: 50% 50%;
+            background-position: 0 0;
+
+            /* background-image: linear-gradient(#399953, #399953), linear-gradient(#fbb300, #fbb300), linear-gradient(#d53e33, #d53e33), linear-gradient(#377af5, #377af5); */
+            /* background-image: linear-gradient(rgb(79, 128, 227), rgba(78, 58, 229, 0.793)), linear-gradient(rgba(78, 58, 229, 0.793), rgba(78, 58, 229, 0.793)), linear-gradient(white, white); */
+            background-image: conic-gradient(
+                rgb(79, 128, 227),
+                rgba(78, 58, 229, 0.93),
+                transparent 60%
+            );
+
+            animation: rotate 5s linear infinite;
+        }
+
+        &::after {
+            content: "";
+            position: absolute;
+            z-index: -1;
+            left: 4px;
+            top: 4px;
+            width: calc(100% - 8px);
+            height: calc(100% - 8px);
+            /* background: #1e1e1e; */
+            background: white;
+            border-radius: 0.25rem;
+            animation: opacityChange 3s infinite alternate;
+        }
+    }
+
+    $colorful-border-width: 0.125rem;
+
+    .border-colorful {
+        position: relative;
+        /* margin: 300px auto 0;
+        width: 500px;
+        height: 250px; */
+        /* background: linear-gradient(0deg, #000, #272727); */
+        /* background: white; */
+        /* border-radius: 2px; */
+    }
+
+    .border-colorful:before,
+    .border-colorful:after {
+        content: "";
+        position: absolute;
+        left: -$colorful-border-width;
+        top: -$colorful-border-width;
+        /* background: linear-gradient(45deg, #fb0094, #0000ff, #00ff00, #ffff00, #ff0000, #fb0094,
+                #0000ff, #00ff00, #ffff00, #ff0000); */
+
+        background-image: linear-gradient(
+            45deg,
+            #84a6eb,
+            rgb(79, 128, 227),
+            rgba(78, 58, 229, 0.793),
+            #bc48ff,
+            #84a6eb,
+            rgb(79, 128, 227),
+            rgba(78, 58, 229, 0.793),
+            #bc48ff
+        );
+
+        background-size: 400%;
+        width: calc(100% + 2 * $colorful-border-width);
+        height: calc(100% + 2 * $colorful-border-width);
+        z-index: -1;
+        animation: steam 20s linear infinite;
+    }
+
+    .border-colorful-default-rounded.border-colorful:after,
+    .border-colorful-default-rounded.border-colorful:before {
+        border-radius: 0.125rem + $colorful-border-width;
+        // depends currently on dark border card rounding. which is rounded-sm 0.125rem.
+        // outer radius = padding + inner radius
+    }
+
+    .border-colorful:after {
+        filter: blur(3px);
+    }
+}

@@ -1,0 +1,64 @@
+---
+import Alert from "../../../components/Alert.astro";
+import WikiSelection from "../../../components/Selection/WikiSelection.astro";
+import { TopGraph } from "../../../components/Sigma/SigmaGraph";
+import { WIKI_NAMES } from "../../../db/constants";
+import Layout from "../../../layouts/Layout.astro";
+
+export async function getStaticPaths() {
+    const wiki_names = WIKI_NAMES;
+    const wiki_params: { params: { wiki_name: string | undefined } }[] =
+        wiki_names.map(({ name: wiki_name }) => {
+            return { params: { wiki_name } };
+        });
+
+    wiki_params.push({ params: { wiki_name: undefined } });
+    console.log(wiki_params);
+
+    return wiki_params;
+
+    // return [{ params: { wikiname: "jawiki" } }, { params: { wikiname: undefined } }];
+}
+
+interface Params {
+    wiki_name: string | undefined;
+}
+
+const { wiki_name }: Params | undefined = Astro.params;
+// const path = await path
+// const graph = fromGraphmlFile
+---
+
+<Layout title="g">
+    <main class="w-screen">
+        <div class="max-w-screen-md mx-auto">
+            <Alert type="warning">Work in progress feature</Alert>
+
+            <WikiSelection currrent_wikiname={wiki_name} dir="graph" />
+        </div>
+        <section>
+            {
+                wiki_name !== undefined && (
+                    <TopGraph client:only="solid" wiki_name={wiki_name!} />
+                )
+            }
+
+            {
+                wiki_name === undefined && (
+                    <div class="max-w-screen-md mx-auto">
+                        <Alert type="warning">Please choose a wiki first</Alert>
+                    </div>
+                )
+            }
+
+            <noscript>
+                <div class="max-w-screen-md mx-auto">
+                    <Alert type="error">
+                        The graph visualization uses SigmaJS. You have to enable
+                        javascript to load the graph.
+                    </Alert>
+                </div>
+            </noscript>
+        </section>
+    </main>
+</Layout>

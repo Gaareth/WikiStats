@@ -1,0 +1,114 @@
+---
+import clsx from "clsx";
+import {
+    NUM_LINKED_REDIRECTS_STAT,
+    NUM_LINKS_LOADED_STAT,
+    NUM_PAGES_LOADED_STAT,
+    NUM_REDIRECTS_LOADED_STAT,
+    TOP_TEN_MOST_LINKED_STAT,
+    TOP_TEN_MOST_LINKS_STAT,
+} from "../db/constants";
+
+import { getEarlierEntry } from "../content/config";
+import { big_num_format } from "../utils";
+import CardTabs from "./CardTabs.astro";
+import Stat from "./Stat";
+
+interface Props {
+    wiki_name?: string;
+    dump_date: string;
+    simple?: boolean;
+}
+
+const { wiki_name, dump_date, simple } = Astro.props;
+
+let most_link_pages = await TOP_TEN_MOST_LINKS_STAT.get(dump_date, wiki_name);
+
+let most_linked_pages = await TOP_TEN_MOST_LINKED_STAT.get(
+    dump_date,
+    wiki_name,
+);
+
+let most_linked_page = most_linked_pages?.at(0);
+let most_link_page = most_link_pages?.at(0);
+
+const earlierDumpdate = (await getEarlierEntry(dump_date))?.id;
+let most_linked_page_last =
+    earlierDumpdate != null &&
+    (await TOP_TEN_MOST_LINKED_STAT.get(earlierDumpdate, wiki_name))?.at(0);
+
+// console.log(earlierDumpdate);
+
+// console.log(most_linked_page_last);
+
+const num_pages = await NUM_PAGES_LOADED_STAT.get(dump_date, wiki_name);
+// const num_pages_trend = get_trend(num_pages, num_page_previous);
+
+const num_redirects = await NUM_REDIRECTS_LOADED_STAT.get(dump_date, wiki_name);
+const redirects_percentage = ((num_redirects / num_pages) * 100).toFixed(2);
+
+const num_links = await NUM_LINKS_LOADED_STAT.get(dump_date, wiki_name);
+const linked_redirects = await NUM_LINKED_REDIRECTS_STAT.get(
+    dump_date,
+    wiki_name,
+);
+const linked_redirects_percentage = (
+    (linked_redirects / num_links) *
+    100
+).toFixed(2);
+---
+
+<div
+    class="grid grid-cols-1 min-[550px]:grid-cols-2 lg:flex lg:flex-row gap-1 sm:gap-2 md:gap-3 my-1 sm:my-2 md:my-3"
+>
+    <CardTabs tabs={["All Articles", "Redirects"]} className="w-full lg:w-72">
+        <p class="font-bold" slot="tab1">{big_num_format(num_pages)}</p>
+
+        <p slot="tab2" class="font-bold flex items-center justify-center gap-2">
+            {`${big_num_format(num_redirects)}`}
+            <span class="font-normal text-sm">({redirects_percentage}%)</span>
+        </p>
+    </CardTabs>
+
+    <CardTabs
+        tabs={["All Links", "Linked Redirects"]}
+        className="w-full lg:w-72"
+    >
+        <p class="font-bold" slot="tab1">{big_num_format(num_links)}</p>
+
+        <p slot="tab2" class="font-bold flex items-center justify-center gap-2">
+            {`${big_num_format(linked_redirects)}`}
+            <span class="font-normal text-sm">
+                ({linked_redirects_percentage}%)
+            </span>
+        </p>
+    </CardTabs>
+</div>
+
+<div class="grid grid-cols-2 lg:grid-cols-6 gap-1 sm:gap-2 md:gap-3">
+    {
+        most_linked_page && (
+            <Stat
+                client:load
+                title="Most linked"
+                value={`(${big_num_format(most_linked_page.count)})`}
+                wiki_link={{ ...most_linked_page }}
+                className="w-full col-span-2 lg:col-span-3"
+            />
+        )
+    }
+
+    {
+        most_link_page && (
+            <Stat
+                title="Most links"
+                value={`(${big_num_format(most_link_page.count)})`}
+                wiki_link={{ ...most_link_page }}
+                className={clsx("w-full col-span-2 lg:col-span-3")}
+                client:load
+            />
+        )
+    }
+
+    <slot />
+</div>

@@ -1,0 +1,212 @@
+---
+import clsx from "clsx";
+import Alert from "../../../components/Alert.astro";
+import PageLinks from "../../../components/PageLinks";
+import WikiSelection from "../../../components/Selection/WikiSelection.astro";
+import { NeighborGraph } from "../../../components/Sigma/SigmaGraph";
+import { get_supported_wikis } from "../../../db/constants";
+import {
+    get_number_of_links,
+    get_number_of_times_linked,
+    page_is_redirect,
+} from "../../../db/db";
+import Layout from "../../../layouts/Layout.astro";
+import { big_num_format, wiki_link } from "../../../utils";
+
+// export async function getStaticPaths() {
+//   // const page_with_links = await db
+//   //   .select({pageTitle: wikiPage.pageTitle, wikiName: wikiPage.wikiName, pageLink: wikiLink.pageLink})
+//   //   .from(wikiPage)
+//   //   .leftJoin(wikiLink, eq(wikiPage.pageId, wikiLink.pageId));
+
+//   // console.log("res: ");
+//   // console.log(page_with_links);
+
+//   const pages = await get_pages();
+
+//   const working_pages = pages.filter((page) => {
+//     try {
+//       decodeURI(page.pageTitle);
+//       return true;
+//     } catch {
+//       return false;
+//     }
+//   });
+
+//   let params = [];
+//   for (let page of working_pages) {
+//     params.push({
+//       params: { wikiname: page.wikiName, pagename: page.pageTitle },
+//       props: { links: [] },
+//     });
+//   }
+// // (await get_links(page.pageTitle, page.wikiName!))
+//   console.log(params[1]);
+//   // params.push({params: {w}})
+
+//   return params;
+//   // return [
+//   //   {
+//   //     params: { wikiname: "ja", pagename: "君は100%" },
+//   //     props: { links: [] },
+//   //   },
+
+//   //   {
+//   //     params: { wikiname: "de", pagename: "Unicodeblock_Basis-Lateinisch" },
+//   //     props: { links: [] },
+//   //   },
+//   // ];
+// }
+
+export const prerender = false;
+
+// interface Props {
+//   links: {
+//     wikiPage: {
+//       pageId: number;
+//       pageTitle: string;
+//       wikiName: string | null;
+//     } | null;
+//   }[];
+// }
+
+const { wiki_name, page_name } = Astro.params;
+
+console.log("pagename", wiki_name, page_name);
+
+if (wiki_name === undefined || page_name === undefined) {
+    return Astro.redirect("/");
+}
+
+let num_linked: number | undefined;
+let num_links: number | undefined;
+// let graph = await fromPage(wiki_name, page_name);
+let is_redirect: boolean | undefined;
+
+let unsupported_wiki = false;
+if (!(await get_supported_wikis("latest")).includes(wiki_name)) {
+    unsupported_wiki = true;
+} else {
+    num_linked = await get_number_of_times_linked(page_name, wiki_name);
+    num_links = await get_number_of_links(page_name, wiki_name);
+    is_redirect = await page_is_redirect(page_name, wiki_name);
+}
+---
+
+<Layout title={"WikiStats - " + page_name}>
+    <main class="max-w-screen-xl w-full">
+        {
+            num_linked === undefined && (
+                <div class="max-w-[900px] px-4 mx-auto">
+                    <WikiSelection
+                        currrent_wikiname={wiki_name}
+                        dir={page_name}
+                        global_possible={true}
+                        dump_date="latest"
+                    />
+                </div>
+            )
+        }
+
+        {
+            num_linked === undefined && (
+                <div class="absolute top-0 bottom-0 left-0 right-0 m-auto h-fit">
+                    <h1 class="text-5xl text-center">404</h1>
+                    <div class="text-slate-500 text-base text-center mt-1">
+                        {!unsupported_wiki && (
+                            <>
+                                <p>
+                                    Sorry but '
+                                    <span class="underline">{page_name}</span>'{" "}
+                                    does not seem to be in our{" "}
+                                    <span class="underline">{wiki_name}</span>{" "}
+                                    database.
+                                </p>
+                                <p>
+                                    Our sources might be outdated, wrong or
+                                    perhaps you mistyped?
+                                </p>
+                            </>
+                        )}
+
+                        {unsupported_wiki && (
+                            <p>
+                                Unsupported wiki '{wiki_name}'. Choose a
+                                different one above
+                            </p>
+                        )}
+                    </div>
+                </div>
+            )
+        }
+
+        {
+            num_linked !== undefined && num_links !== undefined && (
+                <>
+                    <div class="main-width">
+                        {is_redirect && (
+                            <Alert type="info">
+                                <p class="text-lg mb-1">
+                                    Info: This page is a redirect
+                                </p>
+                                <p class="text-black dark:text-neutral-100 dark:text- text-sm">
+                                    check
+                                    <a
+                                        href="#links"
+                                        class="underline text-black dark:text-neutral-100">
+                                        below
+                                    </a>
+                                    for the target page
+                                </p>
+                            </Alert>
+                        )}
+                        <div
+                            class={clsx(
+                                "flex flex-wrap justify-between mb-5 gap-1",
+                                page_name.length > 40 && "flex-col-reverse",
+                            )}>
+                            <h1 class="text-2xl break-all">
+                                <a href={wiki_link(page_name, wiki_name)}>
+                                    {page_name}
+                                </a>
+                            </h1>
+                            <div>
+                                <span>
+                                    Times linked ({big_num_format(num_linked)})
+                                </span>
+                                <span>|</span>
+                                <span>Links ({big_num_format(num_links)})</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <NeighborGraph
+                        client:only="solid"
+                        page_title={page_name}
+                        wiki_name={wiki_name}
+                        num_links={num_links!}
+                        times_linked={num_linked!}
+                    />
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 px-2 gap-2">
+                        <PageLinks
+                            client:only="solid"
+                            {wiki_name}
+                            {page_name}
+                            total={num_linked}
+                            incoming={true}
+                        />
+                        <PageLinks
+                            client:only="solid"
+                            {wiki_name}
+                            {page_name}
+                            total={num_links}
+                        />
+                    </div>
+                </>
+            )
+        }
+
+        <!-- <p id="sigma-loading">loading</p> -->
+    </main>
+</Layout>

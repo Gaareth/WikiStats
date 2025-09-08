@@ -1,0 +1,82 @@
+---
+import clsx from "clsx";
+import { TaskStatusIndicator } from "./TaskStatusIndicator";
+import TaskTime from "./TaskTime.astro";
+
+export type TaskStatus = "DONE" | "FAILED" | "RUNNING";
+
+export interface TaskType {
+    name: string;
+    status: TaskStatus;
+    startedAt: Date;
+    finishedAt?: Date;
+    message?: string;
+    dumpDate: string;
+}
+
+interface Props {
+    tasks: TaskType[];
+    date: string;
+}
+
+const { tasks, date } = Astro.props;
+---
+
+<div class="flex flex-col gap-2">
+    {
+        tasks.map((t, i) => (
+            <div
+                class={clsx(
+                    "task dark-layer-1",
+                    t.message != null && "!grid-cols-2 sm:!grid-cols-3",
+                )}
+            >
+                <div class="flex items-center gap-2">
+                    <TaskStatusIndicator status={t.status} client:load />
+
+                    <div class="leading-tight flex flex-col">
+                        <span>{t.name}</span>
+                        {/* <span class="text-secondary text-sm">
+                            Dump date: {t.dumpDate}
+                        </span> */}
+                    </div>
+                </div>
+
+                {t.message != null && (
+                    <>
+                        <span
+                            class="col-span-2 sm:col-span-1 row-start-2 sm:row-start-auto 
+                                        text-sm text-red-500 dark:text-red-400 text-ellipsis line-clamp-2"
+                            data-tooltip-target={date + "tooltip-msg" + i}
+                            aria-describedby={date + "tooltip-msg" + i}
+                        >
+                            {t.message}
+                        </span>
+                        <div
+                            id={date + "tooltip-msg" + i}
+                            role="tooltip"
+                            class="default-tooltip tooltip"
+                        >
+                            {t.message}
+                            <div class="tooltip-arrow" data-popper-arrow />
+                        </div>
+                    </>
+                )}
+
+                <TaskTime
+                    startedAt={t.startedAt}
+                    finishedAt={t.finishedAt}
+                    className={
+                        t.message == null ? "col-span-2 col-start-2" : undefined
+                    }
+                />
+            </div>
+        ))
+    }
+</div>
+
+<style>
+    .task {
+        @apply grid grid-cols-2 items-center gap-2 border rounded px-2 py-1 justify-between;
+    }
+</style>

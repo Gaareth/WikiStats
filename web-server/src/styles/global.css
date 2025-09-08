@@ -1,0 +1,350 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --dark-00: #121212;
+        --dark-01: #1e1e1e;
+        --dark-02: #242424;
+        --dark-03: #2c2c2c;
+        --dark-04: #333333;
+        --dark-05: #383838;
+        --border-color: rgba(229, 231, 235, 1);
+        --accent: #36c;
+        --accent-light: rgb(224, 204, 250);
+        --accent-dark: rgb(92, 152, 214);
+        --gradient-start: rgb(79, 128, 227);
+        --gradient-end-dark: #9385eeff;
+        --gradient-end-white: rgba(78, 58, 229, 0.793);
+
+        --accent-gradient: linear-gradient(
+            45deg,
+            var(--gradient-start),
+            var(--gradient-end-white) 30%,
+            white 60%
+        );
+
+        --accent-gradient-dark: linear-gradient(
+            45deg,
+            var(--gradient-start),
+            var(--gradient-end-white),
+            30%,
+            white 60%
+        );
+        --fg-dark: rgb(245, 245, 245);
+    }
+}
+
+/* .border {
+    border: var(--border-color) solid 1px;
+    border-radius: 0.25rem;
+  }
+
+  .border-hover:hover {
+    border-color: var(--accent);
+  } */
+
+input-b {
+    background-color: rgba(255, 255, 255, 0.5);
+    /* color: #000; */
+    width: 100%;
+    border: 1px solid #a2a9b1;
+    border-radius: 2px;
+    padding: 5px 2.15384615em 5px 0.4em;
+}
+
+@layer utilities {
+    .text-secondary {
+        @apply text-gray-500 dark:text-gray-400;
+    }
+
+    .text-error {
+        @apply text-red-500 dark:text-red-400;
+    }
+
+    .dark-layer-1 {
+        @apply dark:!bg-dark_01 dark:border-dark_02 dark:enabled:hover:bg-dark_03 dark:enabled:hover:border-dark_05;
+    }
+
+    .dark-layer-2 {
+        @apply dark:!bg-dark_02 dark:border-dark_03 dark:enabled:hover:bg-dark_04 dark:enabled:hover:border-dark_05;
+    }
+
+    .dark-layer-3 {
+        @apply dark:!bg-dark_03 dark:border-dark_04 dark:enabled:hover:bg-dark_05 dark:enabled:hover:border-dark_05;
+    }
+
+    .dark-border-1 {
+        @apply dark:border-dark_02  dark:enabled:hover:border-dark_05;
+    }
+
+    .dark-border-2 {
+        @apply dark:border-dark_03 dark:enabled:hover:border-dark_05;
+    }
+
+    .dark-border-3 {
+        @apply dark:border-dark_04 dark:enabled:hover:border-dark_05;
+    }
+
+    .main-width {
+        padding: 1rem;
+        width: 900px;
+        max-width: calc(100% - 2rem);
+        margin: auto;
+    }
+
+    .error {
+        /* color: #ef4444; */
+        @apply text-red-600 dark:text-red-400;
+    }
+
+    .bg-blue-purple-gradient {
+        background-image: linear-gradient(83.21deg, #3245ff 0%, #b845ed 100%);
+    }
+
+    .text-accent-color {
+        color: var(--accent);
+    }
+
+    .bg-skeleton {
+        @apply bg-slate-200 dark:bg-neutral-500 rounded animate-pulse;
+    }
+
+    .bg-skeleton-no-pulse {
+        @apply bg-slate-200 dark:bg-neutral-500 rounded;
+    }
+
+    .text-gradient {
+        background-image: var(--accent-gradient);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-size: 400%;
+        background-position: 0%;
+    }
+
+    .text-gradient-dark {
+        background-image: var(--accent-gradient-dark);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-size: 400%;
+        background-position: 0%;
+    }
+
+    .text-gradient-border-colorful {
+        background-image: linear-gradient(
+            45deg,
+            #84a6eb,
+            rgb(79, 128, 227),
+            rgba(78, 58, 229, 0.793),
+            #bc48ff,
+            #84a6eb,
+            rgb(79, 128, 227),
+            rgba(78, 58, 229, 0.793),
+            #bc48ff
+        );
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-size: 400%;
+        background-position: 0%;
+        animation: steam 20s linear infinite;
+    }
+
+    @keyframes steam {
+        0% {
+            background-position: 0 0;
+        }
+
+        50% {
+            background-position: 400% 0;
+        }
+
+        100% {
+            background-position: 0 0;
+        }
+    }
+}
+
+@layer base {
+    a {
+        color: var(--accent);
+    }
+
+    a:hover {
+        text-decoration: underline;
+    }
+
+    :where(.dark) {
+        a {
+            color: var(--accent-dark);
+        }
+    }
+
+    :where(.dark) {
+        body {
+            color: var(--fg-dark) !important;
+        }
+    }
+}
+
+@layer components {
+    .select {
+        @apply dark:bg-dark_01 dark:border-dark_02 px-2 border-slate-300 border bg-slate-50;
+    }
+
+    .input-default {
+        @apply dark:text-white border-slate-200 border px-2 py-1;
+    }
+
+    .button {
+        padding: 0px 12px;
+        /* background-color: white; */
+        border: none;
+        border: #a2a9b1 solid 1px;
+        border-color: rgba(229, 231, 235, 1);
+        /* border: var(--border-color) solid 1px; */
+        border-radius: 0.25rem;
+    }
+
+    .button:hover:not(:disabled) {
+        @apply bg-neutral-50;
+    }
+
+    /* Tooltip styles */
+    /* .tooltip-wrapper {
+    position: relative;
+    display: inline-block;
+  } */
+
+    /* .tooltip {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translate(-50%, calc(100% + 10px));
+    padding: 6px calc(10px + 1rem) 6px 10px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    background: rgb(0, 0, 0, 0.85);
+    backdrop-filter: blur(4px);
+    color: #fff;
+    visibility: hidden;
+    white-space: nowrap;
+    z-index: 100;
+  } */
+
+    /* .tooltip::before {
+    content: "";
+    position: absolute;
+    top: -9px;
+    left: calc(50% - 10px);
+    border-bottom: 10px solid rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(4px);
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+  } */
+
+    .default-tooltip {
+        @apply absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-sm opacity-0 dark:bg-dark_04;
+    }
+
+    :where(.dark) {
+        .solid-select .solid-select-input {
+            color: white !important;
+        }
+
+        .solid-select .solid-select-control {
+            border-color: var(--dark-02) !important;
+            background-color: var(--dark-01) !important;
+        }
+
+        .solid-select .solid-select-control:hover {
+            border-color: var(--dark-03) !important;
+            background-color: var(--dark-02) !important;
+        }
+
+        .solid-select .solid-select-list {
+            background-color: var(--dark-02) !important;
+            color: white !important;
+            border: 1px solid var(--dark-03) !important;
+        }
+
+        .solid-select .solid-select-option {
+            background-color: var(--dark-02) !important;
+            color: white !important;
+        }
+
+        .solid-select .solid-select-option:hover {
+            background-color: var(--dark-04) !important;
+        }
+
+        /* hack: disabled means its selected (its for styling) (solid-select lib is not flexible enough)*/
+        .solid-select .solid-select-option[data-disabled="true"] {
+            background-color: var(--dark-03) !important;
+        }
+
+        .solid-select-option[data-focused="true"] {
+            @apply !bg-transparent;
+        }
+    }
+
+    :where(:not(.dark)) {
+        .solid-select .solid-select-list {
+            background-color: white;
+            color: black;
+        }
+
+        .solid-select .solid-select-option[data-focused="true"] {
+            @apply bg-transparent;
+        }
+
+        .solid-select .solid-select-option:hover {
+            @apply bg-gray-200;
+        }
+
+        .solid-select .solid-select-option[data-disabled="true"] {
+            @apply bg-gray-100 text-black;
+        }
+    }
+
+    .solid-select-container {
+        border-radius: 0.25rem;
+    }
+
+    .solid-select .solid-select-control:hover {
+        /* outline-color: #fca560;
+    border-color: #fca560; */
+        /* border-style: solid; */
+        border-color: var(--accent);
+        /* width: 10px; */
+    }
+
+    .solid-select .solid-select-single-value {
+        overflow: clip;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .solid-select .solid-select-list {
+        width: 100%;
+        white-space: break-spaces;
+    }
+
+    .solid-select .solid-select-option {
+        word-break: break-all;
+    }
+
+    .solid-select .solid-select-input {
+        outline: none;
+    }
+
+    .icon-wrapper {
+        @apply flex items-center gap-1;
+    }
+
+    .icon-back {
+        @apply w-5 block group-hover:-translate-x-0.5 transition-transform;
+    }
+}

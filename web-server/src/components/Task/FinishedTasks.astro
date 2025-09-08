@@ -1,0 +1,62 @@
+---
+import Collapsible from "../Collapsible.astro";
+import Task, { type TaskType } from "./Task.astro";
+import { TaskStatusIndicator } from "./TaskStatusIndicator";
+import TaskTime from "./TaskTime.astro";
+
+interface Props {
+    finishedTasks: TaskType[];
+}
+const { finishedTasks } = Astro.props;
+
+let tasksByDumpDate: Record<string, TaskType[]> = finishedTasks.reduce(
+    (acc, task) => {
+        if (!acc[task.dumpDate]) {
+            acc[task.dumpDate] = [];
+        }
+        acc[task.dumpDate].push(task);
+        return acc;
+    },
+    {} as Record<string, TaskType[]>,
+);
+---
+
+{finishedTasks.length > 0 && <p class="mt-2">Finished</p>}
+<div class="flex flex-col gap-4">
+    {
+        Object.entries(tasksByDumpDate)
+            .sort(([d1, any], [d2, _]) => (d1 > d2 ? -1 : 1))
+            .map(([date, tasks], i) => (
+                <Collapsible open={i == 0}>
+                    <div slot="summary" class="w-full">
+                        <div class="flex items-center gap-2 w-full">
+                            <TaskStatusIndicator
+                                status={
+                                    tasks.some((t) => t.status === "FAILED")
+                                        ? "FAILED"
+                                        : "DONE"
+                                }
+                                client:load
+                            />
+                            <div class="w-full">
+                                <p>
+                                    <span class="font-bold">Dump {date}</span>
+                                    <span class="text-secondary">
+                                        ({tasks.length} tasks)
+                                    </span>
+                                </p>
+                                <TaskTime
+                                    startedAt={
+                                        tasks[tasks.length - 1].startedAt
+                                    }
+                                    finishedAt={tasks[0].finishedAt}
+                                    className="ml-auto mr-1 sm:mr-3"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <Task tasks={tasks} date={date} />
+                </Collapsible>
+            ))
+    }
+</div>

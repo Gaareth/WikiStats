@@ -1,0 +1,47 @@
+---
+import stats from "../../generated-stats/stats.json";
+import { version } from "../../package.json";
+const latest_dump = process.env.LATEST_DUMP;
+---
+
+<footer
+    class="bg-neutral-900 dark:bg-neutral-950/30 text-white dark:text-neutral-100 absolute -bottom-[100px]
+  backdrop-blur-3xl overflow-hidden grid place-items-center
+w-full text-sm text-center p-2"
+>
+    <div class="blob"></div>
+
+    <div>
+        <span>Database dump: {latest_dump}</span>
+        |
+        <span>
+            Stats generated at: {
+                new Date(stats.created_at * 1000).toDateString()
+            }
+        </span>
+    </div>
+    <p class="mt-2">
+        <a href="https://gaareth.com" class="text-white dark:text-neutral-100">
+            @Gaareth
+        </a>
+    </p>
+    <p
+        class="absolute bottom-0 text-sm text-right px-3 w-full text-neutral-300"
+    >
+        V{version}
+    </p>
+</footer>
+
+<style>
+    .blob {
+        position: absolute;
+        opacity: 0.5;
+        width: 400px;
+        aspect-ratio: 1/1;
+        border-radius: 79% 23% 100% 32% / 85% 54% 46% 42%;
+
+        filter: blur(40px);
+        z-index: -1;
+        background: linear-gradient(47deg, #3245ff 21%, #b845ed 76%);
+    }
+</style>

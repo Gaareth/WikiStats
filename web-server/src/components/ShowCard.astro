@@ -1,0 +1,28 @@
+---
+import { twMerge } from "tailwind-merge";
+import Card from "./Card";
+interface Props {
+    title: string;
+    desc: string;
+    href: string;
+    className?: string;
+}
+const { title, desc, href, className } = Astro.props;
+---
+
+<a href={href} class="!no-underline dark:text-neutral-100 text-black">
+    <Card
+        className={twMerge(
+            "bg-white hover:bg-neutral-50 dark:hover:bg-dark_02 h-full flex flex-col items-center",
+            className,
+        )}
+    >
+        <span class="block w-8">
+            <slot />
+        </span>
+        {title}
+        <p class="text-secondary text-sm">
+            {desc}
+        </p>
+    </Card>
+</a>

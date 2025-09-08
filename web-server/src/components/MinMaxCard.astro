@@ -1,0 +1,56 @@
+---
+import Card from "./Card";
+
+interface Props {
+    title: string;
+    className?: string;
+    min?: boolean;
+    avg?: boolean;
+    max?: boolean;
+}
+
+const { title, min = true, max = true, avg = true, className } = Astro.props;
+---
+
+<Card className={className}>
+    <p class="text-lg">{title}</p>
+    <div
+        class="flex flex-col lg:flex-row flex-wrap gap-2 items-center justify-evenly mt-2"
+    >
+        {
+            min && (
+                <>
+                    <div>
+                        <slot name="min" />
+                        <p class="text-sm text-secondary">minimum</p>
+                    </div>
+                    {/* <div class="w-[0.1rem] h-7 bg-neutral-300" /> */}
+                    <div class="h-[0.1rem] w-7 lg:w-[0.1rem] lg:h-7 bg-neutral-300" />
+                </>
+            )
+        }
+
+        {
+            avg && (
+                <>
+                    <div>
+                        <slot name="avg" />
+                        <p class="text-sm text-secondary">average</p>
+                    </div>
+                    <div class="h-[0.1rem] w-7 lg:w-[0.1rem] lg:h-7 bg-neutral-300" />
+                </>
+            )
+        }
+
+        {
+            max && (
+                <>
+                    <div>
+                        <slot name="max" />
+                        <p class="text-sm text-secondary">maximum</p>
+                    </div>
+                </>
+            )
+        }
+    </div>
+</Card>

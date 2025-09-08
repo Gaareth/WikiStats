@@ -1,0 +1,62 @@
+---
+import clsx from "clsx";
+import SelectionSearch from "./SelectionSearch";
+
+interface Props {
+    currrent_item: string | undefined;
+    dir: string;
+    global_possible?: boolean;
+    items: string[];
+    what: string;
+    get_url: (item: string) => string;
+}
+
+const { get_url, currrent_item, dir, global_possible, items, what } =
+    Astro.props;
+
+const MAX_SHOWN = 11;
+---
+
+<fieldset
+    class={clsx(
+        "dark:bg-dark_01 dark:border-dark_05 border flex gap-2 justify-between px-4 pb-2.5",
+        currrent_item === undefined && "bg-slate-50",
+        "flex flex-col-reverse sm:flex-row",
+    )}>
+    <legend class="text-base text-secondary">
+        All {what} ({items.length})
+    </legend>
+
+    <div
+        class="grid justify-items-center sm:flex flex-wrap sm:gap-2"
+        style="grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));">
+        {
+            items.slice(0, MAX_SHOWN).map((item, i) => (
+                <a
+                    href={get_url(item)}
+                    class={item == currrent_item ? "font-bold" : "font-normal"}>
+                    {item}
+                    {i < items.length - 1 && (
+                        <span class="hidden sm:inline">|</span>
+                    )}
+                </a>
+            ))
+        }
+        {
+            items.length > MAX_SHOWN && (
+                <>
+                    <span class="text-secondary">...</span>
+                    <SelectionSearch
+                        items={items.map((item) => ({
+                            name: item,
+                            url: get_url(item),
+                        }))}
+                        client:load
+                    />
+                </>
+            )
+        }
+        <!-- astro should warn that i want to pass a function and use client laod -->
+    </div>
+    <slot name="global" />
+</fieldset>

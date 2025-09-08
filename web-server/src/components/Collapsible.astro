@@ -1,0 +1,55 @@
+---
+interface Props {
+    title?: string;
+    open?: boolean;
+}
+const { title, open } = Astro.props;
+---
+
+<details
+    class="dark-border-1 border rounded px-3.5 py-2.5 group dark:hover:border-dark_04 dark:open:border-dark_05
+    open:border-black/20 hover:border-black/25"
+    open={open}
+>
+    <summary
+        class="mb-1 px-1
+        after:border-t-[10px] after:dark:border-dark_05 after:hover:dark:!border-t-white/40 group-open:after:dark:border-t-white/50
+        after:border-t-black/50 after:hover:!border-t-black/75 after:group-open:border-t-black/70
+        transition cursor-pointer"
+    >
+        {title && title}
+        <slot name="summary" />
+    </summary>
+    <div
+        class="transition-opacity duration-1000 opacity-0 group-open:opacity-100"
+    >
+        <slot />
+    </div>
+</details>
+
+<style>
+    summary {
+        list-style: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        /* padding: 10px 15px; */
+        /* font-weight: bold; */
+    }
+
+    summary::after {
+        content: "";
+        width: 0;
+        height: 0;
+        /* border-top: 10px solid white; */
+        border-inline: 7px solid transparent;
+    }
+
+    details[open] > summary::after {
+        transform: rotate(-180deg);
+    }
+
+    summary::-webkit-details-marker {
+        display: none;
+    }
+</style>

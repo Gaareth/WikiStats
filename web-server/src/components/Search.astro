@@ -1,0 +1,100 @@
+---
+// import { NUM_SUPPORTED_SP_PAGES } from "../db/constants";
+import Alert from "./Alert.astro";
+// import PageSelect from "./PageSelect";
+// import { ALL_PAGES } from "../db/constants";
+import PageSearch from "./PageSearch";
+
+interface Props {
+    start: string | null;
+    end: string | null;
+    classNames: string | null;
+    wiki_name: string | undefined;
+}
+
+const { start, end, classNames, wiki_name } = Astro.props;
+---
+
+<div class={classNames}>
+    {
+        wiki_name === undefined && (
+            <Alert type="warning" className="transition-all">
+                Please choose a wiki first
+            </Alert>
+        )
+    }
+    <form action="" method="GET" class="flex gap-2 flex-col sm:flex-row mb-0">
+        <!-- <input name="start" class="no-js" />
+    <input name="end" class="no-js" /> -->
+
+        <!-- <noscript>
+      <p>please use these inputs</p>
+      <input type="text" name="start" placeholder="start" />
+      <input type="text" name="end" placeholder="end" />
+    </noscript> -->
+
+        <PageSearch
+            client:load
+            wiki_name={wiki_name}
+            default_value={start}
+            placeholder="Page to start from"
+            name="start"
+        />
+
+        <PageSearch
+            client:load
+            wiki_name={wiki_name}
+            default_value={end}
+            placeholder="Target page"
+            name="end"
+        />
+
+        <!-- <PageSelect
+      client:load
+      name="start"
+      wiki_name={wiki_name}
+      current_value={start}
+    />
+    <PageSelect
+      client:load
+      name="end"
+      wiki_name={wiki_name}
+      current_value={end}
+    /> -->
+
+        <!-- <button class="block px-4 py-2">
+      search
+    </button> -->
+        <div class="flex items-center">
+            <button
+                type="submit"
+                disabled={wiki_name === undefined}
+                class="enabled:mx-0.5 border-colorful text-accent-color bg-white dark-layer-1 px-4 py-3 enabled:py-2.5 disabled:before:hidden disabled:border
+                enabled:hover:bg-gray-50 enabled:hover:after:block after:hidden group w-full sm:w-auto disabled:cursor-not-allowed"
+            >
+                <p
+                    class="group-enabled:group-hover:text-gradient-border-colorful dark:text-blue-500"
+                >
+                    Search
+                </p>
+            </button>
+        </div>
+    </form>
+
+    <!-- {
+    wiki_name !== undefined && (
+      <Alert type="warning">
+        You can currently only find the shortest path for {num_pages} pages
+      </Alert>
+    )
+  } -->
+</div>
+<!-- 
+<script>
+  console.log("browser");
+  for (const element of document.querySelectorAll(".no-js")) {
+    console.log(element);
+    element.remove();
+  }
+</script> -->
+<!-- TODO: longest path, how many were not reached, verteilung an entfernungen -->

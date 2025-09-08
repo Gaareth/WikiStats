@@ -1,0 +1,44 @@
+---
+import { GraphIcon, IonMdStatsIcon } from "../components/ClientIcons/Icons";
+import ShowCard from "../components/ShowCard.astro";
+import StatCards from "../components/SimpleStatCards.astro";
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="WikiStats">
+    <main>
+        <h1 class="text-3xl mb-5">
+            <span class="text-gradient dark:text-gradient-dark">
+                Wiki-Stats
+            </span>
+        </h1>
+
+        <StatCards simple={true} dump_date="latest" />
+
+        <h2 class="mt-5">More..</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <ShowCard
+                href="/wiki/stats/latest"
+                title="Statistics"
+                desc="Which article has the most links?"
+            >
+                <IonMdStatsIcon aria-label="Statistics Icon" />
+            </ShowCard>
+
+            <ShowCard
+                href="wiki/path"
+                title=" Shortest paths"
+                desc="Find the shortest path between two articles"
+                className="!border-colorful-default-rounded !border-0 after:hidden hover:after:block border-colorful before:animate-none after:animate-none min-h-24 lg:motion-safe:before:animate-pulse"
+            />
+
+            <ShowCard
+                href="/wiki/graph"
+                title="Graphs"
+                desc="Explore thousands of articles"
+            >
+                <GraphIcon aria-label="(Network) Graph Icon" />
+            </ShowCard>
+        </div>
+    </main>
+</Layout>

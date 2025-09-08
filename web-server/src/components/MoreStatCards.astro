@@ -1,0 +1,99 @@
+---
+import {
+    LONGEST_NAME_STAT,
+    LONGEST_NO_REDIRECTS_NAME_STAT,
+    NUM_DEAD_PAGES_STAT,
+    NUM_DEAD_ROOT_PAGES_STAT,
+    NUM_PAGES_LOADED_STAT,
+    NUM_ROOT_PAGES_STAT,
+} from "../db/constants";
+import { big_num_format } from "../utils";
+import CardTabs from "./CardTabs.astro";
+import Stat from "./Stat";
+
+interface Props {
+    wiki_name?: string;
+    dump_date: string;
+}
+
+const { wiki_name, dump_date } = Astro.props;
+let longest_name = await LONGEST_NAME_STAT.get(dump_date, wiki_name);
+let longest_no_redirect_name = await LONGEST_NO_REDIRECTS_NAME_STAT.get(
+    dump_date,
+    wiki_name,
+);
+
+let all_pages = await NUM_PAGES_LOADED_STAT.get(dump_date, wiki_name);
+// let shortest = SHORTEST_NAME_STAT.get(dump_date, wiki_name);
+let dead_pages = await NUM_DEAD_PAGES_STAT.get(dump_date, wiki_name);
+let root_pages = await NUM_ROOT_PAGES_STAT.get(dump_date, wiki_name);
+let dead_root_pages = await NUM_DEAD_ROOT_PAGES_STAT.get(dump_date, wiki_name);
+---
+
+<!-- 
+<Stat
+  title={`shortest name (${shortest.page_title.length} chars)`}
+  value={`${shortest.page_title}`}
+  link={wiki_link(shortest.page_title, shortest.wikiName!)}
+/> -->
+<Stat
+    title={`dead pages`}
+    tooltipDescription="Pages which contain no links to other pages (dead-ends)"
+    value={`${big_num_format(dead_pages)} (${((dead_pages / all_pages) * 100).toFixed(2)}%)`}
+    className="w-full lg:col-span-2"
+    client:load
+/>
+<Stat
+    title={`orphan pages`}
+    tooltipDescription="Pages with no incoming links"
+    value={`${big_num_format(root_pages)} (${((root_pages / all_pages) * 100).toFixed(2)}%)`}
+    className="w-full lg:col-span-2"
+    client:load
+/>
+<Stat
+    title={`dead orphan pages`}
+    tooltipDescription="Pages with no incoming or outgoing links"
+    value={`${big_num_format(dead_root_pages)} (${((dead_root_pages / all_pages) * 100).toFixed(2)}%)`}
+    className="w-full col-span-2 lg:col-span-2"
+    client:load
+/>
+
+{
+    longest_name.page_title != longest_no_redirect_name.page_title ? (
+        // if the longest name excluding redirects and the longest including redirects are different show both options
+        <CardTabs
+            tabs={["Excluding redirects", "All"]}
+            className="w-fit col-span-full"
+        >
+            <Stat
+                title={`Longest name (${big_num_format(
+                    longest_no_redirect_name.page_title.length,
+                )} chars)`}
+                wiki_link={{ ...longest_no_redirect_name }}
+                className="border-none px-0 pt-0 pb-1"
+                slot="tab1"
+                client:load
+            />
+
+            <Stat
+                title={`Longest name (${big_num_format(
+                    longest_name.page_title.length,
+                )} chars)`}
+                wiki_link={{ ...longest_name }}
+                className="border-none px-0 pt-0 pb-1"
+                slot="tab2"
+                client:load
+            />
+        </CardTabs>
+    ) : (
+        // else show only one
+        <Stat
+            title={`Longest name (${big_num_format(
+                longest_name.page_title.length,
+            )} chars)`}
+            wiki_link={{ ...longest_name }}
+            className="w-fit col-span-full"
+            client:load
+        />
+    )
+}

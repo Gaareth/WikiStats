@@ -1,0 +1,50 @@
+---
+import WikiLink from "./WikiLink";
+
+interface Props {
+    title: string;
+    value_name: string;
+    rows: [string | null, unknown, string][];
+    classNames?: string;
+}
+
+const { title, value_name, rows, classNames } = Astro.props;
+---
+
+<table
+    class={`table-auto border-collapse border ${classNames} dark:bg-dark_01`}
+>
+    <caption class="caption-top text-base">
+        {title}
+    </caption>
+    <thead>
+        <tr>
+            <th class="dark:border-dark_05">Page</th>
+            <th class="dark:border-dark_05">{value_name}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {
+            rows.map((row) => (
+                <tr class="text-sm sm:text-base">
+                    <td class="dark:border-dark_05">
+                        <WikiLink
+                            wiki_name={row[2]!}
+                            page_name={row[0]!}
+                            class_name="break-words line-clamp-none"
+                        />
+                    </td>
+                    <td class="dark:border-dark_05">{row[1]}</td>
+                </tr>
+            ))
+        }
+    </tbody>
+</table>
+
+<style>
+    td,
+    th {
+        padding: 4px 8px;
+        border-width: 1px;
+    }
+</style>

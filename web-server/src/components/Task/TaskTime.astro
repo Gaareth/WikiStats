@@ -1,0 +1,72 @@
+---
+import { v4 as uuidv4 } from "uuid";
+import { cn, formatTimeDiff } from "../../utils";
+import { MaterialSymbolsScheduleOutline } from "../ClientIcons/Icons";
+import LocaleDate from "../LocaleDate";
+import { DBSCHEDULE_FORMAT_OPTIONS } from "../SPC/db/DBSchedule.astro";
+
+interface Props {
+    startedAt: Date;
+    finishedAt?: Date;
+    className?: string | undefined;
+}
+
+const { startedAt, finishedAt, className } = Astro.props;
+
+const uuid = uuidv4();
+---
+
+<!-- t.message == null && "col-span-2 col-start-2" -->
+<div
+    class={cn(
+        "text-sm text-secondary text-end gap-2 items-center flex justify-self-end",
+        className
+    )}
+>
+    <div class="text-end justify-self-end flex gap-1">
+        <LocaleDate
+            client:load
+            date={startedAt}
+            formatOption={DBSCHEDULE_FORMAT_OPTIONS}
+        />
+        {
+            finishedAt != null && (
+                <span>-</span>
+                <LocaleDate
+                    client:load
+                    date={finishedAt}
+                    formatOption={DBSCHEDULE_FORMAT_OPTIONS}
+                />
+            )
+        }
+    </div>
+
+    <button
+        class="block w-4"
+        data-tooltip-target={"tooltip-time-" + uuid}
+        aria-describedby={"tooltip-time-" + uuid}
+        aria-label="How long did it take?"
+        disabled={finishedAt == null}
+    >
+        <MaterialSymbolsScheduleOutline aria-label="Time" />
+    </button>
+
+    {
+        finishedAt != null && (
+            <div
+                class="flex items-center gap-1 default-tooltip tooltip"
+                role="tooltip"
+                id={"tooltip-time-" + uuid}
+            >
+                <span class="text-end">
+                    took
+                    {formatTimeDiff(new Date(finishedAt!), new Date(startedAt))}
+                </span>
+                <span class="block min-w-3">
+                    <MaterialSymbolsScheduleOutline aria-label="Time" />
+                </span>
+                <div class="tooltip-arrow" data-popper-arrow />
+            </div>
+        )
+    }
+</div>

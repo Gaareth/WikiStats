@@ -1,0 +1,82 @@
+---
+import Layout from "../layouts/Layout.astro";
+import "../styles/prose.scss";
+---
+
+<Layout title="WikiStats - About">
+    <main
+        class="max-w-4xl mx-auto flex flex-col gap-4 break-words w-full prose">
+        <h1>About</h1>
+
+        <section>
+            <h2>Data</h2>
+            <div>
+                <p>
+                    The data is collected from the wikimedia dumps at:
+                    <a href="https://dumps.wikimedia.org/">
+                        https://dumps.wikimedia.org/
+                    </a> or one of their mirrors. The dumps appear to be updated
+                    every month at the 20th and the first.
+                </p>
+
+                <p>
+                    I hope to update this page monthly. It's likely that the
+                    results are slightly out of date for some pages though.
+                </p>
+
+                <p>
+                    I expect to opensource this as soon as I get the backend to
+                    look presentable/understandable
+                </p>
+            </div>
+        </section>
+
+        <section>
+            <h2>Accessibility</h2>
+            <p>
+                Im trying to improve the accessibility of this website and make
+                it mostly usable even without javascript. If you find something
+                which works suboptimal please don't hesitate to inform me.
+            </p>
+        </section>
+
+        <section>
+            <h2>Technical</h2>
+            <p>
+                The frontend is built using <a href="https://astro.build/">
+                    AstroJS
+                </a> and is mostly static. For the interactive parts <a
+                    href="https://www.solidjs.com/">
+                    SolidJS
+                </a> is used. The (network) graph visualizations use <a
+                    href="https://www.sigmajs.org/">
+                    Sigma.js
+                </a> in the background.
+            </p>
+            <p>
+                Finding the shortest path at <a href="/wiki/path">
+                    shortest path
+                </a> works using a bidirectional breadth first search. In comparison
+                to a normal bfs this drastically improves performance. Credits <a
+                    href="https://www.sixdegreesofwikipedia.com/">
+                    https://www.sixdegreesofwikipedia.com/
+                </a> for this idea.
+            </p>
+        </section>
+
+        <section>
+            <h2>Attribution</h2>
+            <ul>
+                <li>
+                    This project uses icons from <a
+                        href="https://github.com/google/material-design-icons">
+                        Material Symbols
+                    </a>
+                    by google, licensed under the <a href="Apache License 2.0">
+                        Apache License 2.0
+                    </a>. The Logo uses a modified search icon.
+                </li>
+            </ul>
+        </section>
+    </main>
+</Layout>

@@ -1,0 +1,22 @@
+---
+const selected = (endpoint: string): string => {
+    return Astro.url.pathname.includes(endpoint)
+        ? "font-bold dark:!text-slate-100 dark:bg-dark_01"
+        : "";
+};
+---
+
+<nav class="flex flex-wrap gap-1 mt-0 font-medium flex-row lg:mt-0">
+    <a href="/wiki/path" class={selected("path")}>Shortest path</a>
+    <a href="/wiki/stats/latest" class={selected("stats")}>Stats</a>
+    <a href="/about" class={selected("about")}>About</a>
+    <a href="/dump-progress" class={selected("/dump-progress")}>
+        Database Status
+    </a>
+</nav>
+
+<style>
+    nav > a {
+        @apply hover:dark:bg-dark_01 px-3 py-1 rounded  dark:text-slate-400 hover:dark:no-underline hover:dark:text-slate-200;
+    }
+</style>

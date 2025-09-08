@@ -1,0 +1,39 @@
+---
+import clsx from "clsx";
+import { get_supported_wikis } from "../../db/constants";
+import Selection from "./Selection.astro";
+
+interface Props {
+    currrent_wikiname: string | undefined;
+    dir: string;
+    global_possible?: boolean;
+    dump_date?: string;
+}
+
+const { currrent_wikiname, dir, global_possible, dump_date } = Astro.props;
+const wikis = await get_supported_wikis(dump_date || "latest");
+---
+
+<Selection
+    currrent_item={currrent_wikiname}
+    {dir}
+    items={wikis}
+    what="Wikis"
+    {global_possible}
+    get_url={(item) => `/wiki/${item}/${dir}`}>
+    {
+        global_possible && (
+            <a
+                slot="global"
+                href={`/wiki/${dir}`}
+                class={clsx(
+                    currrent_wikiname === undefined
+                        ? "font-bold"
+                        : "font-normal",
+                    "text-center",
+                )}>
+                GLOBAL
+            </a>
+        )
+    }
+</Selection>

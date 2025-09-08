@@ -1,0 +1,36 @@
+---
+import { getCollection } from "astro:content";
+import clsx from "clsx";
+import Selection from "./Selection.astro";
+
+interface Props {
+    currrent_dumpdate: string | undefined;
+    current_wikiname: string | undefined;
+    dir: string;
+}
+
+const { currrent_dumpdate, current_wikiname, dir } = Astro.props;
+const items = (await getCollection("stats")).map((c) => c.id);
+---
+
+<Selection
+    currrent_item={currrent_dumpdate}
+    {dir}
+    {items}
+    what="Dump dates"
+    global_possible={true}
+    get_url={(item) =>
+        current_wikiname == null
+            ? `/wiki/stats/${item}`
+            : `/wiki/${current_wikiname}/stats/${item}`}>
+    <a
+        slot="global"
+        href="latest"
+        class={clsx(
+            currrent_dumpdate == "latest" ? "font-bold" : "font-normal",
+            "text-center",
+        )}>
+        LATEST
+    </a>
+    )
+</Selection>

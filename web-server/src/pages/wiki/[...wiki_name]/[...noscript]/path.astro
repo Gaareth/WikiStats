@@ -1,0 +1,142 @@
+---
+import Alert from "../../../../components/Alert.astro";
+import ShortestPath from "../../../../components/SP/ShortestPath";
+import Search from "../../../../components/Search.astro";
+import WikiSelection from "../../../../components/Selection/WikiSelection.astro";
+import Layout from "../../../../layouts/Layout.astro";
+
+export const prerender = false;
+
+const { wiki_name, noscript } = Astro.params;
+
+// return Astro.redirect("/")
+
+let params = Astro.url.searchParams;
+let start = params.get("start") ?? "";
+let end = params.get("end") ?? "";
+
+// let noscript = (params.get("noscript") ?? "false") !== "false";
+
+let path;
+let error;
+
+if (noscript !== undefined && noscript !== "noscript") {
+    return Astro.redirect("/wiki/" + wiki_name + "/path");
+}
+
+if (noscript == "noscript" && start.length > 0 && end.length > 0) {
+    try {
+        path = [];
+        const url = `http://localhost:1870/path/dewiki?start_title=${start}&end_title=${end}&stream=false`;
+        const res = await fetch(url);
+        console.log(res.ok);
+        console.log(res.status);
+        // console.log(await res.text());
+
+        if (!res.ok) {
+            error = await res.text();
+        } else {
+            const json = await res.json();
+            console.log(json);
+
+            if (json["paths"].length > 0) {
+                for (const page_title of json["paths"][0]) {
+                    // const path = await path_entry_from_title(page_title, wiki_name!);
+                    path.push(page_title);
+                }
+            }
+        }
+    } catch (e: any) {
+        console.log("Failed fetching SP: ", e);
+
+        error = e.toString();
+    }
+}
+---
+
+<Layout
+    title="WikiStats - Shortest Path"
+    desc="Find the shortest path between two wikipedia pages"
+>
+    <main class="max-[300px]:max-w-full">
+        <WikiSelection currrent_wikiname={wiki_name} dir="path" />
+
+        {
+            noscript && (
+                <Alert type="warning">
+                    <p>
+                        You are using the noscript endpoint. The page will only
+                        load when shortest path is ready.
+                    </p>
+                    <p>
+                        If you want a smoother experience, consider
+                        <a href="../path">
+                            removing the "noscript" part from the url
+                        </a>
+                    </p>
+                </Alert>
+            )
+        }
+
+        <noscript>
+            {
+                !noscript && wiki_name !== undefined && (
+                    <Alert type="warning">
+                        <p class="font-bold text-2xl">
+                            Please use{" "}
+                            <a href="noscript/path">the noscript endpoint</a>
+                        </p>
+                    </Alert>
+                )
+            }
+        </noscript>
+
+        <h1 class="text-3xl mt-10 mb-1">Find the shortest path</h1>
+        <p class="text-secondary text-base mb-5">
+            Use the input fields below to find the shortest path between two
+            wikipedia articles. Can't think of any? Use the refresh button to
+            randomly select page.
+        </p>
+
+        <Search {start} {end} classNames="mt-3 mb-7" wiki_name={wiki_name} />
+        {
+            error && (
+                <Alert type="error">
+                    Failed fetching the shortest path from the backend: {error}.
+                    Sorry! :(
+                </Alert>
+            )
+        }
+
+        {
+            wiki_name && start && end && !error && (
+                <>
+                    <ShortestPath
+                        client:load
+                        start={start}
+                        end={end}
+                        wiki_name={wiki_name}
+                        ssr_paths={path && (path.length > 0 ? [path] : [])}
+                    />
+                </>
+                // <p>a</p>
+            )
+        }
+    </main>
+</Layout>
+
+<script>
+    // const initSqlJs = require("sql.js");
+    // import initSqlJs from "sql.js";
+    //@ts-ignore
+    // const sqlPromise = initSqlJs({
+    //   locateFile: (file: any) => `${file}`,
+    // });
+    // const dataPromise = fetch("db.sqlite").then((res) =>
+    //   res.arrayBuffer()
+    // );
+    // const [SQL, buf] = await Promise.all([sqlPromise, dataPromise]);
+    // const db = new SQL.Database(new Uint8Array(buf));
+    // const contents = db.exec("SELECT count(*) FROM WikiLink");
+    // console.log(contents);
+</script>

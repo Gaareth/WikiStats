@@ -1,0 +1,38 @@
+:where(.dark) {
+    figcaption,
+    figure {
+        background-color: var(--dark-01) !important;
+        border-color: var(--dark-02) !important;
+    }
+
+    figure img {
+        border: 0 !important;
+    }
+
+    a {
+        color: var(--accent-dark) !important;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        color: var(--fg-dark) !important;
+    }
+
+    .link-highlight {
+        color: var(--fg-dark) !important;
+        background-color: #d97706 !important;
+    }
+}
+
+.link-highlight {
+    background-color: yellow;
+    padding: 0 0.25rem;
+}
+
+#mirror {
+    font-size: medium;
+}

@@ -1,0 +1,136 @@
+---
+import stat from "../../../../../generated-stats/stats.json";
+
+import MoreStatCards from "../../../../components/MoreStatCards.astro";
+import SampleStats from "../../../../components/SampleStats.astro";
+import WikiSelection from "../../../../components/Selection/WikiSelection.astro";
+import SimpleStatCards from "../../../../components/SimpleStatCards.astro";
+import GlobalStats from "../../../../components/SPC/Stats/GlobalStats.astro";
+import StatTable from "../../../../components/StatTable.astro";
+import {
+    TOP_TEN_MOST_LINKED_STAT,
+    TOP_TEN_MOST_LINKS_STAT,
+} from "../../../../db/constants";
+import Layout from "../../../../layouts/Layout.astro";
+import { big_num_format } from "../../../../utils";
+
+import { getCollection, getEntry } from "astro:content";
+import DumpDateSelection from "../../../../components/Selection/DumpDateSelection.astro";
+
+// 1. Generate a new path for every collection entry
+export async function getStaticPaths() {
+    const entries = await getCollection("stats");
+    console.log("entries", entries);
+
+    let params = [];
+
+    for (const entry of entries) {
+        for (const wiki of entry.data.wikis) {
+            params.push({
+                params: { dump_date: entry.data.dump_date, wiki_name: wiki },
+            });
+            params.push({
+                params: { dump_date: "latest", wiki_name: wiki },
+            });
+        }
+
+        // Global stats for each dump date
+        params.push({
+            params: { dump_date: entry.data.dump_date, wiki_name: undefined },
+        });
+    }
+
+    // Global stats for latest
+    params.push({
+        params: { dump_date: "latest", wiki_name: undefined },
+    });
+
+    console.log("params", params);
+
+    return params;
+}
+
+const { dump_date, wiki_name } = Astro.params;
+
+let most_link_pages =
+    (await TOP_TEN_MOST_LINKS_STAT.get(dump_date, wiki_name)) || [];
+let most_linked_pages =
+    (await TOP_TEN_MOST_LINKED_STAT.get(dump_date, wiki_name)) || [];
+
+let most_linked_page = (await getEntry("stats", dump_date))?.data
+    .most_linked[0];
+---
+
+<Layout
+    title={"WikiStats - " + (wiki_name || "Global") + " Statistics"}
+    desc={`Statistics about the ${wiki_name || "Global"} Wikipedia`}>
+    <main>
+        <WikiSelection
+            dump_date={dump_date}
+            currrent_wikiname={wiki_name}
+            dir={"stats/" + dump_date}
+            global_possible={true}
+        />
+
+        <h1 class="text-3xl mt-10">Statistics {wiki_name || "global"}</h1>
+
+        <SimpleStatCards {wiki_name} {dump_date}>
+            <MoreStatCards {wiki_name} {dump_date} />
+        </SimpleStatCards>
+
+        {
+            wiki_name === undefined && (
+                <section class="my-10">
+                    <h2 class="text-lg">Global min-max stats</h2>
+                    <GlobalStats {dump_date} />
+                </section>
+            )
+        }
+
+        <section class="my-10">
+            <h2 class="text-lg">Tables</h2>
+            <div class="flex gap-5 flex-wrap w-full">
+                <StatTable
+                    title="Top 10 most linked Pages"
+                    value_name="linked"
+                    rows={most_linked_pages
+                        .slice(0, 10)
+                        .map((linkCount) => [
+                            linkCount.page_title,
+                            big_num_format(linkCount.count),
+                            linkCount.wiki_name,
+                        ])}
+                    classNames="w-full"
+                />
+
+                <StatTable
+                    title="Top 10 Pages with the most links"
+                    value_name="links"
+                    rows={most_link_pages
+                        .slice(0, 10)
+                        .map((linkCount) => [
+                            linkCount.page_title,
+                            big_num_format(linkCount.count),
+                            linkCount.wiki_name,
+                        ])}
+                    classNames="w-full"
+                />
+            </div>
+        </section>
+
+        {
+            wiki_name !== undefined && stat["bfs_sample_stats"] != null && (
+                <SampleStats
+                    wiki_name={wiki_name}
+                    sample_stats={stat["bfs_sample_stats"]}
+                />
+            )
+        }
+
+        <DumpDateSelection
+            currrent_dumpdate={dump_date}
+            dir="stats/latest"
+            current_wikiname={wiki_name}
+        />
+    </main>
+</Layout>
