@@ -86,8 +86,8 @@ def simulate_check_for_tasks():
 if __name__ == "__main__":
     # process_wiki.delay("klbjcsykjyshcd", "20250901", ["dewiki", "jawiki"])
 
-
     if SIMULATE:
+        print("Running in SIMULATE mode")
         simulate_check_for_tasks()
         # process_wiki.delay("jawiki", "20250901", ["dewiki", "jawiki"])
     else:

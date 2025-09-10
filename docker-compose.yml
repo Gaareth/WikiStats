@@ -17,7 +17,6 @@ services:
             # Mount the actual paths from .env variables
             - ${DB_WIKIS_DIR}:${DB_WIKIS_DIR}
             - ${GRAPHS_WIKIS_DIR}:${GRAPHS_WIKIS_DIR}
-            - ${TASK_SCHEDULE_JSON_PATH}:${TASK_SCHEDULE_JSON_PATH}
             # - ./wiki-folder/stats:
         depends_on:
             - redis

@@ -175,7 +175,7 @@ def finish_dump(dump_date):
             ]
             logger.info(f"> Running command: {cmd}")
             result = subprocess.run(cmd, capture_output=True, text=True)
-            # logger.info(f"Command output: {result.stdout}")
+            logger.info(f"Command output: {result.stdout}")
             if result.returncode != 0:
                 logger.error(f"Error: Command output: {result.stderr}")
 
