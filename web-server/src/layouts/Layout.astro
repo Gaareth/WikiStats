@@ -10,6 +10,7 @@ import { LoadingSpinner } from "../components/ClientIcons/Icons";
 import "../styles/borders.scss";
 import "../styles/dual-range-slider.css";
 import "../styles/global.css";
+import { get_latest_date } from "../db/constants";
 
 interface Props {
     title: string;
@@ -19,7 +20,7 @@ interface Props {
 
 const { title, desc, bodyClass } = Astro.props;
 console.log(Astro.url.pathname);
-const latestDumpDate = import.meta.env.LATEST_DUMP;
+const latest_dump = await get_latest_date();
 
 const IS_UPDATING_ENV_STR: string = import.meta.env.IS_UPDATING;
 const isUpdatingRn: boolean =
@@ -76,7 +77,7 @@ const appleTouchIcon = await getImage({
             </Alert>
             <Alert type="info">
                 <div class="flex justify-between">
-                    Using database backup info from {latestDumpDate}
+                    Using database backup info from {latest_dump}
                     {
                         isUpdatingRn && (
                             <span class="inline-flex items-center gap-1 font-bold uppercase">

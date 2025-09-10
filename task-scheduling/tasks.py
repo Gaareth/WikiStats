@@ -44,7 +44,7 @@ redis = redis.Redis(host="localhost", port=6379, db=0)
 
 def all_tasks_done():
     return all(
-        value != "RUNNING" for value in redis.hvals(REDIS_PREFIX + "wiki-tasks")
+        value == "DONE" for value in redis.hvals(REDIS_PREFIX + "wiki-tasks")
     )
 
 
@@ -201,14 +201,14 @@ def finish_dump(dump_date):
 
     env_updates = {
         "IS_UPDATING": "false" if all_done else "true",
-        "LATEST_DUMP": dump_date,
         "DB_WIKIS_DIR": updated_wikis_dir,
     }
 
     safe_set_env_vars(env_path, env_updates)
 
     time.sleep(2)
-    # build_server()
+    if not SIMULATE:
+        build_server()
 
     # return result.returncode
     return 200

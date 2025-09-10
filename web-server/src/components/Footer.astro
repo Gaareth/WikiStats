@@ -2,7 +2,6 @@
 import { getEntry } from "astro:content";
 import { version } from "../../package.json";
 import { get_latest_date } from "../db/constants";
-// const latest_dump = process.env.LATEST_DUMP;
 
 const latest_dump = (await get_latest_date());
 const stats_created_at = latest_dump && (await getEntry("stats", latest_dump))?.data
