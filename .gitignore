@@ -45,5 +45,4 @@ pip-wheel-metadata/
 .DS_Store
 gitleaks-report.json
 
-# as long as it contains secrets
-after-deploy.sh 
+TestProduction/
