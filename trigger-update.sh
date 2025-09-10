@@ -2,7 +2,7 @@
 
 
 echo "> Pulling latest changes from git";
-#git pull origin main;
+git pull origin main;
 
 print_error() {
     echo -e "\033[31m$1\033[0m"
