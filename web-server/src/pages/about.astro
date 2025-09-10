@@ -6,17 +6,42 @@ import "../styles/prose.scss";
 <Layout title="WikiStats - About">
     <main
         class="max-w-4xl mx-auto flex flex-col gap-4 break-words w-full prose">
-        <h1>About</h1>
+        <h1 class="!mb-0">About</h1>
+        <p class="!m-0">
+            If you have any questions, which are not answered here, or suggestions, feel free to contact <a href="https://gaareth.com">me</a>.
+        </p>
 
         <section>
-            <h2>Data</h2>
+            <h2 id="data">Data</h2>
             <div>
                 <p>
                     The data is collected from the wikimedia dumps at:
                     <a href="https://dumps.wikimedia.org/">
                         https://dumps.wikimedia.org/
-                    </a> or one of their mirrors. The dumps appear to be updated
-                    every month at the 20th and the first.
+                    </a> or one of their mirrors. These dumps contain sql dumps of
+                    various wikipedia <a
+                        href="https://www.mediawiki.org/wiki/Category:MediaWiki_database_tables">
+                        tables
+                    </a>. I currently use the <a
+                        href="https://www.mediawiki.org/wiki/Manual:page_table">
+                        page
+                    </a>, <a
+                        href="https://www.mediawiki.org/wiki/Manual:pagelinks_table">
+                        pagelinks
+                    </a>, and
+                    <a href="https://www.mediawiki.org/wiki/Manual:Linktarget_table">linktarget</a> tables to generate the stats.
+                </p>
+
+                <p>
+                    <a
+                        href="https://meta.wikimedia.org/wiki/Data_dumps/Dump_frequency">
+                        Frequency
+                    </a>: The dumps appear to be updated every month at the 20th
+                    and the first. Hence the dump dates are typically yyyyMMDD
+                    and end with 01 or 20. You can read more about it here: <a
+                        href="https://meta.wikimedia.org/wiki/Data_dumps">
+                        https://meta.wikimedia.org/wiki/Data_dumps
+                    </a>
                 </p>
 
                 <p>

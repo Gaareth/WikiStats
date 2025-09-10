@@ -194,6 +194,16 @@ export function parseDumpDate(dateString: string) {
     return new Date(year, month, day);
 }
 
+export function formatDumpDate(dateString: string) {
+    const year = parseInt(dateString.slice(0, 4), 10);
+    const month = parseInt(dateString.slice(4, 6), 10) - 1; // Months are zero-based in JS Date
+    const day = parseInt(dateString.slice(6, 8), 10);
+
+    const paddedMonth = String(month + 1).padStart(2, "0");
+    const paddedDay = String(day).padStart(2, "0");
+    return `${year}-${paddedMonth}-${paddedDay}`;
+}
+
 export type KeysOfType<T, ValueType> = Exclude<
     {
         [K in keyof T]: T[K] extends ValueType ? K : never;

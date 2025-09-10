@@ -6,11 +6,12 @@ import Header from "../components/Header.astro";
 
 import { getImage } from "astro:assets";
 import favicon from "../../public/favicon-dark.svg";
-import { LoadingSpinner } from "../components/ClientIcons/Icons";
+import { InfoIcon, LoadingSpinner } from "../components/ClientIcons/Icons";
+import { get_latest_date } from "../db/constants";
 import "../styles/borders.scss";
 import "../styles/dual-range-slider.css";
 import "../styles/global.css";
-import { get_latest_date } from "../db/constants";
+import { formatDumpDate } from "../utils";
 
 interface Props {
     title: string;
@@ -21,6 +22,9 @@ interface Props {
 const { title, desc, bodyClass } = Astro.props;
 console.log(Astro.url.pathname);
 const latest_dump = await get_latest_date();
+const latest_dump_date = latest_dump
+    ? formatDumpDate(latest_dump) + " (UTC)"
+    : "N/A";
 
 const IS_UPDATING_ENV_STR: string = import.meta.env.IS_UPDATING;
 const isUpdatingRn: boolean =
@@ -77,8 +81,18 @@ const appleTouchIcon = await getImage({
             </Alert>
             <Alert type="info">
                 <div class="flex justify-between">
-                    Using database backup info from {latest_dump}
-                    {
+                    <div class="flex gap-2">
+                        <p>Latest info from {latest_dump_date}</p>
+                        <a
+                            class="text-sm dark:text-secondary flex gap-1 items-center"
+                            href="/about#data">
+                            <span class="w-4 block">
+                                <InfoIcon />
+                            </span>
+                            What does this mean?
+                        </a>
+                    </div>
+                    <!-- {
                         isUpdatingRn && (
                             <span class="inline-flex items-center gap-1 font-bold uppercase">
                                 <span class="inline-block w-4">
@@ -88,7 +102,7 @@ const appleTouchIcon = await getImage({
                                 <a href="/dump-progress">More here</a>
                             </span>
                         )
-                    }
+                    } -->
                 </div>
             </Alert>
         </div>

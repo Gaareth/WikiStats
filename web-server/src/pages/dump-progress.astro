@@ -95,8 +95,10 @@ if (isUpdatingRn) {
                 <div
                     class={cn(
                         "ml-auto flex gap-2 items-center dark-layer-2 rounded px-3 border uppercase",
-                        dbStatus == "DONE" && "dark:border-green-300/20 border-green-400",
-                        dbStatus == "FAILED" && "dark:border-red-400/20 border-red-500",
+                        dbStatus == "DONE" &&
+                            "dark:border-green-300/20 border-green-400",
+                        dbStatus == "FAILED" &&
+                            "dark:border-red-400/20 border-red-500",
                     )}>
                     {
                         dbStatus == "RUNNING" && (
@@ -142,6 +144,20 @@ if (isUpdatingRn) {
                         )
                     }
                 </div>
+            </div>
+
+            <div class="text-secondary text-base mb-5">
+                <p>
+                    This pages tracks the progress of the background tasks that
+                    fetch and process the <a href="https://dumps.wikimedia.org/">database dumps from Wikimedia</a>.
+                </p>
+
+                <p>
+                    New dumps are typically generated on the 1st and 20th of
+                    each month. However, availability may be delayed by a day or more depending on
+                    their size. The table to the right shows when each wiki was
+                    last updated.
+                </p>
             </div>
 
             <div class="flex gap-1 flex-wrap justify-between mb-1">

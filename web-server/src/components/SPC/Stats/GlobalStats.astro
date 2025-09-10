@@ -46,11 +46,25 @@ for (const w of wikis) {
 }
 
 const flattendDataset = flattenGroupedData(datasets);
+const labeledDataset = flattendDataset.map((d) => ({
+    ...d,
+    labels: wikis,
+}));
 
 const max_num_pages = await MAX_NUM_PAGES_STAT(dump_date);
 const min_num_pages = await MIN_NUM_PAGES_STAT(dump_date);
 const max_num_links = await MAX_NUM_LINKS_STAT(dump_date);
 const min_num_links = await MIN_NUM_LINKS_STAT(dump_date);
+
+
+// transpose the dataset for better visualization, so all wikis are in one group and therefore easier to compare
+const dataLength = Math.max(...flattendDataset.map((d) => d.data.length));
+const transposedLabels = Object.keys(datasets);
+const transposedDataset = Array.from({ length: dataLength }, (_, i) => ({
+    label: wikis[i],
+    data: flattendDataset.map((d) => d.data[i]),
+    labels: transposedLabels,
+}));
 ---
 
 <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
@@ -104,13 +118,12 @@ datasets={[
 <div class="my-10 mb-40 sm:mb-10 h-[400px]">
     <DatasetSelection
         chartType="bar"
-        labels={wikis}
         datasets={[
-            [flattendDataset[0]],
-            [flattendDataset[1]],
-            [flattendDataset[2]],
-            [flattendDataset[3]],
-            flattendDataset,
+            [labeledDataset[0]],
+            [labeledDataset[1]],
+            [labeledDataset[2]],
+            [labeledDataset[3]],
+            transposedDataset,
         ]}
         selectionLabels={[
             "pages",

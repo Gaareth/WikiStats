@@ -5,11 +5,10 @@ import { cn } from "../../utils";
 import { BarChart } from "./BarChart";
 import { LineChart } from "./LineChart";
 
-export type DatasetType = { label: string; data: number[] };
+export type DatasetType = { label: string; data: number[], labels: string[] } ;
 
 interface Props {
     title?: string;
-    labels: string[];
     selectionLabels: string[];
     datasets: DatasetType[][];
     chartOptions?: ChartOptions[];
@@ -31,7 +30,7 @@ export const DatasetSelection = (props: Props) => {
 
     const Bar = () => (
         <BarChart
-            labels={props.labels}
+            labels={props.datasets[selection()][0].labels}
             datasets={props.datasets[selection()]}
             client:load
             height={350}

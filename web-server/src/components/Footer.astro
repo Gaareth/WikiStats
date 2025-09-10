@@ -2,28 +2,53 @@
 import { getEntry } from "astro:content";
 import { version } from "../../package.json";
 import { get_latest_date } from "../db/constants";
+import { formatDumpDate } from "../utils";
 
-const latest_dump = (await get_latest_date());
-const stats_created_at = latest_dump && (await getEntry("stats", latest_dump))?.data
-    .created_at;
+const latest_dump = await get_latest_date();
+const stats_created_at = latest_dump
+    ? (await getEntry("stats", latest_dump))?.data.created_at
+    : undefined;
+
+const supported_wikis = process.env.SUPPORTED_WIKIS?.split(",");
+
+const latest_dump_date = latest_dump
+    ? formatDumpDate(latest_dump) + " (UTC)"
+    : "N/A";
 ---
 
 <footer
     class="bg-neutral-900 dark:bg-neutral-950/30 text-white dark:text-neutral-100 absolute -bottom-[100px]
   backdrop-blur-3xl overflow-hidden grid place-items-center
-w-full text-sm text-center p-2"
->
+w-full text-sm text-center p-2">
     <div class="blob"></div>
 
     <div>
-        {stats_created_at && <span>Database dump: {latest_dump}</span>
-        |
-        <span>
-            Stats generated at: {
-                new Date(stats_created_at * 1000).toDateString()
-            }
-        </span>}
-        {!stats_created_at && <span>No stats generated</span>}
+        {
+            stats_created_at != null ? (
+                <div class="flex flex-wrap gap-5 justify-center">
+                    <div class=" grid grid-rows-2">
+                        <span class="font-bold">Latest Database dump</span>
+                        {latest_dump_date}
+                    </div>
+
+                    <div class="grid grid-rows-2">
+                        <span class="font-bold">Stats generated at</span>
+                        {new Date(stats_created_at * 1000).toDateString()}
+                    </div>
+
+                    {supported_wikis && (
+                        <div class="grid grid-rows-2">
+                            <span class="font-bold">
+                                Wikis supported ({supported_wikis.length})
+                            </span>
+                            {supported_wikis.join(", ") || "None"}
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <span>No stats generated</span>
+            )
+        }
     </div>
     <p class="mt-2">
         <a href="https://gaareth.com" class="text-white dark:text-neutral-100">
@@ -31,8 +56,7 @@ w-full text-sm text-center p-2"
         </a>
     </p>
     <p
-        class="absolute bottom-0 text-sm text-right px-3 w-full text-neutral-300"
-    >
+        class="absolute bottom-0 text-sm text-right px-3 w-full text-neutral-300">
         V{version}
     </p>
 </footer>

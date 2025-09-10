@@ -66,14 +66,6 @@ export let DBSCHEDULE_FORMATTER = new Intl.DateTimeFormat(
         </p>
     </div>
 
-    <div class="px-3 py-2 text-secondary text-sm border-b dark:border-dark_04">
-        <span class="w-4 inline-block -mb-0.5"><InfoIcon /></span>
-
-        New dumps are typically generated on the 1st and 20th of each month.
-        Availability may be delayed by a day or more depending on their size.
-        The table below shows when each wiki was last updated.
-    </div>
-
     {
         lastUpdated == null || Object.keys(lastUpdated).length === 0 ? (
             <div class="px-3 py-2 text-base text-secondary text-center">
