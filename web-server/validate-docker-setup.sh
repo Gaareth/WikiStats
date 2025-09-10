@@ -10,6 +10,7 @@ print_error() {
 cleanup() {
     # echo "> Stopping and removing container"
     # docker compose --profile prod down
+    true
 }
 
 echo "> Starting container"
