@@ -96,7 +96,10 @@ if os.getenv("DB_WIKIS_DIR") is None:
     print("DB_WIKIS_DIR env var can't be None")
     exit(-1)
 
-SIMULATE = True
+SIMULATE = os.getenv("TASK_SCHEDULING_SIMULATE") == "true"
+if SIMULATE is None:
+    print("TASK_SCHEDULING_SIMULATE env var can't be None")
+    exit(-1)
 
 UPDATE_DONE_SH = "../update-done.sh"
 
@@ -104,7 +107,7 @@ TABLES = ["pagelinks", "page", "linktarget"]
 
 # todo schedule so its in the night (the retry)
 # 2 hours
-INCOMPLETE_DUMP_WAIT_S = 2 * 60 * 60
+# INCOMPLETE_DUMP_WAIT_S = 2 * 60 * 60
 
 import handlers # imports the signal handlers
 

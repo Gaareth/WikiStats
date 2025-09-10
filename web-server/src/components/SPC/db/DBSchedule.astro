@@ -82,23 +82,27 @@ export let DBSCHEDULE_FORMATTER = new Intl.DateTimeFormat(
         ) : null
     }
 
-    <div class="px-3 py-2 text-base flex flex-col gap-2">
-        {
-            Object.entries(lastUpdated).map(([wiki_name, last_updated]) => (
-                <div class="flex gap-1 sm:gap-2 lg:gap-5 flex-wrap lg:flex-nowrap">
-                    <p class="break-all">{wiki_name}</p>
-                    <span class="flex items-center gap-1 text-sm text-secondary ml-auto">
-                        <LocaleDate
-                            client:load
-                            date={last_updated}
-                            formatOption={DBSCHEDULE_FORMAT_OPTIONS}
-                        />
-                        <span class="block w-4">
-                            <MaterialSymbolsScheduleOutline aria-label="datetime" />
-                        </span>
-                    </span>
-                </div>
-            ))
-        }
-    </div>
+    {
+        lastUpdated != null && Object.keys(lastUpdated).length > 0 && (
+            <div class="px-3 py-2 text-base flex flex-col gap-2">
+                {Object.entries(lastUpdated).map(
+                    ([wiki_name, last_updated]) => (
+                        <div class="flex gap-1 sm:gap-2 lg:gap-5 flex-wrap lg:flex-nowrap">
+                            <p class="break-all">{wiki_name}</p>
+                            <span class="flex items-center gap-1 text-sm text-secondary ml-auto">
+                                <LocaleDate
+                                    client:load
+                                    date={last_updated}
+                                    formatOption={DBSCHEDULE_FORMAT_OPTIONS}
+                                />
+                                <span class="block w-4">
+                                    <MaterialSymbolsScheduleOutline aria-label="datetime" />
+                                </span>
+                            </span>
+                        </div>
+                    ),
+                )}
+            </div>
+        )
+    }
 </div>
