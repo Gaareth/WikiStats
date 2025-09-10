@@ -25,3 +25,8 @@ export async function getEarlierEntry(dumpDate: string) {
 
     return collection[idx - 1];
 }
+
+// export async function get_earlier_dump_date(dumpDate: string) {
+//     return getEarlierEntry(dumpDate).then((e) => e?.id);
+// }
+

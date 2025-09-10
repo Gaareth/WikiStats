@@ -1,5 +1,4 @@
 import { getCollection, getEntry, type InferEntrySchema } from "astro:content";
-import { getEarlierEntry } from "../content/config";
 import type { Stats } from "../content/stats-schema";
 import { parseDumpDate, type KeysOfType } from "../utils";
 
@@ -49,17 +48,26 @@ type WikiStat<T> = {
 type RecordKeys = KeysOfType<InferEntrySchema<"stats">, Record<string, any>>;
 type ValueOf<T> = T[keyof T];
 
-export async function get_latest_date() {
+export async function get_latest_date(): Promise<string | undefined> {
     const collection = await getCollection("stats");
-    return collection.sort(
+    if (collection.length == 0) {
+        return undefined;
+    }
+
+    collection.sort(
         (c1, c2) =>
             parseDumpDate(c2.id).getTime() - parseDumpDate(c1.id).getTime(),
-    )[0].id;
+    );
+
+    return collection[0].id;
 }
 
 export async function get_supported_wikis(dump_date: string) {
     const dump_date_validated =
         dump_date == "latest" ? await get_latest_date() : dump_date;
+    if (dump_date_validated == null) {
+        return [];
+    }
     const entry = await getEntry("stats", dump_date_validated);
     return entry?.data.wikis ?? [];
 }
@@ -96,35 +104,32 @@ export async function make_wiki_stat<key extends RecordKeys>(key: key) {
         dump_date: "latest" | string,
         wiki_name: string | undefined,
     ) => {
-        const dump_date_validated =
-            dump_date == "latest" ? await get_latest_date() : dump_date;
-
         const extract = (entry_data: InferEntrySchema<"stats"> | undefined) => {
             if (entry_data == null) {
-                return entry_current;
+                return undefined;
             }
             const data_current = entry_data[key];
 
-            if (
-                data_current == null ||
-                !data_current.hasOwnProperty("global") ||
-                !("global" in data_current)
-            ) {
+            if (data_current == null) {
                 return undefined;
             }
 
-            if (wiki_name === undefined) {
-                return data_current["global"];
-            } else {
-                return data_current[wiki_name];
+            wiki_name = wiki_name ?? "global";
+            if (
+                typeof data_current === "object" &&
+                data_current !== null &&
+                (data_current as Record<string, any>).hasOwnProperty(wiki_name)
+            ) {
+                return (data_current as Record<string, any>)[wiki_name];
             }
+
+            return undefined;
         };
 
-        const entry_current = await getEntry("stats", dump_date_validated);
-        const entry_previous = await getEarlierEntry(dump_date_validated);
+        const data_current = await get_stat(dump_date);
 
         // extract(entry_previous?.data)
-        return extract(entry_current?.data);
+        return extract(data_current);
     };
 
     return {
@@ -175,19 +180,20 @@ export async function make_global_stat<
 >(key: key): Promise<(dump_date: string) => Promise<Stats[key]>> {
     // @ts-ignore
     return async (dump_date: string) => {
-        const dump_date_validated =
-            dump_date == "latest" ? await get_latest_date() : dump_date;
-        console.log(dump_date_validated);
-
-        const entry = await getEntry("stats", dump_date_validated);
-        const data = entry?.data[key];
-
-        if (data == null) {
-            return entry;
-        }
-
-        return data;
+        get_stat(dump_date).then((data) => data?.[key]);
     };
+}
+
+export async function get_stat(dump_date: string) {
+    const dump_date_validated =
+        dump_date == "latest" ? await get_latest_date() : dump_date;
+    if (dump_date_validated == null) {
+        return undefined;
+    }
+
+    const entry = await getEntry("stats", dump_date_validated);
+    const data = entry?.data;
+    return data;
 }
 
 export const MAX_NUM_PAGES_STAT = await make_global_stat("max_num_pages");

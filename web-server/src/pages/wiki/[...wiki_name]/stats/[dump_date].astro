@@ -1,5 +1,4 @@
 ---
-
 import MoreStatCards from "../../../../components/MoreStatCards.astro";
 import SampleStats from "../../../../components/SampleStats.astro";
 import WikiSelection from "../../../../components/Selection/WikiSelection.astro";
@@ -40,9 +39,11 @@ export async function getStaticPaths() {
     }
 
     // Global stats for latest
-    params.push({
-        params: { dump_date: "latest", wiki_name: undefined },
-    });
+    if (entries.length > 0) {
+        params.push({
+            params: { dump_date: "latest", wiki_name: undefined },
+        });
+    }
 
     console.log("params", params);
 
@@ -59,9 +60,8 @@ let most_linked_pages =
 // let most_linked_page = (await getEntry("stats", dump_date))?.data
 //     .most_linked[0];
 
-
-let bfs_sample_stats = (await getEntry("stats", dump_date))?.data.bfs_sample_stats;
-
+let bfs_sample_stats = (await getEntry("stats", dump_date))?.data
+    .bfs_sample_stats;
 ---
 
 <Layout

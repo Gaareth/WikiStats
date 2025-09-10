@@ -5,7 +5,7 @@ import { get_latest_date } from "../db/constants";
 // const latest_dump = process.env.LATEST_DUMP;
 
 const latest_dump = (await get_latest_date());
-const stats_created_at = (await getEntry("stats", latest_dump))?.data
+const stats_created_at = latest_dump && (await getEntry("stats", latest_dump))?.data
     .created_at;
 ---
 
@@ -17,13 +17,14 @@ w-full text-sm text-center p-2"
     <div class="blob"></div>
 
     <div>
-        <span>Database dump: {latest_dump}</span>
+        {stats_created_at && <span>Database dump: {latest_dump}</span>
         |
         <span>
             Stats generated at: {
                 new Date(stats_created_at * 1000).toDateString()
             }
-        </span>
+        </span>}
+        {!stats_created_at && <span>No stats generated</span>}
     </div>
     <p class="mt-2">
         <a href="https://gaareth.com" class="text-white dark:text-neutral-100">
