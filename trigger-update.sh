@@ -1,12 +1,16 @@
 #!/bin/bash
-
+print_error() {
+    echo -e "\033[31m$1\033[0m"
+}
 
 echo "> Pulling latest changes from git";
 git pull origin main;
 
-print_error() {
-    echo -e "\033[31m$1\033[0m"
-}
+if [ $? -ne 0 ]; then
+    print_error "Git pull failed. Stopping script."
+    exit 1
+fi
+
 
 echo "> Building new Docker image"
 docker compose --profile prod build

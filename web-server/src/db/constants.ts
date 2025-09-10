@@ -180,13 +180,19 @@ export async function make_global_stat<
 >(key: key): Promise<(dump_date: string) => Promise<Stats[key]>> {
     // @ts-ignore
     return async (dump_date: string) => {
-        get_stat(dump_date).then((data) => data?.[key]);
+        let data = await get_stat(dump_date);
+        if (!data) {
+            return undefined;
+        }
+        return data[key];
+        // get_stat(dump_date).then((data) => data?.[key]);
     };
 }
 
 export async function get_stat(dump_date: string) {
     const dump_date_validated =
         dump_date == "latest" ? await get_latest_date() : dump_date;
+
     if (dump_date_validated == null) {
         return undefined;
     }

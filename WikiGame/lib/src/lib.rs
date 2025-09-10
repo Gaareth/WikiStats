@@ -1,5 +1,5 @@
 #![feature(test)]
-#![feature(async_closure)]
+// #![feature(async_closure)]
 
 use chrono::{DateTime, FixedOffset, NaiveDate, ParseResult, Utc};
 use fxhash::FxHashMap;

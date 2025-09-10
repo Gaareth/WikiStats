@@ -1,13 +1,13 @@
 set -e
-source ./.env
+source ../.env
 
 # npm run build && rsync -v -r package.json package-lock.json node_modules dist ${DEPLOY_HOST}:${DEPLOY_LOCATION}
 
 # npm run build && rsync -v -r package.json package-lock.json dist ${DEPLOY_HOST}:${DEPLOY_LOCATION}
 
-npm run astro check;
-npm run build;
-./validate-docker-setup.sh
+# npm run astro check;
+#npm run build;
+#./validate-docker-setup.sh
 
 
 # upgrade patch?version

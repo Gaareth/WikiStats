@@ -177,11 +177,10 @@ def finish_dump(dump_date):
             result = subprocess.run(cmd, capture_output=True, text=True)
             logger.info(f"Command output: {result.stdout}")
             if result.returncode != 0:
-                logger.error(f"Error: Command output: {result.stderr}")
-
+                raise Exception(result.stderr)
         else:
             time.sleep(10)
-        data["status"] = "DONE"
+            data["status"] = "DONE"
 
     except Exception as e:
         data["status"] = "FAILED"
