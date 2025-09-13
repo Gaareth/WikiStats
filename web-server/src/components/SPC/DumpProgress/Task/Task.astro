@@ -1,14 +1,15 @@
 ---
 import clsx from "clsx";
+import { createUniqueId } from "solid-js";
 import { TaskStatusIndicator } from "./TaskStatusIndicator";
 import TaskTime from "./TaskTime.astro";
 
-export type TaskStatus = "DONE" | "FAILED" | "RUNNING";
+export type TaskStatus = "DONE" | "FAILED" | "RUNNING" | "QUEUED";
 
 export interface TaskType {
     name: string;
     status: TaskStatus;
-    startedAt: Date;
+    startedAt?: Date;
     finishedAt?: Date;
     message?: string;
     dumpDate: string;
@@ -16,10 +17,11 @@ export interface TaskType {
 
 interface Props {
     tasks: TaskType[];
-    date: string;
+    className?: string;
 }
 
-const { tasks, date } = Astro.props;
+const { tasks, className } = Astro.props;
+const uuid = createUniqueId();
 ---
 
 <div class="flex flex-col gap-2">
@@ -29,30 +31,38 @@ const { tasks, date } = Astro.props;
                 class={clsx(
                     "task dark-layer-1",
                     t.message != null && "grid-rows-3 lg:grid-rows-2",
+                    className,
                 )}>
                 <div class="flex items-center gap-2">
                     <TaskStatusIndicator status={t.status} client:load />
 
                     <div class="leading-tight flex flex-col">
                         <span>{t.name}</span>
-                        {/* <span class="text-secondary text-sm">
-                            Dump date: {t.dumpDate}
-                        </span> */}
+                        {t.status == "QUEUED" && (
+                            <span class="text-secondary text-sm">
+                                Dump date: {t.dumpDate}
+                            </span>
+                        )}
                     </div>
                 </div>
 
-                <TaskTime startedAt={t.startedAt} finishedAt={t.finishedAt} />
+                {t.startedAt != null && t.finishedAt != null && (
+                    <TaskTime
+                        startedAt={t.startedAt}
+                        finishedAt={t.finishedAt}
+                    />
+                )}
 
                 {t.message != null && (
                     <>
                         <span
                             class="text-sm text-red-500 dark:text-red-400 text-ellipsis line-clamp-2"
-                            data-tooltip-target={date + "tooltip-msg" + i}
-                            aria-describedby={date + "tooltip-msg" + i}>
+                            data-tooltip-target={uuid + "tooltip-msg" + i}
+                            aria-describedby={uuid + "tooltip-msg" + i}>
                             {t.message}
                         </span>
                         <div
-                            id={date + "tooltip-msg" + i}
+                            id={uuid + "tooltip-msg" + i}
                             role="tooltip"
                             class="default-tooltip tooltip">
                             {t.message}

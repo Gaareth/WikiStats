@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use std::fs;
 use std::path::{Path, PathBuf};
 
 pub mod page_links;
@@ -30,4 +31,31 @@ pub fn db_wiki_path(wiki_name: impl AsRef<str> + Display) -> String {
 pub fn db_sp_wiki_path(wiki_name: impl AsRef<str> + Display) -> String {
     let db_wikis_dir: String = std::env::var("DB_WIKIS_DIR").expect("Please set DB_WIKIS_DIR to db wiki location");
     format!("{db_wikis_dir}/{wiki_name}_sp_database.sqlite")
+}
+
+pub fn get_all_database_files(dir: impl AsRef<Path>) -> std::io::Result<Vec<String>> {
+    let mut matching_files = Vec::new();
+
+    for entry in fs::read_dir(dir)? {
+        let path = entry?.path();
+
+        if path.is_file() {
+            if let Some(file_name) = path.file_name() {
+                if let Some(file_name_str) = file_name.to_str() {
+                    if file_name_str.ends_with(DATABASE_SUFFIX) {
+                        // only return the wikiname
+                        matching_files.push(
+                            file_name_str
+                                .split(DATABASE_SUFFIX)
+                                .next()
+                                .unwrap()
+                                .to_string(),
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(matching_files)
 }

@@ -3,18 +3,28 @@ export const prerender = false;
 
 import Layout from "../layouts/Layout.astro";
 
-import {
-    ErrorCircleIcon,
-    LoadingSpinner,
-    MaterialSymbolsCalendarClock,
-    MaterialSymbolsDoneAllRounded,
-} from "../components/ClientIcons/Icons";
+import { IcRoundCheck } from "../components/ClientIcons/Icons";
+import Collapsible from "../components/Collapsible.astro";
+import LocaleDate from "../components/LocaleDate";
 import DBSchedule from "../components/SPC/db/DBSchedule.astro";
-import FinishedTasks from "../components/Task/FinishedTasks.astro";
-import RunningTasks from "../components/Task/RunningTasks.astro";
-import { type TaskType } from "../components/Task/Task.astro";
+import DBStatus from "../components/SPC/DumpProgress/DBStatus";
+import FinishedTasks from "../components/SPC/DumpProgress/Task/FinishedTasks.astro";
+import RunningTasks from "../components/SPC/DumpProgress/Task/RunningTasks.astro";
+import Task, {
+    type TaskType,
+} from "../components/SPC/DumpProgress/Task/Task.astro";
+import { TooltipButton } from "../components/TooltipButton";
 import { redisClient } from "../db/redis";
-import { cn } from "../utils";
+
+let last_checked = await redisClient.get(
+    "CELERY-WIKI_wiki-tasks:last_checked_for_tasks",
+);
+let last_checked_date = last_checked
+    ? new Date(Number(last_checked) * 1000)
+    : null;
+let last_check_is_recent =
+    last_checked_date != null &&
+    new Date().getTime() - last_checked_date.getTime() < 24 * 60 * 60 * 1000; // 24 hours
 
 let keys = await redisClient.hGetAll("CELERY-WIKI_wiki-tasks");
 let tasks: TaskType[] = Object.entries(keys).map(([key, value]) => {
@@ -33,7 +43,7 @@ console.log(tasks);
 // const tasksStatusi = await redisClient.hGetAll("CELERY-WIKI_wiki-tasks-status");
 
 const sortTasks = (a: TaskType, b: TaskType) => {
-    // -1 comes first
+    // -1 comes first => running tasks first
     if (a.status === "RUNNING" && b.status !== "RUNNING") {
         return -1;
     }
@@ -45,11 +55,21 @@ const sortTasks = (a: TaskType, b: TaskType) => {
         return a.dumpDate > b.dumpDate ? -1 : 1; // most recent first
     }
 
+    if (!a.startedAt && !b.startedAt) return 0;
+    if (!a.startedAt) return 1;
+    if (!b.startedAt) return -1;
     return b.startedAt.getTime() - a.startedAt.getTime();
 };
 
+let numRunning = tasks.filter((t) => t.status == "RUNNING").length;
+
+let numQueued = tasks.filter((t) => t.status == "QUEUED").length;
+
+let queuedTasks = tasks.filter((t) => t.status == "QUEUED").sort(sortTasks);
 let runningTasks = tasks.filter((t) => t.status == "RUNNING").sort(sortTasks);
-let finishedTasks = tasks.filter((t) => t.status != "RUNNING").sort(sortTasks);
+let finishedTasks = tasks
+    .filter((t) => t.status != "RUNNING" && t.status != "QUEUED")
+    .sort(sortTasks);
 
 let now = new Date();
 
@@ -85,84 +105,74 @@ if (isUpdatingRn) {
         }
     }
 }
+
+const timeFormat: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+    timeZoneName: "short",
+    timeZone: "UTC", // by default show in UTC, client will convert to local time as long javascript is enabled
+};
 ---
 
 <Layout title="Dump progress">
     <main class="grid grid-cols-1 sm:grid-cols-10 gap-2">
         <div class="sm:col-span-6 lg:col-span-7">
-            <div class="flex flex-wrap gap-1 mb-5">
+            <div class="flex flex-wrap gap-1">
                 <h1 class="text-3xl">Database Status</h1>
-                <div
-                    class={cn(
-                        "ml-auto flex gap-2 items-center dark-layer-2 rounded px-3 border uppercase",
-                        dbStatus == "DONE" &&
-                            "dark:border-green-300/20 border-green-400",
-                        dbStatus == "FAILED" &&
-                            "dark:border-red-400/20 border-red-500",
-                    )}>
-                    {
-                        dbStatus == "RUNNING" && (
-                            <>
-                                IN PROGRESS
-                                <span class="block w-4">
-                                    <LoadingSpinner />
-                                </span>
-                            </>
+                <DBStatus dbStatus={dbStatus} />
+            </div>
+            <div class="mb-2 flex gap-1 items-center">
+                <span class="text-secondary text-sm block">
+                    Last checked: {
+                        last_checked_date ? (
+                            <LocaleDate
+                                date={last_checked_date}
+                                formatOption={timeFormat}
+                                client:load
+                            />
+                        ) : (
+                            "never"
                         )
                     }
-
-                    {
-                        dbStatus == "DONE" && (
-                            <>
-                                DONE
-                                <span class="block w-5 text-green-400 dark:text-green-300">
-                                    <MaterialSymbolsDoneAllRounded aria-label="two checkmarks" />
-                                </span>
-                            </>
-                        )
-                    }
-
-                    {
-                        dbStatus == "SCHEDULED" && (
-                            <>
-                                SCHEDULED
-                                <span class="block w-5">
-                                    <MaterialSymbolsCalendarClock aria-label="schedule" />
-                                </span>
-                            </>
-                        )
-                    }
-
-                    {
-                        dbStatus == "FAILED" && (
-                            <>
-                                FAILED
-                                <span class="block w-5 text-red-500 dark:text-red-400">
-                                    <ErrorCircleIcon aria-label="Failure" />
-                                </span>
-                            </>
-                        )
-                    }
-                </div>
+                </span>
+                {
+                    last_check_is_recent && (
+                        <TooltipButton tooltip="Last checked less than 24 hours ago">
+                            <span class="text-green-500 dark:text-green-400 block w-4">
+                                <IcRoundCheck />
+                            </span>
+                        </TooltipButton>
+                    )
+                }
             </div>
 
             <div class="text-secondary text-base mb-5">
                 <p>
                     This pages tracks the progress of the background tasks that
-                    fetch and process the <a href="https://dumps.wikimedia.org/">database dumps from Wikimedia</a>.
+                    fetch and process the <a
+                        href="https://dumps.wikimedia.org/">
+                        database dumps from Wikimedia.
+                    </a>
                 </p>
 
                 <p>
                     New dumps are typically generated on the 1st and 20th of
-                    each month. However, availability may be delayed by a day or more depending on
-                    their size. The table to the right shows when each wiki was
-                    last updated.
+                    each month. However, availability may be delayed by a day or
+                    more depending on their size. The table to the right shows
+                    when each wiki was last updated.
                 </p>
             </div>
 
             <div class="flex gap-1 flex-wrap justify-between mb-1">
                 <span>
-                    {runningTasks.length} Tasks Running | {finishedTasks.length}
+                    {numQueued} Tasks Queued | {numRunning} Running | {
+                        finishedTasks.length
+                    }
                     Done
                 </span>
             </div>
@@ -176,6 +186,16 @@ if (isUpdatingRn) {
             }
 
             <RunningTasks runningTasks={runningTasks} />
+            {
+                queuedTasks.length > 0 && (
+                    <Collapsible>
+                        <div slot="summary" class="w-full text-center">
+                            {queuedTasks.length} Queued Tasks
+                        </div>
+                        <Task tasks={queuedTasks} className="flex" />
+                    </Collapsible>
+                )
+            }
             <FinishedTasks finishedTasks={finishedTasks} />
         </div>
 

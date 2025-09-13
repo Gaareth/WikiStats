@@ -1,9 +1,10 @@
 import requests
-from celery.signals import task_failure
+from celery.signals import task_failure, after_task_publish
 import smtplib
 from email.mime.text import MIMEText
 import os
 from celery.utils.log import get_task_logger
+from utils import set_task_status
 
 from tasks import logger
 import traceback as tb
@@ -127,6 +128,22 @@ def task_failed_handler(sender=None, headers=None, body=None, **kwargs):
     body_text = f"Task: {task_name}\nException: {exception}\nTraceback:\n{traceback}"
     logger.info(f"Sending failure alert to {ALERT_EMAIL_ADDRESS} for task {task_name}")
     send_mail(subject, body_text)
+
+
+# @after_task_publish.connect
+# def task_sent_handler(sender=None, headers=None, body=None, **kwargs):
+#     print(f"Task {sender} queued with id {headers.get('id')} {body}")
+#     if sender == "tasks.process_wiki":
+#         wiki = body[0] 
+#         dump_date = body[1] 
+#         set_task_status({
+#                 "name": wiki,
+#                 "dumpDate": dump_date,
+#                 "status": "QUEUED",
+#                 "startedAt": None,
+#                 "finishedAt": None,
+#                 "message": None,
+#             })
 
 
 if __name__ == "__main__":

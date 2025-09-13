@@ -116,7 +116,7 @@ const fetchRandomPage = async (wiki_name: string) => {
     const title = json["items"][0]["title"];
     const namespace = json["items"][0]["namespace"];
     if (namespace != 0) {
-        return "Sorry this should not happen";
+        throw new Error("Not a main namespace page: " + title + " but this should not happen");
     }
     return title;
 };
@@ -311,7 +311,6 @@ export function PageSearch(props: Props) {
                     setShow(true);
                 }}
                 clickOutside={() => {
-                    console.log("AAA");
                     setShow(false);
                 }}
                 ref={inputRef}

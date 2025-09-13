@@ -21,7 +21,30 @@ services:
         depends_on:
             - redis
             - rabbitmq
+            - sp-server
         profiles: ["prod"]
+    sp-server:
+        build:
+            context: ./WikiGame
+            dockerfile: Dockerfile
+        container_name: wiki-stats-sp-server-${ENV}
+        ports:
+            - "1870:1870"
+        environment:
+            RUST_LOG: info
+        env_file:
+            - .env
+        restart: always
+        volumes:
+            - ${DB_WIKIS_DIR}:${DB_WIKIS_DIR}
+            - ./logs:/app/logs
+        profiles: ["prod"]
+        command: [
+            "--host", "0.0.0.0",
+            "--port", "1870",
+            "--db-path", "${DB_WIKIS_DIR}",
+            "--logfile", "/app/logs/wiki-stats-sp-server.log",
+        ]
     redis:
         image: redis:8
         container_name: redis

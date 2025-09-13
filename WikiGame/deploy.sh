@@ -1,9 +1,6 @@
 source ../.env
 
-
-#cross build  --bin server --target aarch64-unknown-linux-gnu --release
-#cargo build --bin server --release
-cross build  --bin server --target x86_64-unknown-linux-gnu --release
-#rsync -vvv target/aarch64-unknown-linux-gnu/release/server gareth@192.168.178.40:/home/gareth/wiki-stats
-#rsync -vvv target/release/server gareth@192.168.178.94:/home/gareth/wiki-stats
-rsync -vvv target/x86_64-unknown-linux-gnu/release/server gareth@192.168.178.94:${DEPLOY_LOCATION}/binaries/server
+cross build  --bin cli --target ${DEPLOY_TARGET_ARCH} --release
+cross build  --bin server --target ${DEPLOY_TARGET_ARCH} --release
+rsync -vvv target/${DEPLOY_TARGET_ARCH}/release/server ${DEPLOY_HOST}:${DEPLOY_LOCATION}/binaries/server
+rsync -vvv target/${DEPLOY_TARGET_ARCH}/release/cli ${DEPLOY_HOST}:${DEPLOY_LOCATION}/binaries/cli

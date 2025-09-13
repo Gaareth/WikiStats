@@ -1,15 +1,17 @@
+from datetime import datetime, timezone
 import subprocess
-import dotenv
-import re
-import os
+import argparse
+
 
 from tasks import (
     WIKI_CLI_BINARY,
     STATS_OUTPUT_PATH,
     SUPPORTED_WIKIS,
+    WIKI_TASKS_PREFIX,
     process_wiki,
     SIMULATE,
-    env_path,
+    redis,
+    set_task_status
 )
 
 
@@ -64,16 +66,24 @@ def check_for_tasks():
 
         for wiki in available_wikis:
             process_wiki.delay(wiki, dump_date, expected_wikis)
-            # ...
+            set_task_status({
+                "name": wiki,
+                "dumpDate": dump_date,
+                "status": "QUEUED",
+                "startedAt": None,
+                "finishedAt": None,
+                "message": None,
+            })
+            
 
+    now_utc_seconds = int(datetime.now(timezone.utc).timestamp())
+    redis.set(f"{WIKI_TASKS_PREFIX}:last_checked_for_tasks", now_utc_seconds)
 
 def simulate_check_for_tasks():
     wikis = SUPPORTED_WIKIS.split(", ")
     for wiki in wikis:
         for dump_date in [
             "20250520",
-            "20250601",
-            "20250620",
             "20250701",
             "20250720",
             "20250801",
@@ -81,13 +91,24 @@ def simulate_check_for_tasks():
         ]:
             print(f"> Enqueuing: [{wiki}] {dump_date}")
             process_wiki.delay(wiki, dump_date, wikis)
+            set_task_status({
+                "name": wiki,
+                "dumpDate": dump_date,
+                "status": "QUEUED",
+                "startedAt": None,
+                "finishedAt": None,
+                "message": None,
+            })
 
 
 if __name__ == "__main__":
-    # process_wiki.delay("klbjcsykjyshcd", "20250901", ["dewiki", "jawiki"])
+    parser = argparse.ArgumentParser(description="Task Enqueuer")
+    parser.add_argument("--dummy", action="store_true", help="Enqueue dummy tasks instead of real ones")
+    args = parser.parse_args()
+    dummy = args.dummy
 
-    if SIMULATE:
-        print("Running in SIMULATE mode")
+    if dummy:
+        print("Enqueuing dummy tasks")
         simulate_check_for_tasks()
         # process_wiki.delay("jawiki", "20250901", ["dewiki", "jawiki"])
     else:

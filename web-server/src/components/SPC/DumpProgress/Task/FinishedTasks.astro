@@ -1,5 +1,5 @@
 ---
-import Collapsible from "../Collapsible.astro";
+import Collapsible from "../../../Collapsible.astro";
 import Task, { type TaskType } from "./Task.astro";
 import { TaskStatusIndicator } from "./TaskStatusIndicator";
 import TaskTime from "./TaskTime.astro";
@@ -47,7 +47,7 @@ let tasksByDumpDate: Record<string, TaskType[]> = finishedTasks.reduce(
                                 </p>
                                 <TaskTime
                                     startedAt={
-                                        tasks[tasks.length - 1].startedAt
+                                        tasks[tasks.length - 1].startedAt!
                                     }
                                     finishedAt={tasks[0].finishedAt}
                                     className="ml-auto mr-1 sm:mr-3"
@@ -55,7 +55,7 @@ let tasksByDumpDate: Record<string, TaskType[]> = finishedTasks.reduce(
                             </div>
                         </div>
                     </div>
-                    <Task tasks={tasks} date={date} />
+                    <Task tasks={tasks} />
                 </Collapsible>
             ))
     }

@@ -3,27 +3,31 @@ use std::fs::{File, OpenOptions};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, RwLock};
 
-use axum::{Json, Router, routing::get};
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use axum::{routing::get, Json, Router};
 use axum_streams::*;
 use clap::{ArgAction, Parser};
 use dirs::home_dir;
 use dotenv::dotenv;
 use futures::{pin_mut, Stream, StreamExt};
 use lazy_static::lazy_static;
+use log::info;
 use parse_mediawiki_sql::field_types::{PageId, PageTitle};
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use simplelog::{ColorChoice, CombinedLogger, Config, LevelFilter, TerminalMode, TermLogger, WriteLogger};
+use simplelog::{
+    ColorChoice, CombinedLogger, Config, LevelFilter, TermLogger, TerminalMode, WriteLogger,
+};
+use std::process::exit;
 
-use wiki_stats::{DBCache, sqlite};
 use wiki_stats::calc::{bfs_bidirectional, bfs_stream};
-use wiki_stats::sqlite::{db_wiki_path, join_db_wiki_path};
 use wiki_stats::sqlite::page_links::load_link_to_map_db_limit;
+use wiki_stats::sqlite::{db_wiki_path, get_all_database_files, join_db_wiki_path};
 use wiki_stats::stats::select_link_count_groupby;
+use wiki_stats::{sqlite, DBCache};
 
 // TODO: remove redirects?
 
@@ -32,8 +36,8 @@ use wiki_stats::stats::select_link_count_groupby;
 lazy_static! {
     static ref CACHES: HashMap<String, DBCache> = {
         let cli = Cli::parse();
-        validate_wikis_paths(cli.db_path, &cli.wikis);
-        get_cache(cli.wikis, cli.num_load)
+        let (_, wikis) = validate_cli_args(cli.db_path, cli.wikis);
+        get_cache(wikis, cli.num_load)
     };
 }
 
@@ -44,42 +48,53 @@ struct StatusError(StatusCode, String);
 impl IntoResponse for StatusError {
     fn into_response(self) -> Response {
         dbg!(&self);
-        (
-            self.0,
-            self.1,
-        )
-            .into_response()
+        (self.0, self.1).into_response()
     }
 }
 
-
-async fn get_shortest_path(State(state): State<AppState>,
-                           axum::extract::Path((wiki_name, start_title, end_title)): axum::extract::Path<(String, String, String)>)
-                           -> Result<impl IntoResponse, StatusError> {
+async fn get_shortest_path(
+    State(state): State<AppState>,
+    axum::extract::Path((wiki_name, start_title, end_title)): axum::extract::Path<(
+        String,
+        String,
+        String,
+    )>,
+) -> Result<impl IntoResponse, StatusError> {
     println!("[{wiki_name}] {start_title} -> {end_title}");
 
     let path = db_wiki_path(&wiki_name);
 
     let wikis = state.wikis;
     if !wikis.contains(&wiki_name) {
-        return Err(StatusError(StatusCode::NOT_FOUND,
-                               format!("Unsupported wiki {wiki_name}. Supported: wikis: {}", wikis.join(","))));
+        return Err(StatusError(
+            StatusCode::NOT_FOUND,
+            format!(
+                "Unsupported wiki {wiki_name}. Supported: wikis: {}",
+                wikis.join(",")
+            ),
+        ));
     }
 
-    let conn = Connection::open(&path)
-        .map_err(|_| StatusError(StatusCode::INTERNAL_SERVER_ERROR, "Failed connecting to db".to_string()))?;
-
+    let conn = Connection::open(&path).map_err(|_| {
+        StatusError(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed connecting to db".to_string(),
+        )
+    })?;
 
     let start_link = PageTitle(start_title.clone());
-    let start_link_id = sqlite::title_id_conv::page_title_to_id(&start_link, &conn)
-        .ok_or(StatusError(StatusCode::NOT_FOUND,
-                           format!("{start_title} is not a valid page for the {wiki_name}")))?;
-
+    let start_link_id =
+        sqlite::title_id_conv::page_title_to_id(&start_link, &conn).ok_or(StatusError(
+            StatusCode::NOT_FOUND,
+            format!("{start_title} is not a valid page for the {wiki_name}"),
+        ))?;
 
     let end_link = PageTitle(end_title.clone());
-    let end_link_id = sqlite::title_id_conv::page_title_to_id(&end_link, &conn)
-        .ok_or(StatusError(StatusCode::NOT_FOUND,
-                           format!("{end_title} is not a valid page for the {wiki_name}")))?;
+    let end_link_id =
+        sqlite::title_id_conv::page_title_to_id(&end_link, &conn).ok_or(StatusError(
+            StatusCode::NOT_FOUND,
+            format!("{end_title} is not a valid page for the {wiki_name}"),
+        ))?;
 
     let cache = CACHES.get(&wiki_name).unwrap();
 
@@ -94,38 +109,51 @@ struct SPOptions {
     end_title: String,
 }
 
-
 async fn get_shortest_path_bidirectional(
     State(state): State<AppState>,
     axum::extract::Path(wiki_name): axum::extract::Path<String>,
-    params: Query<SPOptions>)
-    -> Result<impl IntoResponse, StatusError> {
+    params: Query<SPOptions>,
+) -> Result<impl IntoResponse, StatusError> {
     let start_title = &params.start_title;
     let end_title = &params.end_title;
-    println!("[{wiki_name}] {start_title} -> {end_title}");
 
-    let path = db_wiki_path(&wiki_name);
+    info!(
+        "{}",
+        format!("Bidirectional sp: [{wiki_name}] {start_title} -> {end_title}")
+    );
 
+    let path = state.path;
     let wikis = state.wikis;
     if !wikis.contains(&wiki_name) {
-        return Err(StatusError(StatusCode::NOT_FOUND, format!("Unsupported wiki {wiki_name}. Supported: wikis: {:?}", wikis)));
+        return Err(StatusError(
+            StatusCode::NOT_FOUND,
+            format!(
+                "Unsupported wiki {wiki_name}. Supported: wikis: {:?}",
+                wikis
+            ),
+        ));
     }
 
-
-    let conn = Connection::open(&path)
-        .map_err(|_| StatusError(StatusCode::INTERNAL_SERVER_ERROR, "Failed connecting to db".to_string()))?;
-
+    let conn = Connection::open(&path).map_err(|_| {
+        StatusError(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed connecting to db".to_string(),
+        )
+    })?;
 
     let start_link = PageTitle(start_title.clone());
-    let start_link_id = sqlite::title_id_conv::page_title_to_id(&start_link, &conn)
-        .ok_or(StatusError(StatusCode::NOT_FOUND,
-                           format!("{start_title} is not a valid page for the {wiki_name}")))?;
-
+    let start_link_id =
+        sqlite::title_id_conv::page_title_to_id(&start_link, &conn).ok_or(StatusError(
+            StatusCode::NOT_FOUND,
+            format!("{start_title} is not a valid page for the {wiki_name}"),
+        ))?;
 
     let end_link = PageTitle(end_title.clone());
-    let end_link_id = sqlite::title_id_conv::page_title_to_id(&end_link, &conn)
-        .ok_or(StatusError(StatusCode::NOT_FOUND,
-                           format!("{end_title} is not a valid page for the {wiki_name}")))?;
+    let end_link_id =
+        sqlite::title_id_conv::page_title_to_id(&end_link, &conn).ok_or(StatusError(
+            StatusCode::NOT_FOUND,
+            format!("{end_title} is not a valid page for the {wiki_name}"),
+        ))?;
 
     let stream = bfs_bidirectional(start_link_id, end_link_id, path).await;
     if !params.stream.unwrap_or(false) {
@@ -133,10 +161,12 @@ async fn get_shortest_path_bidirectional(
         let mut last = stream.next().await;
         while let Some(v) = stream.next().await {
             last = Some(v);
-        };
+        }
         last.map(|s| Json(json!(s)).into_response())
-            .ok_or(StatusError(StatusCode::INTERNAL_SERVER_ERROR,
-                               "No results?".to_string()))
+            .ok_or(StatusError(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "No results?".to_string(),
+            ))
     } else {
         // Ok(StreamBodyAsOptions::new()
         //     .buffering_ready_items(1).json_nl(stream).into_response())
@@ -156,31 +186,56 @@ struct MyTestStructure {
 }
 
 // Your possibly stream of objects
-fn my_source_stream() -> impl Stream<Item=MyTestStructure> {
+fn my_source_stream() -> impl Stream<Item = MyTestStructure> {
     // Simulating a stream with a plain vector and throttling to show how it works
     use tokio_stream::StreamExt;
     futures::stream::iter(vec![
         MyTestStructure {
             some_test_field: ":) ".to_string()
-        }; 1000
-    ]).throttle(std::time::Duration::from_millis(50))
+        };
+        1000
+    ])
+    .throttle(std::time::Duration::from_millis(50))
 }
 
 async fn test_json_nl_stream() -> impl IntoResponse {
     StreamBodyAs::json_nl(my_source_stream())
 }
 
-fn validate_wikis_paths(db_path: PathBuf, wikis: impl AsRef<[String]>) {
-    for wiki_name in wikis.as_ref() {
+fn validate_cli_args(
+    db_path: Option<PathBuf>,
+    wikis: Option<Vec<String>>,
+) -> (PathBuf, Vec<String>) {
+    let db_dir = db_path.unwrap_or_else(|| {
+        let dir = std::env::var("DB_WIKIS_DIR").unwrap_or_else(|_| {
+            eprintln!("Error: Please set DB_WIKIS_DIR to db wiki location or use --db-path");
+            exit(1);
+        });
+        info!("Using DB_WIKIS_DIR environment variable");
+        PathBuf::from(dir)
+    });
+
+    info!("Configuration: db path: {:?}.", db_dir);
+
+    let wikis_to_check = wikis.unwrap_or_else(|| {
+        info!("Using all wikis in db path");
+        get_all_database_files(db_dir.clone()).expect("Failed to get database files")
+    });
+
+    info!("Configuration: Supported wikis: {:?}", wikis_to_check);
+
+    for wiki_name in &wikis_to_check {
         // todo
-        // let path = join_db_wiki_path(db_path.clone(), wiki_name);
-        let path = PathBuf::from(db_wiki_path(wiki_name));
+        let path = join_db_wiki_path(db_dir.clone(), wiki_name);
         if !path.exists() || path.metadata().unwrap().len() == 0 {
             eprintln!("{wiki_name} Database at {path:?} does not exist or is emtpy");
             std::process::exit(1);
         }
-        let _ = Connection::open(&path).unwrap_or_else(|_| panic!("Failed connecting to DB {path:?}"));
+        let _ =
+            Connection::open(&path).unwrap_or_else(|_| panic!("Failed connecting to DB {path:?}"));
     }
+
+    (db_dir, wikis_to_check)
 }
 
 fn get_cache(wikis: impl AsRef<[String]>, num_load: usize) -> HashMap<String, DBCache> {
@@ -191,7 +246,9 @@ fn get_cache(wikis: impl AsRef<[String]>, num_load: usize) -> HashMap<String, DB
             vec![]
         } else {
             select_link_count_groupby(num_load, wiki, "WikiLink.page_id")
-                .into_iter().map(|(pid, _)| PageId(pid as u32)).collect()
+                .into_iter()
+                .map(|(pid, _)| PageId(pid as u32))
+                .collect()
         };
         println!("Loaded top {num_load} links entries to cache");
 
@@ -204,66 +261,66 @@ fn get_cache(wikis: impl AsRef<[String]>, num_load: usize) -> HashMap<String, DB
 #[derive(Clone)]
 struct AppState {
     wikis: Vec<String>,
+    path: PathBuf,
     // cache: Arc<HashMap<String, DBCache>>,
 }
 
-
 #[tokio::main]
 async fn main() {
-    dotenv().ok().unwrap();
+    if dotenv().is_err() {
+        println!("Warning: No .env file found");
+    }
+
     let cli = Cli::parse();
 
-    let logfile_path = home_dir()
-        .expect("Failed retrieving home dir of OS")
-        .join("wikiStats-server.log");
+    let logfile_path = cli.logfile;
+    println!("Logging to {logfile_path:?}");
 
     let logfile = OpenOptions::new()
         .read(true)
         .create(true)
         .append(true)
-        .open(&logfile_path).unwrap_or_else(|_| panic!("Failed creating? logfile at {logfile_path:?}"));
+        .open(&logfile_path)
+        .unwrap_or_else(|_| panic!("Failed creating? logfile at {logfile_path:?}"));
 
     let term_loglevel = match cli.verbose {
-        0 => LevelFilter::Error,   // No verbosity -> Error level
-        1 => LevelFilter::Warn,    // -v           -> Warn level
-        2 => LevelFilter::Info,    // -vv          -> Info level
-        3 => LevelFilter::Debug,   // -vvv         -> Debug level
-        _ => LevelFilter::Trace,   // -vvvv or more -> Trace level
+        0 => LevelFilter::Error, // No verbosity -> Error level
+        1 => LevelFilter::Warn,  // -v           -> Warn level
+        2 => LevelFilter::Info,  // -vv          -> Info level
+        3 => LevelFilter::Debug, // -vvv         -> Debug level
+        _ => LevelFilter::Trace, // -vvvv or more -> Trace level
     };
     println!("LogLevel: {term_loglevel}");
 
-    CombinedLogger::init(
-        vec![
-            TermLogger::new(term_loglevel, Config::default(), TerminalMode::Mixed, ColorChoice::Auto),
-            WriteLogger::new(LevelFilter::Info, Config::default(),
-                             logfile),
-        ]
-    ).unwrap();
+    CombinedLogger::init(vec![
+        TermLogger::new(
+            term_loglevel,
+            Config::default(),
+            TerminalMode::Mixed,
+            ColorChoice::Auto,
+        ),
+        WriteLogger::new(LevelFilter::Info, Config::default(), logfile),
+    ])
+    .unwrap();
 
-
-    if cli.wikis.is_empty() {
-        eprintln!("Error: The `--wikis` argument must not be empty.");
-        std::process::exit(1);
-    }
-
-    validate_wikis_paths(cli.db_path, &cli.wikis);
+    let (db_path, wikis) = validate_cli_args(cli.db_path, cli.wikis);
 
     let state = AppState {
-        wikis: cli.wikis.clone(),
+        wikis: wikis.clone(),
+        path: db_path,
         // cache: Arc::new(get_cache(cli.wikis.clone(), cli.num_load)),
     };
-
 
     let addr = format!("{}:{}", cli.host, cli.port);
 
     let app = Router::new()
-        .route("/", get(|| async { "Hello, World! :)" }))
+        .route("/", get(|| async { "Hello, World! The shortest path endpoint is at /path/<wiki_name>" }))
         .route("/path/:wiki", get(get_shortest_path_bidirectional))
-        .route("/test", get(test_json_nl_stream))
+        // .route("/test", get(test_json_nl_stream))
         .with_state(state);
 
     println!("Starting server at: {addr} with load: {:?}", cli.num_load);
-    println!("Supported wikis: {:?}", cli.wikis);
+    println!("Supported wikis: {:?}", wikis);
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -286,16 +343,20 @@ struct Cli {
     #[arg(long, default_value_t = 0)]
     num_load: usize,
 
-    /// Path containing the sqlite db files
+    /// Path containing the sqlite db files. Use env var DB_WIKIS_DIR if not set.
     #[arg(short, long, value_name = "PATH")]
-    db_path: PathBuf,
+    db_path: Option<PathBuf>,
 
     /// List of supported wiki. E.g.: dewiki,jawiki (No space)
     #[arg(long, value_delimiter = ',')]
-    wikis: Vec<String>,
+    wikis: Option<Vec<String>>,
 
-    /// Logging verbosity -v to -vvvv (trace)
-    #[arg(short, long, action = ArgAction::Count)]
+    /// Logging verbosity -v to -vvvv (trace), default is -vv (info)
+    #[arg(short, long, action = ArgAction::Count, default_value_t = 2)]
     verbose: u8,
+
+    // Log file path
+    #[arg(long, value_name = "PATH", default_value = "wiki-stats-sp-server.log")]
+    logfile: PathBuf,
 }
 //TODO: implement cache for bidirectional

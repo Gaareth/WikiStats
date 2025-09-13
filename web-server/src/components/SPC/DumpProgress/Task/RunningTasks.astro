@@ -1,9 +1,9 @@
 ---
-import { formatTimeDiff } from "../../utils";
+import { formatTimeDiff } from "../../../../utils";
 import {
     LoadingSpinner,
     MaterialSymbolsClockLoader40,
-} from "../ClientIcons/Icons";
+} from "../../../ClientIcons/Icons";
 import type { TaskType } from "./Task.astro";
 
 interface Props {
@@ -28,7 +28,7 @@ let now = new Date();
                 </div>
                 <span class="flex items-center gap-1 text-base text-secondary ml-auto">
                     running for
-                    {formatTimeDiff(now, new Date(t.startedAt))}
+                    {formatTimeDiff(now, new Date(t.startedAt!))}
                     <span class="block w-4">
                         <MaterialSymbolsClockLoader40 aria-label="in progress time" />
                     </span>

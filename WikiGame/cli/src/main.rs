@@ -21,7 +21,7 @@ use simplelog::{ColorChoice, CombinedLogger, Config, TermLogger, TerminalMode, W
 
 use wiki_stats::process::{process_threaded, process_wikis_seq, test_bench_threaded};
 use wiki_stats::sqlite::load::load_linktarget_map;
-use wiki_stats::sqlite::{join_db_wiki_path, DATABASE_SUFFIX};
+use wiki_stats::sqlite::{join_db_wiki_path, DATABASE_SUFFIX, get_all_database_files};
 use wiki_stats::stats::Stats;
 use wiki_stats::web::find_smallest_wikis;
 use wiki_stats::{download, stats, validate, web};
@@ -528,7 +528,7 @@ async fn main() {
                             }
 
                             // are there any db files that are not sql files?
-                            let unprocessed_wikis: Vec<_> = download_wiki_names
+                            let unprocessed_wikis: Vec<String> = download_wiki_names
                                 .iter()
                                 .filter(|x| !sql_wiki_names.contains(x))
                                 .cloned()
@@ -557,32 +557,7 @@ async fn main() {
     }
 }
 
-fn get_all_database_files(dir: impl AsRef<Path>) -> std::io::Result<Vec<String>> {
-    let mut matching_files = Vec::new();
 
-    for entry in fs::read_dir(dir)? {
-        let path = entry?.path();
-
-        if path.is_file() {
-            if let Some(file_name) = path.file_name() {
-                if let Some(file_name_str) = file_name.to_str() {
-                    if file_name_str.ends_with(DATABASE_SUFFIX) {
-                        // only return the wikiname
-                        matching_files.push(
-                            file_name_str
-                                .split(DATABASE_SUFFIX)
-                                .next()
-                                .unwrap()
-                                .to_string(),
-                        );
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(matching_files)
-}
 
 #[cfg(test)]
 mod cli_test {
