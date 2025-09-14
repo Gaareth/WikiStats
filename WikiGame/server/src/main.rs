@@ -122,7 +122,7 @@ async fn get_shortest_path_bidirectional(
         format!("Bidirectional sp: [{wiki_name}] {start_title} -> {end_title}")
     );
 
-    let path = state.path;
+    let base_path = state.path;
     let wikis = state.wikis;
     if !wikis.contains(&wiki_name) {
         return Err(StatusError(
@@ -133,7 +133,7 @@ async fn get_shortest_path_bidirectional(
             ),
         ));
     }
-
+    let path = join_db_wiki_path(base_path, &wiki_name);
     let conn = Connection::open(&path).map_err(|_| {
         StatusError(
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -232,7 +232,7 @@ fn validate_cli_args(
             std::process::exit(1);
         }
         let _ =
-            Connection::open(&path).unwrap_or_else(|_| panic!("Failed connecting to DB {path:?}"));
+            Connection::open(&path).unwrap_or_else(|error| panic!("Failed connecting to DB {path:?}: {error}"));
     }
 
     (db_dir, wikis_to_check)
@@ -322,7 +322,10 @@ async fn main() {
     println!("Starting server at: {addr} with load: {:?}", cli.num_load);
     println!("Supported wikis: {:?}", wikis);
 
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap_or_else(|error| {
+        eprintln!("Error: Failed to bind to address: {error}");
+        exit(1)
+    });
     axum::serve(listener, app).await.unwrap();
 }
 
