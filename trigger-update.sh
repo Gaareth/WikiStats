@@ -1,12 +1,17 @@
 #!/bin/bash
 source .env
 
+# Ensure logs directory exists with user permissions
+mkdir -p ./logs
+chown -R $(whoami):$(whoami) ./logs
+
 print_error() {
     echo -e "\033[31m$1\033[0m"
 }
 
 echo "> Pulling latest changes from git";
 git pull origin main;
+git submodule update --init --recursive
 
 if [ $? -ne 0 ]; then
     print_error "Git pull failed. Stopping script."
@@ -22,8 +27,19 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# if no docker container with the name wiki-stats-webserver is running, start it and quit
+if ! [ "$(docker ps -q -f name=wiki-stats-webserver)" ]; then
+    echo "> Starting container for the first time"
+    docker compose --profile prod up -d
+    echo "Successfully started all containers."
+    exit 0
+fi
+
+echo "Info: There is already a container running with the name wiki-stats-webserver. Proceeding to test and deploy new version."
+
 docker stop wiki-stats-webserver-test 2>/dev/null || true
 docker rm wiki-stats-webserver-test 2>/dev/null || true
+
 
 echo "> Starting a test container"
 docker compose run -d --name wiki-stats-webserver-test -p 4322:4321 webserver 
@@ -63,7 +79,7 @@ docker rm wiki-stats-webserver-test 2>/dev/null || true
 if [ "$status_code" -ge 200 ] && [ "$status_code" -lt 400 ]; then
     echo "URL returned 200 OK or any 300"
     echo "> Deploying new image to production"
-    docker compose --profile prod up -d --build 
+    docker compose --profile prod up -d
     echo "Successfully deployed new version."
 else
     print_error "URL did not return 200 OK or any 300. Status code: $status_code"

@@ -7,7 +7,7 @@ import {
     Switch,
     createResource,
 } from "solid-js";
-import { WIKIPEDIA_REST_API_HEADERS } from "../../utils";
+import { get_wiki_prefix, WIKIPEDIA_REST_API_HEADERS } from "../../utils";
 import {
     StartIcon,
     TargetHitIcon,
@@ -25,7 +25,7 @@ interface Props {
 }
 
 export default function WikiPathEntry(props: Props) {
-    const wiki_prefix = props.wiki_name.slice(0, 2);
+    const wiki_prefix = get_wiki_prefix(props.wiki_name);
     const wikipedia_url = `https://${wiki_prefix}.wikipedia.org/wiki/${props.name}`;
 
     const [desc] = createResource(async () => {

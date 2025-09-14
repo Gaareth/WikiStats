@@ -6,8 +6,17 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function wiki_link(title: string, lang: string) {
-    const lang_prefix = lang.substring(0, 2);
+    const lang_prefix = get_wiki_prefix(lang);
     return `https://${lang_prefix}.wikipedia.org/wiki/${title}`;
+}
+
+export function get_wiki_prefix(lang: string) {
+    const wiki_split = lang.split("wiki");
+    if (wiki_split.length < 1) {
+        throw new Error("Invalid wiki name" + lang + ". Does not contain 'wiki'");
+    }
+    const lang_prefix = wiki_split[0]
+    return lang_prefix
 }
 
 export function reverse_string(s: string): string {

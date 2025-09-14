@@ -5,6 +5,7 @@ import { parse } from "node-html-parser";
 import Alert from "../../../../components/Alert.astro";
 import rawStylesCSS from "../../../../styles/wiki.css?raw";
 import { get_latest_date } from "../../../../db/constants";
+import { get_wiki_prefix } from "../../../../utils";
 export const prerender = false;
 
 const { wiki_name, page_name } = Astro.params;
@@ -14,10 +15,10 @@ let link = params.get("link");
 if (wiki_name === undefined || page_name === undefined) {
     return Astro.redirect("/");
 }
-
-const base_wiki_url = `https://${wiki_name.slice(0, 2)}.wikipedia.org/wiki/`;
+const wiki_prefix = get_wiki_prefix(wiki_name);
+const base_wiki_url = `https://${wiki_prefix}.wikipedia.org/wiki/`;
 const wiki_url = `${base_wiki_url}${page_name}`;
-const url = `https://${wiki_name.slice(0, 2)}.wikipedia.org/api/rest_v1/page/html/${page_name}`;
+const url = `https://${wiki_prefix}.wikipedia.org/api/rest_v1/page/html/${page_name}`;
 let content = await (await fetch(url)).text();
 
 const root = parse(content);

@@ -32,7 +32,6 @@ RUN adduser -D -u 1000 spuser
 
 # Create app and logs directories
 WORKDIR /app
-RUN mkdir logs
 
 # Copy the static binary
 COPY --from=builder /usr/src/target/x86_64-unknown-linux-musl/release/server .
@@ -40,6 +39,8 @@ COPY --from=builder /usr/src/target/x86_64-unknown-linux-musl/release/server .
 # Set ownership and switch user
 RUN chown -R spuser:spuser /app
 USER spuser
+
+RUN mkdir logs
 
 # Expose port and run
 EXPOSE 1870

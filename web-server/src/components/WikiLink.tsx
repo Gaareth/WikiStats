@@ -1,5 +1,5 @@
 import { onMount } from "solid-js";
-import { cn, wiki_link } from "../utils";
+import { cn, get_wiki_prefix, wiki_link } from "../utils";
 import Pill from "./Pill";
 
 interface Props {
@@ -30,7 +30,7 @@ const WikiLink = (props: Props) => {
         <div class="flex gap-1 sm:gap-2 items-center overflow-hidden text-base sm:text-xl text-left">
             <a href={wiki_link(props.page_name, props.wiki_name)}>
                 <Pill class="w-6 flex justify-center text-blue-700">
-                    {props.wiki_name.slice(0, 2)}
+                    {get_wiki_prefix(props.wiki_name)}
                 </Pill>
             </a>
 
