@@ -1,7 +1,7 @@
 .DS_Store
 node_modules
 dist
-.env
+# .env the env file is needed for docker build. This images are not public and should be built locally.
 .vscode
 *.sh
 .vscode
