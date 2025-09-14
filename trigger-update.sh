@@ -5,6 +5,8 @@ source .env
 mkdir -p ./logs
 chown -R $(whoami):$(whoami) ./logs
 
+cp .env ./web-server/.env
+
 print_error() {
     echo -e "\033[31m$1\033[0m"
 }
