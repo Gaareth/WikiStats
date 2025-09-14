@@ -1,0 +1,3 @@
+[submodule "WikiGame/parse-mediawiki-sql"]
+	path = WikiGame/parse-mediawiki-sql
+	url = https://github.com/Erutuon/parse-mediawiki-sql
