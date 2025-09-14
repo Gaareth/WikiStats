@@ -12,7 +12,17 @@ source ../.env
 
 # upgrade patch?version
 # jq '.version |= (. | split(".") | .[2] = ((.[2] | tonumber) + 1 | tostring) | join("."))' package.json | sponge package.json
-npm version patch;
+echo "> Select version bump type:"
+select bump in patch minor major; do
+    if [[ -n "$bump" ]]; then
+        npm version "$bump";
+        break
+    else
+        echo "Invalid selection."
+    fi
+done
+git add package.json package-lock.json;
+git commit -m "Bump version to $(jq -r .version package.json)";
 git push;
 
 # rsync --exclude node_modules --exclude dist --delete -v -r ./* ${DEPLOY_HOST}:${DEPLOY_LOCATION}/web-server-test-environment;
