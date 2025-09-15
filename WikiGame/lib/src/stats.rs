@@ -17,16 +17,18 @@ use log::{debug, info};
 use parse_mediawiki_sql::field_types::PageId;
 use rusqlite::Connection;
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Serialize};
 use tokio::join;
 use tokio::sync::mpsc;
 
 use crate::calc::{bfs, bfs_bidirectional, SpBiStream};
-use crate::sqlite::page_links::load_link_to_map_db;
+use crate::sqlite::page_links::{get_cache, load_link_to_map_db};
 use crate::sqlite::title_id_conv::{get_random_page, page_id_to_title};
 use crate::sqlite::{join_db_wiki_path, title_id_conv};
-use crate::utils::{bar_color, default_bar, default_bar_unknown};
-use crate::{AvgDepthHistogram, DepthHistogram};
+use crate::utils::{bar_color, default_bar, default_bar_unknown, ProgressBarBuilder};
+use crate::web::find_smallest_wikis;
+use crate::{AvgDepthHistogram, AvgDepthStat, DepthHistogram};
+use std::collections::HashMap;
 
 static DB_STATS: &str =
     "/run/media/gareth/7FD71CF32A89EF6A/dev/wiki/sqlite/20240301/es_database2.sqlite";
@@ -198,6 +200,7 @@ async fn make_stat_record_async<T, Fut, F>(
     wikis: Vec<WikiIdent>,
     func: F,
     global_func: fn(&mut StatRecord<T>) -> (),
+    existing_stat_record: Option<StatRecord<T>>,
 ) -> StatRecord<T>
 where
     T: Debug + Send + 'static,
@@ -205,13 +208,16 @@ where
     F: Fn(WikiIdent) -> Fut + Send + Sync + 'static + Clone,
 {
     let mut tasks = vec![];
-    let mut record = FxHashMap::default();
+    let mut record = existing_stat_record.unwrap_or_else(FxHashMap::default);
+    let completed_wikis: FxHashSet<String> = record.keys().cloned().collect::<FxHashSet<String>>();
 
     for wiki in wikis {
-        let func = func.clone();
-        tasks.push(tokio::spawn(async move {
-            (func(wiki.clone()).await, wiki.wiki_name)
-        }));
+        if !completed_wikis.contains(&wiki.wiki_name) {
+            let func = func.clone();
+            tasks.push(tokio::spawn(async move {
+                (func(wiki.clone()).await, wiki.wiki_name)
+            }));
+        }
     }
 
     for task in tasks {
@@ -251,15 +257,19 @@ async fn make_stat_record_seq<T, F>(
     wikis: Vec<WikiIdent>,
     func: F,
     global_func: fn(&mut StatRecord<T>) -> (),
+    existing_stat_record: Option<StatRecord<T>>,
 ) -> StatRecord<T>
 where
     T: Debug + Send + 'static,
     F: Fn(WikiIdent) -> T,
 {
-    let mut record = FxHashMap::default();
+    let mut record = existing_stat_record.unwrap_or_else(FxHashMap::default);
+    let completed_wikis: FxHashSet<String> = record.keys().cloned().collect::<FxHashSet<String>>();
 
     for wiki in wikis {
-        record.insert(wiki.wiki_name.clone(), func(wiki.clone()));
+        if !completed_wikis.contains(&wiki.wiki_name) {
+            record.insert(wiki.wiki_name.clone(), func(wiki.clone()));
+        }
     }
 
     global_func(&mut record);
@@ -271,14 +281,18 @@ async fn make_stat_record<T: Debug + Send + 'static>(
     wikis: Vec<WikiIdent>,
     func: fn(WikiIdent) -> T,
     global_func: fn(&mut StatRecord<T>) -> (),
+    existing_stat_record: Option<StatRecord<T>>,
 ) -> StatRecord<T> {
     let mut tids = vec![];
-    let mut record = FxHashMap::default();
+    let mut record = existing_stat_record.unwrap_or_else(FxHashMap::default);
+    let completed_wikis: FxHashSet<String> = record.keys().cloned().collect::<FxHashSet<String>>();
 
     for wiki in wikis {
-        tids.push(thread::spawn(move || {
-            (func(wiki.clone()), wiki.wiki_name.clone())
-        }));
+        if !completed_wikis.contains(&wiki.wiki_name) {
+            tids.push(thread::spawn(move || {
+                (func(wiki.clone()), wiki.wiki_name.clone())
+            }));
+        }
     }
 
     tids.into_iter().for_each(|th| {
@@ -327,6 +341,8 @@ pub struct Stats {
     // can take really long
     pub bfs_sample_stats: Option<StatRecord<BfsSample>>,
     pub bi_bfs_sample_stats: Option<StatRecord<BiBfsSample>>,
+
+    pub all_wiki_sizes: Vec<(String, u64)>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, JsonSchema)]
@@ -366,16 +382,45 @@ pub async fn create_stats(
         record.insert(GLOBAL.to_string(), v);
     }
 
+    let path = path.as_ref();
+    let stats: Option<Stats> = try_load_stats(path);
+
+    // Extract needed fields from stats before moving it
+    let num_pages_prev = stats.as_ref().map(|s| s.num_pages.clone());
+    let num_redirects_prev = stats.as_ref().map(|s| s.num_redirects.clone());
+    let num_links_prev = stats.as_ref().map(|s| s.num_links.clone());
+    let most_linked_prev = stats.as_ref().map(|s| s.most_linked.clone());
+    let most_links_prev = stats.as_ref().map(|s| s.most_links.clone());
+    let longest_name_prev = stats.as_ref().map(|s| s.longest_name.clone());
+    let longest_name_no_redirect_prev = stats.as_ref().map(|s| s.longest_name_no_redirect.clone());
+    let num_dead_pages_prev = stats.as_ref().map(|s| s.num_dead_pages.clone());
+    let num_orphan_pages_prev = stats.as_ref().map(|s| s.num_orphan_pages.clone());
+    let num_dead_orphan_pages_prev = stats.as_ref().map(|s| s.num_dead_orphan_pages.clone());
+    let num_linked_redirects_prev = stats.as_ref().map(|s| s.num_linked_redirects.clone());
+
     let database_path = database_path.into();
     let wiki_idents: Vec<WikiIdent> = create_wiki_idents(database_path, wikis.clone());
 
-    // dbg!(&num_pages_stat("dewiki".to_string()));
-    let pages_stat_future = make_stat_record(wiki_idents.clone(), num_pages_stat, global_adder);
+    let pages_stat_future = make_stat_record(
+        wiki_idents.clone(),
+        num_pages_stat,
+        global_adder,
+        num_pages_prev,
+    );
 
-    let redirects_stat_future =
-        make_stat_record(wiki_idents.clone(), num_redirects_stat, global_adder);
+    let redirects_stat_future = make_stat_record(
+        wiki_idents.clone(),
+        num_redirects_stat,
+        global_adder,
+        num_redirects_prev,
+    );
 
-    let link_stat_future = make_stat_record(wiki_idents.clone(), num_links_stat, global_adder);
+    let link_stat_future = make_stat_record(
+        wiki_idents.clone(),
+        num_links_stat,
+        global_adder,
+        num_links_prev,
+    );
 
     fn top_ten_linked(wiki_ident: WikiIdent) -> Vec<LinkCount> {
         let t1 = Instant::now();
@@ -445,9 +490,19 @@ pub async fn create_stats(
         record.insert(GLOBAL.to_string(), max_element.clone());
     }
 
-    let most_linked_future = make_stat_record(wiki_idents.clone(), top_ten_linked, global_max_list);
+    let most_linked_future = make_stat_record(
+        wiki_idents.clone(),
+        top_ten_linked,
+        global_max_list,
+        most_linked_prev,
+    );
     // dbg!(&most_linked_future.await);
-    let most_links_future = make_stat_record(wiki_idents.clone(), top_ten_links, global_max_list);
+    let most_links_future = make_stat_record(
+        wiki_idents.clone(),
+        top_ten_links,
+        global_max_list,
+        most_links_prev,
+    );
 
     fn global_longest_name(record: &mut StatRecord<Page>) {
         global_max(record, |p1, p2| {
@@ -459,22 +514,41 @@ pub async fn create_stats(
         wiki_idents.clone(),
         |w| longest_name(w, true),
         global_longest_name,
+        longest_name_prev,
     );
 
     let longest_name_no_redirect_future = make_stat_record(
         wiki_idents.clone(),
         |w| longest_name(w, false),
         global_longest_name,
+        longest_name_no_redirect_prev,
     );
 
-    let num_dead_pages = make_stat_record(wiki_idents.clone(), get_num_dead_pages, global_adder);
+    let num_dead_pages = make_stat_record(
+        wiki_idents.clone(),
+        get_num_dead_pages,
+        global_adder,
+        num_dead_pages_prev,
+    );
 
-    let num_orphan_pages =
-        make_stat_record(wiki_idents.clone(), get_num_orphan_pages, global_adder);
-    let num_dead_orphan_pages =
-        make_stat_record(wiki_idents.clone(), get_num_dead_orphan_pages, global_adder);
-    let num_linked_redirects =
-        make_stat_record(wiki_idents.clone(), get_num_linked_redirects, global_adder);
+    let num_orphan_pages = make_stat_record(
+        wiki_idents.clone(),
+        get_num_orphan_pages,
+        global_adder,
+        num_orphan_pages_prev,
+    );
+    let num_dead_orphan_pages = make_stat_record(
+        wiki_idents.clone(),
+        get_num_dead_orphan_pages,
+        global_adder,
+        num_dead_orphan_pages_prev,
+    );
+    let num_linked_redirects = make_stat_record(
+        wiki_idents.clone(),
+        get_num_linked_redirects,
+        global_adder,
+        num_linked_redirects_prev,
+    );
 
     let t1 = Instant::now();
 
@@ -548,6 +622,9 @@ pub async fn create_stats(
         // bi_bfs_sample_stats: Some(bi_bfs_sample_stats.await),
         bfs_sample_stats: None,
         bi_bfs_sample_stats: None,
+        all_wiki_sizes: find_smallest_wikis(&[] as &[&str])
+            .await
+            .expect("Failed finding smallest wikis"),
     };
 
     save_stats(&stats, path);
@@ -555,6 +632,21 @@ pub async fn create_stats(
         "Done generating stats. Total time elapsed: {:?}",
         time_taken
     );
+}
+
+fn try_load_stats(path: &Path) -> Option<Stats> {
+    if path.exists() {
+        Some(load_stats(path))
+    } else {
+        None
+    }
+}
+
+fn load_stats(path: &Path) -> Stats {
+    serde_json::from_str(
+        &fs::read_to_string(path).unwrap_or_else(|_| panic!("Failed loading stats file: {path:?}")),
+    )
+    .unwrap_or_else(|_| panic!("Failed deserializing stats file: {path:?}"))
 }
 
 fn global_ignore<T>(_: &mut StatRecord<T>) {}
@@ -566,21 +658,21 @@ pub async fn add_sample_bfs_stats(
     wikis: Vec<String>,
     sample_size: usize,
     num_threads: usize,
+    cache_max_size: Option<usize>,
+    always: bool
 ) {
     let database_path = db_path.into();
     let wiki_idents: Vec<WikiIdent> = create_wiki_idents(database_path, wikis);
+    let path: &Path = path.as_ref();
+
+    let mut stats = load_stats(path);
 
     let bfs_sample_stats = make_stat_record_seq(
         wiki_idents,
-        |w_id: WikiIdent| sample_bfs_stats(w_id, sample_size, num_threads),
+        |w_id: WikiIdent| sample_bfs_stats(w_id, sample_size, num_threads, cache_max_size),
         global_ignore,
+        if !always { stats.bfs_sample_stats.clone() } else { None },
     );
-
-    let path = path.as_ref();
-    let mut stats: Stats = serde_json::from_str(
-        &fs::read_to_string(path).unwrap_or_else(|_| panic!("Failed loading stats file: {path:?}")),
-    )
-    .unwrap_or_else(|_| panic!("Failed deserializing stats file: {path:?}"));
 
     stats.bfs_sample_stats = Some(bfs_sample_stats.await);
     save_stats(&stats, path);
@@ -598,17 +690,14 @@ pub async fn add_sample_bibfs_stats(
     let database_path = db_path.into();
     let wiki_idents: Vec<WikiIdent> = create_wiki_idents(database_path, wikis);
 
+    let mut stats = load_stats(output_path);
+
     let bi_bfs_sample_stats = make_stat_record_async(
         wiki_idents,
         move |w_id: WikiIdent| sample_bidirectional_bfs_stats(w_id, sample_size, num_threads),
         global_ignore,
+        stats.bi_bfs_sample_stats.clone(),
     );
-
-    let mut stats: Stats = serde_json::from_str(
-        &fs::read_to_string(output_path)
-            .unwrap_or_else(|_| panic!("Failed loading stats file: {output_path:?}")),
-    )
-    .unwrap_or_else(|_| panic!("Failed deserializing stats file: {output_path:?}"));
 
     stats.bi_bfs_sample_stats = Some(bi_bfs_sample_stats.await);
     save_stats(&stats, output_path);
@@ -623,7 +712,7 @@ fn save_stats(stats: &Stats, path: impl AsRef<Path>) {
     ));
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema, Clone)]
 pub struct MaxMinAvg<T, C: PartialOrd> {
     pub min: (T, C),
     pub max: (T, C),
@@ -658,16 +747,20 @@ where
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema, Clone)]
 pub struct BfsSample {
     pub sample_size: u32,
-    pub deep_stat: MaxMinAvg<PageTitle, u32>,
+
+    // max, min, avg of deepest bfs path found. storing the (start, end) page titles with the depth
+    pub deep_stat: MaxMinAvg<(PageTitle, PageTitle), u32>,
+
+    // how many page were visited starting from this page
     pub visit_stat: MaxMinAvg<PageTitle, u32>,
     pub avg_depth_histogram: AvgDepthHistogram,
     pub seconds_taken: u64,
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema, Clone)]
 pub struct BiBfsSample {
     pub sample_size: u32,
     pub longest_path_stat: MaxMinAvg<(PageTitle, PageTitle), u32>,
@@ -698,9 +791,9 @@ pub async fn sample_bidirectional_bfs_stats(
     let mut path_length_histogram: DepthHistogram = FxHashMap::default();
 
     let pid_queue: Arc<ArrayQueue<(PageId, PageId)>> = Arc::new(ArrayQueue::new(sample_size));
-    for (start_page, end_page) in get_random_page(&wiki_name, sample_size as u32)
+    for (start_page, end_page) in get_random_page(&db_path, sample_size as u32)
         .iter()
-        .zip(get_random_page(&wiki_name, sample_size as u32))
+        .zip(get_random_page(&db_path, sample_size as u32))
     {
         if *start_page == end_page {
             continue;
@@ -756,7 +849,6 @@ pub async fn sample_bidirectional_bfs_stats(
 
     let id_title_map = title_id_conv::load_id_title_map(&db_path);
 
-    let mut count = 0;
     while let Some(((start_link_id, end_link_id), result)) = receiver.recv().await {
         // dbg!(&pid);
         let path_length = result
@@ -780,7 +872,6 @@ pub async fn sample_bidirectional_bfs_stats(
             .or_insert(1);
 
         bar2.inc(1);
-        count += 1;
     }
 
     bar2.finish();
@@ -804,36 +895,50 @@ pub fn sample_bfs_stats(
     wiki_ident: WikiIdent,
     sample_size: usize,
     num_threads: usize,
+    cache_max_size: Option<usize>,
 ) -> BfsSample {
     let t1 = Instant::now();
 
     let db_path = &wiki_ident.db_path;
     let wiki_name = wiki_ident.wiki_name;
 
-    let cache = load_link_to_map_db(&db_path);
-    // let cache: DBCache = FxHashMap::default();
+    let cache = get_cache(&db_path, cache_max_size);
+    // let cache = load_link_to_map_db(db_path);
+    info!("Cache size: {}", cache.len());
 
     let arc_cache = Arc::new(cache.clone());
 
-    // let sample_size = 1067;
-    // let sample_size = 100;
-    println!("Sample size: {sample_size}");
+    let num_threads = num_threads.clamp(1, sample_size); // at least 1 thread, at most sample_size threads
+    info!("Sample size: {sample_size}");
+    info!("NUM_THREADS: {num_threads}");
 
-    let mut deep_stat: Option<MaxMinAvg<PageTitle, u32>> = None;
+    let mut deep_stat: Option<MaxMinAvg<(PageTitle, PageTitle), u32>> = None;
     let mut visit_stat: Option<MaxMinAvg<PageTitle, u32>> = None;
-    let mut avg_depth_histogram: AvgDepthHistogram = FxHashMap::default();
+    let mut depth_histograms: Vec<FxHashMap<u32, f64>> = Vec::new();
 
     let pid_queue: Arc<ArrayQueue<PageId>> = Arc::new(ArrayQueue::new(sample_size));
-    for page in get_random_page(&wiki_name, sample_size as u32) {
+    for page in get_random_page(&db_path, sample_size as u32) {
         pid_queue.push(PageId(page.id)).unwrap()
     }
 
     let m = MultiProgress::new();
-    let bar = Arc::new(Mutex::new(m.add(default_bar(pid_queue.len() as u64))));
-    let bar2 = m.add(bar_color("magenta", pid_queue.len() as u64));
 
-    // let NUM_THREADS: usize = 50;
-    info!("NUM_THREADS: {num_threads}");
+    let bfs_bar: Arc<Mutex<indicatif::ProgressBar>> = Arc::new(Mutex::new(
+        m.add(
+            ProgressBarBuilder::new()
+                .with_name("BFS     ")
+                .with_length(pid_queue.len() as u64)
+                .build(),
+        ),
+    ));
+    let receiver_bar = m.add(
+        ProgressBarBuilder::new()
+            .with_name("Receiver")
+            .with_bar_color_fg("white")
+            .with_bar_color_bg("magenta")
+            .with_length(pid_queue.len() as u64)
+            .build(),
+    );
 
     let (s, r) = unbounded();
 
@@ -843,9 +948,9 @@ pub fn sample_bfs_stats(
             let thread_sender = s.clone();
             let pid_queue = &pid_queue;
             let cache = &arc_cache;
-            let bar = &bar;
+            let bar = &bfs_bar;
             let m = &m;
-            let wiki_name = &wiki_name;
+            let wiki_name: &String = &wiki_name;
 
             scope.spawn(move || {
                 let t1 = Instant::now();
@@ -871,21 +976,22 @@ pub fn sample_bfs_stats(
         // receiver thread
         scope.spawn(|| {
             let id_title_map = title_id_conv::load_id_title_map(&db_path);
+            let num_pages = id_title_map.len();
+            info!("Num pages in id_title_map: {num_pages}");
 
             while let Ok((pid, result)) = r.recv() {
                 // dbg!(&pid);
+                let deepest_stat_key = (
+                    id_title_map.get(&pid).unwrap().clone().0, // start
+                    id_title_map.get(&result.deepest_id).unwrap().clone().0, // end
+                );
 
                 if let Some(ref mut deep_stat) = deep_stat {
-                    deep_stat.add(
-                        id_title_map.get(&result.deepest_id).unwrap().clone().0,
-                        result.len_deepest_sp,
-                    );
+                    deep_stat.add(deepest_stat_key, result.len_deepest_sp);
                 } else {
-                    deep_stat = Some(MaxMinAvg::new(
-                        id_title_map.get(&result.deepest_id).unwrap().clone().0,
-                        result.len_deepest_sp,
-                    ));
+                    deep_stat = Some(MaxMinAvg::new(deepest_stat_key, result.len_deepest_sp));
                 }
+
                 if let Some(ref mut visit_stat) = visit_stat {
                     visit_stat.add(
                         id_title_map.get(&PageId(pid.0)).unwrap().clone().0,
@@ -898,17 +1004,22 @@ pub fn sample_bfs_stats(
                     ));
                 }
 
-                for (depth, occurrences) in result.depth_histogram {
-                    let curr_avg_value = (avg_depth_histogram.get(&depth).unwrap_or(&0.0)
-                        + occurrences as f64)
-                        / 2.0;
-                    avg_depth_histogram.insert(depth, curr_avg_value);
-                }
+                depth_histograms.push(
+                    result
+                        .depth_histogram
+                        .iter()
+                        .map(|(&depth, &count)| (depth, count as f64 / num_pages as f64)) // normalize by number of pages
+                        .collect(),
+                );
 
-                bar2.inc(1);
+                receiver_bar.inc(1);
             }
         });
     });
+
+    // dbg!(&depth_histograms);
+
+    let avg_depth_histogram = average_histograms(depth_histograms);
 
     let time_taken = t1.elapsed();
     info!(
@@ -920,9 +1031,63 @@ pub fn sample_bfs_stats(
         sample_size: sample_size as u32,
         deep_stat: deep_stat.unwrap(),
         visit_stat: visit_stat.unwrap(),
-        avg_depth_histogram,
+        avg_depth_histogram: avg_depth_histogram,
         seconds_taken: time_taken.as_secs(),
     }
+}
+
+fn average_histograms(depth_histograms: Vec<FxHashMap<u32, f64>>) -> AvgDepthHistogram {
+    // First, sum up all histograms
+    let mut sum_hist: FxHashMap<u32, f64> = FxHashMap::default();
+    let mut count_hist: FxHashMap<u32, u32> = FxHashMap::default();
+
+    for hist in &depth_histograms {
+        for (&depth, &count) in hist {
+            *sum_hist.entry(depth).or_insert(0.0) += count as f64;
+            *count_hist.entry(depth).or_insert(0) += 1;
+        }
+    }
+
+    let mut avg_depth_histogram: FxHashMap<u32, f64> = FxHashMap::default();
+
+    // Calculate average
+    for (&depth, &sum) in &sum_hist {
+        let count = count_hist[&depth];
+        avg_depth_histogram.insert(depth, (sum / count as f64));
+    }
+
+    // Calculate std deviation for each depth
+    let mut avg_std_dev_hist: AvgDepthHistogram = FxHashMap::default();
+    for (&depth, &avg) in &avg_depth_histogram {
+        let mut sum_sq = 0.0;
+
+        let mut n: i32 = 0;
+        for hist in &depth_histograms {
+            if let Some(&count) = hist.get(&depth) {
+                let diff = count as f64 - avg;
+                sum_sq += diff * diff;
+                n += 1;
+            }
+        }
+        if n > 1 {
+            avg_std_dev_hist.insert(
+                depth,
+                AvgDepthStat {
+                    avg_occurences: avg,
+                    std_dev: (sum_sq / (n as f64 - 1.0)).sqrt(),
+                },
+            );
+        } else {
+            avg_std_dev_hist.insert(
+                depth,
+                AvgDepthStat {
+                    avg_occurences: avg,
+                    std_dev: 0.0,
+                },
+            );
+        }
+    }
+    avg_std_dev_hist
 }
 
 fn max_min_value_record<T: Clone + Debug, F: FnOnce(&T, &T) -> Ordering + Copy>(

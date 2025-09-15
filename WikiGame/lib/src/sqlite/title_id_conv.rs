@@ -202,9 +202,9 @@ pub fn count_duplicates(db_path: &str) {
     }
 }
 
-pub fn get_random_page(wiki_name: &str, num: u32) -> FxHashSet<WikiPage> {
+pub fn get_random_page(db_path: &Path, num: u32) -> FxHashSet<WikiPage> {
     let stmt_str = "SELECT page_id, page_title, is_redirect FROM WikiPage ORDER BY RANDOM() LIMIT ?1";
-    let conn = Connection::open(db_wiki_path(wiki_name)).unwrap();
+    let conn = Connection::open(db_path).unwrap();
     let mut stmt = conn.prepare(stmt_str).unwrap();
     // dbg!(&stmt);
 

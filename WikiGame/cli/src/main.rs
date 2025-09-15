@@ -21,7 +21,7 @@ use simplelog::{ColorChoice, CombinedLogger, Config, TermLogger, TerminalMode, W
 
 use wiki_stats::process::{process_threaded, process_wikis_seq, test_bench_threaded};
 use wiki_stats::sqlite::load::load_linktarget_map;
-use wiki_stats::sqlite::{join_db_wiki_path, DATABASE_SUFFIX, get_all_database_files};
+use wiki_stats::sqlite::{get_all_database_files, join_db_wiki_path, DATABASE_SUFFIX};
 use wiki_stats::stats::Stats;
 use wiki_stats::web::find_smallest_wikis;
 use wiki_stats::{download, stats, validate, web};
@@ -35,14 +35,14 @@ mod testdata;
 #[command(
     about = "Download and process wikipedia dumps",
     author = "Gaareth",
-    version = "0.1.0"
+    version = clap::crate_version!()
 )]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
 
-    /// Logging verbosity -v to -vvvv (trace)
-    #[arg(short, long, action = ArgAction::Count)]
+    /// Logging verbosity -v to -vvvv (trace). Default is -vv (info)
+    #[arg(short, long, action = ArgAction::Count, default_value_t = 2)]
     verbose: u8,
 }
 
@@ -308,6 +308,8 @@ async fn main() {
                     wikis.clone(),
                     *sample_size,
                     *threads,
+                    Some(0),
+                    false,
                 )
                 .await;
             }
@@ -347,8 +349,19 @@ async fn main() {
                 wikis.clone(),
                 *sample_size,
                 *threads,
+                None,
+                true,
             )
             .await;
+
+            // wiki_stats::stats::add_sample_bibfs_stats(
+            //     &output_path,
+            //     db_path,
+            //     wikis.clone(),
+            //     *sample_size,
+            //     *threads,
+            // )
+            // .await;
         }
 
         Commands::DumpDates { wikis, tables } => {
@@ -403,7 +416,6 @@ async fn main() {
                         if wikis.iter().any(|w| !stats.wikis.contains(w)) {
                             return None;
                         }
-
 
                         let dump_date = stats.dump_date;
                         Some(dump_date)
@@ -556,8 +568,6 @@ async fn main() {
         }
     }
 }
-
-
 
 #[cfg(test)]
 mod cli_test {

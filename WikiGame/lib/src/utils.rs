@@ -1,6 +1,63 @@
 use std::time::Duration;
 
+use colored::Colorize;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+
+pub struct ProgressBarBuilder {
+    spinner_color: String,
+    bar_color_fg: String,
+    bar_color_bg: String,
+    name: String,
+    length: u64,
+}
+
+impl ProgressBarBuilder {
+    pub fn new() -> Self {
+        Self {
+            spinner_color: "cyan".to_string(),
+            bar_color_fg: "cyan".to_string(),
+            bar_color_bg: "blue".to_string(),
+            name: "".to_string(),
+            length: 100,
+        }
+    }
+
+    pub fn with_spinner_color(mut self, color: &str) -> Self {
+        self.spinner_color = color.to_string();
+        self
+    }
+
+    pub fn with_bar_color_fg(mut self, color: &str) -> Self {
+        self.bar_color_fg = color.to_string();
+        self
+    }
+
+    pub fn with_bar_color_bg(mut self, color: &str) -> Self {
+        self.bar_color_bg = color.to_string();
+        self
+    }
+
+    pub fn with_name(mut self, name: &str) -> Self {
+        self.name = name.to_string();
+        self
+    }
+
+    pub fn with_length(mut self, length: u64) -> Self {
+        self.length = length;
+        self
+    }
+
+    pub fn build(self) -> ProgressBar {
+        let template = format!(
+            "{{spinner:.{}}} {{prefix:.bold.{}}} [{{elapsed_precise}}] {{bar:40.{}/{}}} {{pos:>7}}/{{len:7}} [{{percent}}%] | ETA: {{eta_precise}} {{per_sec}}",
+            self.spinner_color, self.spinner_color, self.bar_color_fg, self.bar_color_bg
+        );
+        let bar = ProgressBar::new(self.length);
+        bar.set_style(ProgressStyle::with_template(&template).unwrap());
+        bar.set_prefix(self.name);
+        bar
+    }
+}
 
 pub fn bar_color(color: &str, length: u64) -> ProgressBar {
     let bar = indicatif::ProgressBar::new(length);

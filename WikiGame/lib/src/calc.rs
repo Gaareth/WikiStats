@@ -3,36 +3,37 @@
 #![allow(unused)]
 extern crate core;
 
-use std::{env, thread};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt::Display;
 use std::hash::{BuildHasher, Hash};
 use std::ops::Add;
 use std::path::Path;
-use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
+use std::{env, thread};
 
 use async_stream::stream;
 use chrono::{Datelike, TimeZone};
-use crossbeam::channel::{Receiver, Sender, unbounded};
+use crossbeam::channel::{unbounded, Receiver, Sender};
 use crossbeam::queue::{ArrayQueue, SegQueue};
 use futures::Stream;
 use fxhash::{FxBuildHasher, FxHashMap, FxHashSet};
 use indicatif::{MultiProgress, ProgressBar};
+use log::{debug, trace};
 use parse_mediawiki_sql::field_types::{PageId, PageTitle};
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{DBCache, DepthHistogram, DistanceMap, PrevMap, PrevMapEntry, sqlite};
-use crate::sqlite::{db_sp_wiki_path, db_wiki_path, paths};
 use crate::sqlite::page_links::{get_links_of_ids, load_link_to_map_db_wiki};
 use crate::sqlite::paths::SPStat;
 use crate::sqlite::title_id_conv::{load_id_title_map, load_title_id_map};
+use crate::sqlite::{db_sp_wiki_path, db_wiki_path, paths};
 use crate::stats::top_linked_ids;
 use crate::utils::{bar_color, default_bar, default_bar_unknown};
 use crate::web::get_most_popular_pages;
+use crate::{sqlite, DBCache, DepthHistogram, DistanceMap, PrevMap, PrevMapEntry};
 
 // TODO: create sqlite3 database containing only pageid and pagetable
 
@@ -43,7 +44,6 @@ use crate::web::get_most_popular_pages;
 // mod cli;
 
 pub const MAX_SIZE: u32 = 210_712_457; // 225_574_049
-
 
 // 136_343_429 with only namespace 0
 // select distinct: 136_292_965
@@ -64,7 +64,6 @@ async fn main() {
     //                          "/run/media/gareth/7FD71CF32A89EF6A/dev/wiki/downloads/").await;
     // process_wikis(wikis(vec!["de", "en", "fr", "es", "ja", "ru"])).await;
     // sqlite::to_sqlite::post_insert("/run/media/gareth/7FD71CF32A89EF6A/dev/wiki/sqlite/20240301/database-enwiki_dewiki_frwiki_eswiki_jawiki_ruwiki.sqlite");
-
 
     // sqlite::to_sqlite::create_db(
     //     "/run/media/gareth/7FD71CF32A89EF6A/dev/wiki/sqlite/de_database_small.sqlite",
@@ -89,7 +88,6 @@ async fn main() {
     //     "/run/media/gareth/7FD71CF32A89EF6A/dev/wiki/downloads/20240301/dewiki-20240301-page.sql",
     // );
 
-
     // let path = "/run/media/gareth/7FD71CF32A89EF6A/dev/wiki/downloads/20240301/dewiki-20240301-pagelinks.sql";
     // let pagelinks_sql = unsafe { memory_map(path).unwrap() };
     // sqlite::page_links::count_duplicates2("/run/media/gareth/7FD71CF32A89EF6A/dev/pagelinks_og_test2.db");
@@ -100,7 +98,6 @@ async fn main() {
     // let title_id_map = sqlite::title_id_conv::load_title_id_map();
     // sqlite::title_id_conv::test2();
     // dbg!(sqlite::page_links::get_links_of_id_and_connect(&PageId(51134)));
-
 
     // test_load_link_in_memory_sql();
     // let data= load_sql_part_map(pagelinks_sql, MAX_SIZE / 4, 1);
@@ -122,9 +119,7 @@ async fn main() {
     // sqlite::title_id_conv::convert();
     // sqlite::title_id_conv::count_duplicates("/run/media/gareth/7FD71CF32A89EF6A/dev/pages_dups.db");
 
-
     // sqlite::page_links::count_duplicates("/run/media/gareth/7FD71CF32A89EF6A/dev/pagelinks_dups.db");
-
 
     // test_get_links_db_speed();
     // test_title_to_id_in_db_speed()
@@ -133,7 +128,6 @@ async fn main() {
     // top_linked(10_000);
     // test_load_link_in_memory_sql();
     // test_load_link_in_memory_db();
-
 
     // load_link_to_map_db();
     // sleep(Duration::new(5, 0));
@@ -208,7 +202,6 @@ async fn main() {
     // dbg!(build_path(&end_link_id, &prev));
     // dbg!(&vc);
 
-
     // let start_link_id = sqlite::title_id_conv::page_title_to_id(&PageTitle("Auto_(Begriffsklärung)".parse().unwrap())).unwrap();
     // let end_link_id = sqlite::title_id_conv::page_title_to_id(&PageTitle("Hot_Spot_(WLAN)".parse().unwrap())).unwrap();
     //
@@ -227,7 +220,6 @@ async fn main() {
 
     dbg!(t1.elapsed());
 }
-
 
 // fn precalc_interlinks_most_popular<S: BuildHasher>(cache: &HashMap<PageId, Vec<PageId>, S>) {
 //     sqlite::paths::create_db();
@@ -253,8 +245,6 @@ async fn main() {
 //     }
 // }
 
-
-
 pub fn precalc_interlinks_most_popular_threaded_quick(wiki_name: impl AsRef<str>) {
     let wiki_name = wiki_name.as_ref();
     let path = db_wiki_path(wiki_name);
@@ -263,8 +253,12 @@ pub fn precalc_interlinks_most_popular_threaded_quick(wiki_name: impl AsRef<str>
     precalc_interlinks_most_popular_threaded(path_sp, &path, &cache, wiki_name);
 }
 
-pub(crate) fn precalc_interlinks_most_popular_threaded(db_sp_path: impl AsRef<Path>, db_path: impl AsRef<Path>,
-                                                       cache: &DBCache, wiki_name: &str) {
+pub(crate) fn precalc_interlinks_most_popular_threaded(
+    db_sp_path: impl AsRef<Path>,
+    db_path: impl AsRef<Path>,
+    cache: &DBCache,
+    wiki_name: &str,
+) {
     paths::create_db(&db_sp_path);
     let num_ids = 5;
     const NUM_THREADS: u32 = 5;
@@ -272,16 +266,15 @@ pub(crate) fn precalc_interlinks_most_popular_threaded(db_sp_path: impl AsRef<Pa
     let pid_queue: Arc<ArrayQueue<PageId>> = Arc::new(ArrayQueue::new(num_ids));
     // let prev_queue: PrevMapQueue = Arc::new(SegQueue::new());
 
-
     let arc_cache = Arc::new(cache.clone());
 
     let title_to_id_map = load_title_id_map(db_path);
     // let top_ids = top_link_ids(num_ids, wiki_name);
-    let top_ids: Vec<&PageId> = get_most_popular_pages(wiki_name).into_iter()
+    let top_ids: Vec<&PageId> = get_most_popular_pages(wiki_name)
+        .into_iter()
         .filter_map(|(p, c)| title_to_id_map.get(&PageTitle(p)))
         .take(num_ids)
         .collect();
-
 
     dbg!(&top_ids.len());
     // dbg!(&top_ids);
@@ -298,14 +291,15 @@ pub(crate) fn precalc_interlinks_most_popular_threaded(db_sp_path: impl AsRef<Pa
     // pid_queue.push(PageId(3454512)).unwrap();
     //     pid_queue.push(PageId(1)).unwrap();
 
-
     println!("Already calculated: {}", precalced_ids.len());
     println!("Now in queue: {}", pid_queue.len());
 
     let m = Arc::new(MultiProgress::new());
 
     let bar = Arc::new(Mutex::new(m.add(default_bar(pid_queue.len() as u64))));
-    let bar2 = Arc::new(Mutex::new(m.add(bar_color("magenta", pid_queue.len() as u64))));
+    let bar2 = Arc::new(Mutex::new(
+        m.add(bar_color("magenta", pid_queue.len() as u64)),
+    ));
 
     let mut thread_handles_aq: Vec<thread::JoinHandle<()>> = Vec::new();
 
@@ -331,20 +325,20 @@ pub(crate) fn precalc_interlinks_most_popular_threaded(db_sp_path: impl AsRef<Pa
                     continue;
                 }
 
-                let r =
-                    bfs(&start_link_id, None, None, &cache, db_wiki_path(&wiki_name));
+                let r = bfs(&start_link_id, None, None, &cache, db_wiki_path(&wiki_name));
 
                 let mut longest_path = build_path(&r.deepest_id, &r.prev_map);
                 longest_path.pop_front(); // skip first as its known
 
                 // prev_queue.push((prev, start_link_id, wiki_name.clone()));
-                prev_queue_sender.send(
-                    (
+                prev_queue_sender
+                    .send((
                         r.depth_histogram,
                         (r.prev_map, start_link_id, wiki_name.clone()),
                         r.num_visited,
-                        longest_path
-                    )).unwrap();
+                        longest_path,
+                    ))
+                    .unwrap();
                 bar.lock().unwrap().inc(1);
                 // println!("Send {start_link_id:?}");
 
@@ -370,18 +364,21 @@ pub(crate) fn precalc_interlinks_most_popular_threaded(db_sp_path: impl AsRef<Pa
             let id_title_map = load_id_title_map(db_wiki_path(wiki_name));
             let mut links_map: FxHashMap<(PageId, PageId, PageId), usize> = FxHashMap::default();
 
-
             while let Ok(entry) = prev_queue_receiver.recv() {
-                let
-                    (depth_histogram,
-                        (prev_map, start_link_id, wiki_name),
-                        num_visited, longest_path_ids) = entry;
+                let (
+                    depth_histogram,
+                    (prev_map, start_link_id, wiki_name),
+                    num_visited,
+                    longest_path_ids,
+                ) = entry;
 
                 println!("Received {start_link_id:?}");
-                paths::save_shortest_paths(&db_sp_wiki_path(&wiki_name),
-                                           &prev_map,
-                                           &mut links_map,
-                                           &start_link_id);
+                paths::save_shortest_paths(
+                    &db_sp_wiki_path(&wiki_name),
+                    &prev_map,
+                    &mut links_map,
+                    &start_link_id,
+                );
 
                 // sqlite::paths::save_shortest_paths_json(&db_sp_wiki_path(&wiki_name),
                 //                                         &prev_map,
@@ -389,14 +386,20 @@ pub(crate) fn precalc_interlinks_most_popular_threaded(db_sp_path: impl AsRef<Pa
                 //                                         &start_link_id);
 
                 let start_link_title = id_title_map.get(&start_link_id).unwrap();
-                let longest_path = longest_path_ids.iter()
-                    .map(|pid| id_title_map.get(pid).unwrap().clone().0).collect();
+                let longest_path = longest_path_ids
+                    .iter()
+                    .map(|pid| id_title_map.get(pid).unwrap().clone().0)
+                    .collect();
 
-                sqlite::paths::save_stats(wiki_name, start_link_title.clone().0, SPStat {
-                    longest_path,
-                    num_visited,
-                    depth_histogram,
-                });
+                sqlite::paths::save_stats(
+                    wiki_name,
+                    start_link_title.clone().0,
+                    SPStat {
+                        longest_path,
+                        num_visited,
+                        depth_histogram,
+                    },
+                );
                 // println!("Saved {start_link_id:?}");
 
                 bar2.lock().unwrap().inc(1);
@@ -411,18 +414,28 @@ pub(crate) fn precalc_interlinks_most_popular_threaded(db_sp_path: impl AsRef<Pa
 
     let (s, r) = unbounded();
 
-    thread_handles_aq.push(save(wiki_name.to_string(), r, pid_queue.clone(), bar2.clone()));
+    thread_handles_aq.push(save(
+        wiki_name.to_string(),
+        r,
+        pid_queue.clone(),
+        bar2.clone(),
+    ));
 
     for tid in 0..NUM_THREADS {
         println!("started thread {tid}");
-        thread_handles_aq.push(worker(tid, pid_queue.clone(), arc_cache.clone(),
-                                      precalced_ids.clone(), bar.clone(), m.clone(),
-                                      wiki_name.to_string(), s.clone()));
+        thread_handles_aq.push(worker(
+            tid,
+            pid_queue.clone(),
+            arc_cache.clone(),
+            precalced_ids.clone(),
+            bar.clone(),
+            m.clone(),
+            wiki_name.to_string(),
+            s.clone(),
+        ));
     }
 
-
     dbg!(&pid_queue.is_empty());
-
 
     // let saved_thread = save(r);
 
@@ -444,7 +457,6 @@ pub(crate) fn precalc_interlinks_most_popular_threaded(db_sp_path: impl AsRef<Pa
 //     calc_iter(&start_link_id, &end_link_id, max_depth, &cache);
 // }
 
-
 static HITS: AtomicUsize = AtomicUsize::new(0);
 static MISSES: AtomicUsize = AtomicUsize::new(0);
 
@@ -453,7 +465,11 @@ static ACCESSES: AtomicUsize = AtomicUsize::new(0);
 // TODO: fix redirect in database
 // => replace all redircts with their target page id
 
-fn get_links<T: BuildHasher>(conn: &Connection, page_id: &PageId, cache: &HashMap<PageId, Vec<PageId>, T>) -> Vec<PageId> {
+fn get_links<T: BuildHasher>(
+    conn: &Connection,
+    page_id: &PageId,
+    cache: &HashMap<PageId, Vec<PageId>, T>,
+) -> Vec<PageId> {
     // cache.get(page_id).unwrap_or(&vec![]).clone()
     // let c: Vec<u32> = cache.get(page_id).unwrap_or(&vec![]).clone().iter().map(|p| p.0).collect();
     // let ch: HashSet<u32> = HashSet::from_iter(c);
@@ -466,7 +482,6 @@ fn get_links<T: BuildHasher>(conn: &Connection, page_id: &PageId, cache: &HashMa
     //     dbg!(&ch);
     //     dbg!(&dh);
     // }
-
 
     return if cache.contains_key(page_id) {
         HITS.fetch_add(1, Ordering::SeqCst);
@@ -485,9 +500,10 @@ fn get_links<T: BuildHasher>(conn: &Connection, page_id: &PageId, cache: &HashMa
     // sqlite::page_links::get_links_of_id(conn, page_id)
 }
 
-
-fn insert_rest_path(working_ids: &mut HashMap<PageId, Vec<PageId>, FxBuildHasher>,
-                    path: &Vec<PageId>) {
+fn insert_rest_path(
+    working_ids: &mut HashMap<PageId, Vec<PageId>, FxBuildHasher>,
+    path: &Vec<PageId>,
+) {
     for (i, id) in path.iter().enumerate() {
         let rest_path = &path[i + 1..];
         match working_ids.get(id) {
@@ -515,9 +531,7 @@ fn get_2d(i: u32, j: u32, map: &mut FxHashMap<u32, FxHashMap<u32, u32>>) -> u32 
     *map.get(&i).unwrap().get(&j).unwrap_or(&u32::MAX)
 }
 
-fn floyd_warshall<S: BuildHasher>(
-    cache: &HashMap<PageId, Vec<PageId>, S>
-) {
+fn floyd_warshall<S: BuildHasher>(cache: &HashMap<PageId, Vec<PageId>, S>) {
     // let mut dist: Vec<Vec<u8>> = (0..4464087)
     // .map(|_| (0..4464087).map(|_| 0).collect())
     // .collect();
@@ -536,7 +550,6 @@ fn floyd_warshall<S: BuildHasher>(
     // }
     //
     // println!("initialized self edges");
-
 
     for (u, v) in get_all_edges(cache) {
         let uid = u.0;
@@ -562,9 +575,10 @@ fn floyd_warshall<S: BuildHasher>(
                 let dist_i_k = get_2d(i.0, k.0, &mut dist);
                 let dist_k_j = get_2d(k.0, j.0, &mut dist);
 
-                if dist_i_j > (dist_i_k + dist_k_j)
-                {
-                    dist.get_mut(&(i.0)).unwrap().insert(j.0, (dist_i_k + dist_k_j));
+                if dist_i_j > (dist_i_k + dist_k_j) {
+                    dist.get_mut(&(i.0))
+                        .unwrap()
+                        .insert(j.0, (dist_i_k + dist_k_j));
                     // dist[i][j] = dist[i][k] + dist[k][j]
                 }
             }
@@ -581,8 +595,9 @@ fn floyd_warshall<S: BuildHasher>(
     bar.finish();
 }
 
-fn get_all_edges<S: BuildHasher>(cache: &HashMap<PageId, Vec<PageId>, S>)
-                                 -> HashSet<(PageId, PageId), FxBuildHasher> {
+fn get_all_edges<S: BuildHasher>(
+    cache: &HashMap<PageId, Vec<PageId>, S>,
+) -> HashSet<(PageId, PageId), FxBuildHasher> {
     let mut edges: FxHashSet<(PageId, PageId)> = FxHashSet::default();
     for (id, links) in cache {
         for edge in links {
@@ -592,8 +607,9 @@ fn get_all_edges<S: BuildHasher>(cache: &HashMap<PageId, Vec<PageId>, S>)
     return edges;
 }
 
-fn get_all_ids<S: BuildHasher>(cache: &HashMap<PageId, Vec<PageId>, S>)
-                               -> HashSet<PageId, FxBuildHasher> {
+fn get_all_ids<S: BuildHasher>(
+    cache: &HashMap<PageId, Vec<PageId>, S>,
+) -> HashSet<PageId, FxBuildHasher> {
     let mut ids = FxHashSet::default();
     for (id, links) in cache {
         ids.insert(*id);
@@ -602,11 +618,12 @@ fn get_all_ids<S: BuildHasher>(cache: &HashMap<PageId, Vec<PageId>, S>)
     return ids;
 }
 
-
-fn dijkstra<S: BuildHasher>(start_link_id: &PageId, end_link_id_opt: Option<&PageId>,
-                            max_depth_opt: Option<u32>,
-                            cache: &HashMap<PageId, Vec<PageId>, S>)
-                            -> (DistanceMap, PrevMap, u32) {
+fn dijkstra<S: BuildHasher>(
+    start_link_id: &PageId,
+    end_link_id_opt: Option<&PageId>,
+    max_depth_opt: Option<u32>,
+    cache: &HashMap<PageId, Vec<PageId>, S>,
+) -> (DistanceMap, PrevMap, u32) {
     let mut dist: DistanceMap = FxHashMap::default();
     let mut prev: PrevMap = FxHashMap::default();
 
@@ -662,15 +679,16 @@ fn dijkstra<S: BuildHasher>(start_link_id: &PageId, end_link_id_opt: Option<&Pag
     return (dist, prev, visited_counter);
 }
 
-
-fn bfs_worker(id_queue: Arc<SegQueue<(PageId, u32)>>,
-              cache: Arc<DBCache>,
-              max_depth_opt: Option<u32>,
-              end_link_id_opt: Option<PageId>,
-              visited: Arc<Mutex<FxHashSet<PageId>>>)
-              -> thread::JoinHandle<()> {
+fn bfs_worker(
+    id_queue: Arc<SegQueue<(PageId, u32)>>,
+    cache: Arc<DBCache>,
+    max_depth_opt: Option<u32>,
+    end_link_id_opt: Option<PageId>,
+    visited: Arc<Mutex<FxHashSet<PageId>>>,
+) -> thread::JoinHandle<()> {
     thread::spawn(move || {
-        let conn = Connection::open("/home/gareth/dev/Rust/WikiGame/pagelinks_full_ids.db").unwrap();
+        let conn =
+            Connection::open("/home/gareth/dev/Rust/WikiGame/pagelinks_full_ids.db").unwrap();
 
         while !id_queue.is_empty() {
             let (current_id, depth) = id_queue.pop().unwrap();
@@ -716,14 +734,14 @@ fn bfs_worker(id_queue: Arc<SegQueue<(PageId, u32)>>,
     })
 }
 
-
-fn bfs_parallel(start_link_id: &PageId, end_link_id_opt: Option<&PageId>,
-                max_depth_opt: Option<u32>,
-                cache: &DBCache)
-                -> (DistanceMap, PrevMap, u32) {
+fn bfs_parallel(
+    start_link_id: &PageId,
+    end_link_id_opt: Option<&PageId>,
+    max_depth_opt: Option<u32>,
+    cache: &DBCache,
+) -> (DistanceMap, PrevMap, u32) {
     let mut dist: DistanceMap = FxHashMap::default();
     let mut prev: PrevMap = FxHashMap::default();
-
 
     // let mut to_visit: VecDeque<(PageId, u32)> = VecDeque::from([(*start_link_id, 0)]);
     // let conn = Connection::open("/home/gareth/dev/Rust/WikiGame/pagelinks_full_ids.db").unwrap();
@@ -769,8 +787,10 @@ pub struct BfsResult {
     pub len_deepest_sp: u32,
 }
 
-
-fn get_paths(page_ids: &[Option<PageId>], visited_dict: &FxHashMap<PageId, Vec<Option<PageId>>>) -> Vec<Vec<PageId>> {
+fn get_paths(
+    page_ids: &[Option<PageId>],
+    visited_dict: &FxHashMap<PageId, Vec<Option<PageId>>>,
+) -> Vec<Vec<PageId>> {
     let mut paths: Vec<Vec<PageId>> = Vec::new();
 
     for page_id_option in page_ids {
@@ -796,8 +816,11 @@ pub struct SpBiStream {
     pub paths: Option<FxHashSet<Vec<String>>>,
 }
 
-pub async fn bfs_bidirectional(start_link_id: PageId, end_link_id_opt: PageId,
-                               db_path: impl AsRef<Path> + 'static) -> impl Stream<Item=SpBiStream> + 'static {
+pub async fn bfs_bidirectional(
+    start_link_id: PageId,
+    end_link_id_opt: PageId,
+    db_path: impl AsRef<Path> + 'static,
+) -> impl Stream<Item = SpBiStream> + 'static {
     stream! {
         let conn = Connection::open(db_path).unwrap();
 
@@ -914,17 +937,20 @@ pub async fn bfs_bidirectional(start_link_id: PageId, end_link_id_opt: PageId,
     }
 }
 
-pub fn bfs<S: BuildHasher>(start_link_id: &PageId, end_link_id_opt: Option<&PageId>,
-                           max_depth_opt: Option<u32>,
-                           cache: &HashMap<PageId, Vec<PageId>, S>, db_path: impl AsRef<Path>)
-                           -> BfsResult {
+pub fn bfs(
+    start_link_id: &PageId,
+    end_link_id_opt: Option<&PageId>,
+    max_depth_opt: Option<u32>,
+    cache: &DBCache,
+    db_path: impl AsRef<Path>,
+) -> BfsResult {
+    let conn: Connection = Connection::open(db_path).unwrap();
+
     let mut dist: DistanceMap = FxHashMap::default();
     let mut prev: PrevMap = FxHashMap::default();
     let mut histogram: DepthHistogram = FxHashMap::default();
-    // let mut histogram2: FxHashMap<u32, Vec<PageId>> = FxHashMap::default();
 
     let mut to_visit: VecDeque<(PageId, u32)> = VecDeque::from([(*start_link_id, 0)]);
-    let conn = Connection::open(db_path).unwrap();
 
     let mut visited: FxHashSet<PageId> = FxHashSet::default();
     visited.insert(*start_link_id);
@@ -935,18 +961,12 @@ pub fn bfs<S: BuildHasher>(start_link_id: &PageId, end_link_id_opt: Option<&Page
     let mut deepest_id: PageId = *start_link_id;
     let mut deepest_depth = 0;
 
-    // let bar = default_bar_unknown();
     while !to_visit.is_empty() {
         let (current_id, depth) = to_visit.pop_front().unwrap();
-        // bar.inc(1);
-
-        // if visited_counter % 10_000_000 == 0 && visited_counter > 0 {
-        //     dbg!(&visited_counter);
-        // }
 
         if let Some(end_link_id) = end_link_id_opt {
             if &current_id == end_link_id {
-                println!("Found endlink");
+                trace!("Found endlink");
                 break;
             }
         }
@@ -958,22 +978,16 @@ pub fn bfs<S: BuildHasher>(start_link_id: &PageId, end_link_id_opt: Option<&Page
             }
         }
 
-        // dbg!(&current_id);
-        // dbg!(get_links(&conn, &current_id, &cache).len());
         for link in get_links(&conn, &current_id, cache) {
             if !visited.contains(&link) {
-
-                // dbg!(&link);
                 visited.insert(link);
                 to_visit.push_back((link, depth + 1));
                 prev.insert(link, current_id);
-                // println!("{:?} -> {:?}", current_id, link);
-                histogram.entry(depth + 1).and_modify(|d| *d += 1).or_insert(1);
-                // histogram2.entry(depth + 1).or_default().push(link);
 
-                // if depth + 1 > longest_path.len() as u32 {
-                //     longest_path = build_path(&link, &prev);
-                // }
+                histogram
+                    .entry(depth + 1)
+                    .and_modify(|d| *d += 1)
+                    .or_insert(1);
 
                 if depth + 1 > deepest_depth {
                     deepest_depth = depth + 1;
@@ -984,18 +998,13 @@ pub fn bfs<S: BuildHasher>(start_link_id: &PageId, end_link_id_opt: Option<&Page
             }
         }
     }
-    // dbg!(&visited_counter);
-    // dbg!(&visited.len());
-    // dbg!(&prev.len());
-    // dbg!(&histogram);
-    // dbg!(&histogram2[&1]);
 
-    // dbg!(&longest_path);
-    // dbg!(&deepest_id);
-    // dbg!(&deepest_depth);
-    // dbg!(&build_path(&deepest_id, &prev));
-
-    // println!("{:?}%", (HITS.load(Ordering::SeqCst) as f32 / (HITS.load(Ordering::SeqCst) + MISSES.load(Ordering::SeqCst)) as f32) * 100.0);
+    debug!(
+        "Hits to misses ratio {:?}%",
+        (HITS.load(Ordering::SeqCst) as f32
+            / (HITS.load(Ordering::SeqCst) + MISSES.load(Ordering::SeqCst)) as f32)
+            * 100.0
+    );
 
     BfsResult {
         depth_histogram: histogram,
@@ -1014,11 +1023,12 @@ pub struct SpStream {
 }
 
 pub async fn bfs_stream<S: BuildHasher>(
-    start_link_id: PageId, end_link_id: PageId,
+    start_link_id: PageId,
+    end_link_id: PageId,
     max_depth_opt: Option<u32>,
-    cache: &HashMap<PageId, Vec<PageId>, S>, db_path: String,
-)
-    -> impl Stream<Item=SpStream> + '_ {
+    cache: &HashMap<PageId, Vec<PageId>, S>,
+    db_path: String,
+) -> impl Stream<Item = SpStream> + '_ {
     stream! {
             let mut prev: PrevMap = FxHashMap::default();
 
@@ -1082,7 +1092,10 @@ pub async fn bfs_stream<S: BuildHasher>(
     }
 }
 
-pub fn build_path<S: BuildHasher>(end_link_id: &PageId, prev: &HashMap<PageId, PageId, S>) -> VecDeque<PageId> {
+pub fn build_path<S: BuildHasher>(
+    end_link_id: &PageId,
+    prev: &HashMap<PageId, PageId, S>,
+) -> VecDeque<PageId> {
     let mut path = VecDeque::from([*end_link_id]);
     let mut current = end_link_id;
     while let Some(prev_id) = prev.get(current) {
@@ -1092,11 +1105,13 @@ pub fn build_path<S: BuildHasher>(end_link_id: &PageId, prev: &HashMap<PageId, P
     path
 }
 
-fn calc_iter<T: BuildHasher>(start_link_id: &PageId, end_link_id: &PageId,
-                             max_depth: i32,
-                             cache: &HashMap<PageId, Vec<PageId>, T>) {
+fn calc_iter<T: BuildHasher>(
+    start_link_id: &PageId,
+    end_link_id: &PageId,
+    max_depth: i32,
+    cache: &HashMap<PageId, Vec<PageId>, T>,
+) {
     let conn = Connection::open("/home/gareth/dev/Rust/WikiGame/pagelinks_full_ids.db").unwrap();
-
 
     // let max_depth = 20;
     // let start_link = PageTitle("Auto_(Begriffsklärung)".to_string());
@@ -1114,7 +1129,9 @@ fn calc_iter<T: BuildHasher>(start_link_id: &PageId, end_link_id: &PageId,
     let direct_links = get_links(&conn, start_link_id, cache);
 
     let mut to_visit: VecDeque<(Vec<PageId>, i32)> = direct_links
-        .iter().map(|l| (vec![*start_link_id, *l], 1)).collect();
+        .iter()
+        .map(|l| (vec![*start_link_id, *l], 1))
+        .collect();
 
     // let mut working_paths = FxHashMap::default();
     let mut working_paths = FxHashSet::default();
@@ -1128,7 +1145,6 @@ fn calc_iter<T: BuildHasher>(start_link_id: &PageId, end_link_id: &PageId,
     // visited.insert(start_link_id, 0);
     visited.insert(*start_link_id);
     visited.extend(direct_links);
-
 
     let mut visited_counter = 0;
 
@@ -1149,7 +1165,6 @@ fn calc_iter<T: BuildHasher>(start_link_id: &PageId, end_link_id: &PageId,
         if visited_counter % 50_000 == 0 {
             dbg!(&visited_counter);
         }
-
 
         if current == end_link_id {
             println!("Found endlink \n");
@@ -1203,7 +1218,6 @@ fn calc_iter<T: BuildHasher>(start_link_id: &PageId, end_link_id: &PageId,
     dbg!(&working_paths.iter().take(10).collect::<Vec<_>>());
     // dbg!(visited2.len());
 
-
     // let mut set = HashSet::new();
     // for e in &visited2 {
     //     if set.contains(e) {
@@ -1228,13 +1242,18 @@ fn calc_iter<T: BuildHasher>(start_link_id: &PageId, end_link_id: &PageId,
     //          (works as f32/accesses as f32)*100.0);
 }
 
-fn traverse_links(conn: &Connection,
-                  link: PageId, end_link: PageId, max_depth: i32, depth: i32,
-                  bar: &ProgressBar,
-                  cache: &HashMap<PageId, Vec<PageId>, FxBuildHasher>,
-                  current_path: &mut [PageId],
-                  visited: &mut HashMap<PageId, i32>,
-                  working: &mut HashMap<PageId, i32>) -> Option<i32> {
+fn traverse_links(
+    conn: &Connection,
+    link: PageId,
+    end_link: PageId,
+    max_depth: i32,
+    depth: i32,
+    bar: &ProgressBar,
+    cache: &HashMap<PageId, Vec<PageId>, FxBuildHasher>,
+    current_path: &mut [PageId],
+    visited: &mut HashMap<PageId, i32>,
+    working: &mut HashMap<PageId, i32>,
+) -> Option<i32> {
     visited.insert(link, depth);
     // dbg!(link);
     let mut current_path = current_path.to_vec();
@@ -1254,7 +1273,6 @@ fn traverse_links(conn: &Connection,
         return Some(depth);
     }
 
-
     if depth >= max_depth {
         return None;
     }
@@ -1272,11 +1290,9 @@ fn traverse_links(conn: &Connection,
         bar.inc(1);
         ACCESSES.fetch_add(1, Ordering::SeqCst);
 
-        if depth == max_depth - 1 && link != end_link
-        {
+        if depth == max_depth - 1 && link != end_link {
             continue;
         }
-
 
         if let Some(d) = working.get(&link) {
             if &depth <= d {
@@ -1295,21 +1311,23 @@ fn traverse_links(conn: &Connection,
 
         let opt = traverse_links(
             conn,
-            link, end_link, max_depth, depth + 1,
+            link,
+            end_link,
+            max_depth,
+            depth + 1,
             bar,
             cache,
             &mut current_path,
             visited,
-            working);
+            working,
+        );
         // if let Some(depth) = opt {
         //     return Some(depth);
         // }
     }
-
 
     None
 }
 
 // 131 in 34
 // 71 in 30 without optimizations
-

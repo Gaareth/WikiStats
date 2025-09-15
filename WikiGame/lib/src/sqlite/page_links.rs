@@ -5,13 +5,15 @@ use std::time::Instant;
 use fxhash::{FxBuildHasher, FxHashMap, FxHashSet};
 use indicatif::ProgressStyle;
 use itertools::Itertools;
+use log::info;
 use num_format::{Locale, ToFormattedString};
 use parse_mediawiki_sql::field_types::PageId;
 use rusqlite::{Connection, Transaction};
 
-use crate::sqlite;
 use crate::sqlite::title_id_conv::load_wiki_pages;
-use crate::utils::default_bar;
+use crate::stats::select_link_count_groupby;
+use crate::utils::{default_bar, ProgressBarBuilder};
+use crate::{sqlite, DBCache};
 
 // type InsertData = FxHashMap<PageId, Vec<PageTitle>>;
 // type InsertData = FxHashSet<(PageId, PageTitle)>;
@@ -29,8 +31,9 @@ pub fn db_setup(conn: &Connection) {
             page_link INTEGER
         )",
         (),
-    ).expect("Failed creating table");
-//            UNIQUE (page_id, page_link)
+    )
+    .expect("Failed creating table");
+    //            UNIQUE (page_id, page_link)
     // conn.execute(
     //         "CREATE UNIQUE INDEX WikiLinks_page_id_page_links_key ON
     //         WikiLinks(page_id, page_links)", ()
@@ -42,8 +45,10 @@ pub fn db_setup(conn: &Connection) {
 pub fn create_unique_index(conn: &Connection) {
     conn.execute(
         "CREATE UNIQUE INDEX if not exists WikiLink_unique_index ON
-           WikiLink(page_id, page_link)", (),
-    ).expect("Failed creating unique index");
+           WikiLink(page_id, page_link)",
+        (),
+    )
+    .expect("Failed creating unique index");
 }
 
 pub fn create_indices_post_setup(conn: &Connection) {
@@ -51,13 +56,14 @@ pub fn create_indices_post_setup(conn: &Connection) {
     conn.execute(
         "CREATE INDEX if not exists idx_link_id ON WikiLink(page_id);",
         (),
-    ).expect("Failed creating index");
+    )
+    .expect("Failed creating index");
 
     conn.execute(
         "CREATE INDEX if not exists idx_link_page ON WikiLink(page_link);",
         (),
-    ).expect("Failed creating index");
-
+    )
+    .expect("Failed creating index");
 
     // println!("Creating WikiLink(page_id, wiki_name)");
     //
@@ -70,7 +76,6 @@ pub fn create_indices_post_setup(conn: &Connection) {
     // conn.execute("
     //            CREATE INDEX if not exists idx_link_linkid_wiki ON WikiLink(page_link, wiki_name);
     // ", ()).unwrap();
-
 
     // println!("Creating WikiLink(wiki_name, page_link DESC)");
     //
@@ -85,7 +90,6 @@ pub fn create_indices_post_setup(conn: &Connection) {
     // ", ()).unwrap();
 }
 
-
 // <I: Iterator<Item=PageLink>>
 fn insert_into_sqlite(conn: &mut Connection, data: InsertData, length: usize) -> u32 {
     let t1 = Instant::now();
@@ -97,17 +101,19 @@ fn insert_into_sqlite(conn: &mut Connection, data: InsertData, length: usize) ->
     println!("Successfully inserted data into db");
 
     let elapsed = t1.elapsed();
-    let total_secs = elapsed.as_secs() as f64
-        + elapsed.subsec_nanos() as f64 * 1e-9;
-    println!("Elapsed: {:#?} \nSpeed: {} rows/s", elapsed, ((num_inserted as f64 / total_secs) as u64).to_formatted_string(&Locale::de));
+    let total_secs = elapsed.as_secs() as f64 + elapsed.subsec_nanos() as f64 * 1e-9;
+    println!(
+        "Elapsed: {:#?} \nSpeed: {} rows/s",
+        elapsed,
+        ((num_inserted as f64 / total_secs) as u64).to_formatted_string(&Locale::de)
+    );
 
     return num_inserted;
 }
 
 //fn insert(tx: &Transaction, data: Vec<(PageId, PageTitle)>) {
 // <I: Iterator<Item=PageLink>>
-fn insert(tx: &Transaction,
-          data: InsertData, length: usize) -> u32 {
+fn insert(tx: &Transaction, data: InsertData, length: usize) -> u32 {
     println!("Writing to database..");
     // let length = data.len();
 
@@ -298,41 +304,81 @@ fn insert(tx: &Transaction,
 // // // dbg!(c);
 // }
 
-pub fn load_link_to_map_db(db_path: impl AsRef<Path>) -> HashMap<PageId, Vec<PageId>, FxBuildHasher> {
+pub fn load_link_to_map_db(
+    db_path: impl AsRef<Path>,
+) -> HashMap<PageId, Vec<PageId>, FxBuildHasher> {
     load_link_to_map_db_limit(db_path, vec![])
 }
 
-pub fn load_link_to_map_db_wiki(db_path: impl AsRef<Path>) -> HashMap<PageId, Vec<PageId>, FxBuildHasher> {
+pub fn load_link_to_map_db_wiki(
+    db_path: impl AsRef<Path>,
+) -> HashMap<PageId, Vec<PageId>, FxBuildHasher> {
     load_link_to_map_db_limit(db_path, vec![])
 }
 
-pub fn load_link_to_map_db_limit(path: impl AsRef<Path>, select: Vec<PageId>) -> HashMap<PageId, Vec<PageId>, FxBuildHasher> {
+/// Returns a map of pageid to all the pageids it links to
+/// ### Args:
+/// - If num_load_opt is None, load all entries
+/// - If num_load_opt is Some(n), load the links of the n pages with the most links
+/// - If num_load_opt is Some(0), load no entries
+pub fn get_cache(path: impl AsRef<Path>, num_load_opt: Option<usize>) -> DBCache {
+    let cached_entries: Vec<PageId> = match num_load_opt {
+        None => vec![],
+        Some(num_load) => {
+            if num_load == 0 {
+                return FxHashMap::default();
+            } else {
+                select_link_count_groupby(num_load, &path, "WikiLink.page_id")
+                    .into_iter()
+                    .map(|(pid, _)| PageId(pid as u32))
+                    .collect()
+            }
+        }
+    };
+    info!("Loaded the links of the top {num_load_opt:?} most links entries to cache");
+
+    load_link_to_map_db_limit(path, cached_entries)
+}
+
+pub fn load_link_to_map_db_limit(path: impl AsRef<Path>, select: Vec<PageId>) -> DBCache {
     let conn = Connection::open(path).unwrap();
     let mut limit_str = String::new();
     if !select.is_empty() {
-        limit_str =
-            format!("where page_id in ({})",
-                    select.iter().map(|p| p.0.to_string())
-                        .collect::<Vec<String>>()
-                        .join(","));
+        limit_str = format!(
+            "where page_id in ({})",
+            select
+                .iter()
+                .map(|p| p.0.to_string())
+                .collect::<Vec<String>>()
+                .join(",")
+        );
     }
     // should be safe, as l can only be an int
-    let mut stmt = conn.prepare(
-        &format!("SELECT page_id, page_link FROM WikiLink {limit_str}")).unwrap();
+    let mut stmt = conn
+        .prepare(&format!(
+            "SELECT page_id, page_link FROM WikiLink {limit_str}"
+        ))
+        .unwrap();
 
     // where clause slow down considerably from 50s -> 6min :(
 
-
-    let rows = stmt.query_map([], |row|
-        Ok((row.get(0).unwrap(), row.get(1).unwrap()))).unwrap();
+    let rows = stmt
+        .query_map([], |row| Ok((row.get(0).unwrap(), row.get(1).unwrap())))
+        .unwrap();
 
     // 1_622_404_812
     let len = 136_343_429;
-    let bar = default_bar(len);
+    let bar = ProgressBarBuilder::new()
+        .with_name("Loading cache")
+        .with_length(len as u64)
+        .build();
+
     let mut map = FxHashMap::default();
     for row in rows {
         let (from, target): (u32, u32) = row.unwrap();
-        map.entry(PageId(from)).or_insert_with(Vec::new).push(PageId(target));
+        map.entry(PageId(from))
+            .or_insert_with(Vec::new)
+            .push(PageId(target));
         bar.inc(1);
     }
 
@@ -344,9 +390,9 @@ pub fn load_link_to_map_db_limit(path: impl AsRef<Path>, select: Vec<PageId>) ->
 
 /// Returns pageid of all pages that are linked by id (all outgoing links)
 pub fn get_links_of_id(conn: &Connection, id: &PageId) -> Vec<PageId> {
-    let mut stmt = conn.prepare(
-        "SELECT page_link FROM WikiLink WHERE page_id = ?1"
-    ).unwrap();
+    let mut stmt = conn
+        .prepare("SELECT page_link FROM WikiLink WHERE page_id = ?1")
+        .unwrap();
 
     let rows = stmt.query_map([id.0], |row| row.get(0)).unwrap();
 
@@ -360,9 +406,9 @@ pub fn get_links_of_id(conn: &Connection, id: &PageId) -> Vec<PageId> {
 
 // Returns pageid of all pages that link to id (all incoming links)
 pub fn get_incoming_links_of_id(conn: &Connection, id: &PageId) -> Vec<PageId> {
-    let mut stmt = conn.prepare(
-        "SELECT page_id FROM WikiLink WHERE page_link = ?1"
-    ).unwrap();
+    let mut stmt = conn
+        .prepare("SELECT page_id FROM WikiLink WHERE page_link = ?1")
+        .unwrap();
 
     let rows = stmt.query_map([id.0], |row| row.get(0)).unwrap();
 
@@ -374,18 +420,24 @@ pub fn get_incoming_links_of_id(conn: &Connection, id: &PageId) -> Vec<PageId> {
     links
 }
 
-
-pub fn get_links_of_ids(conn: &Connection, ids: Vec<PageId>, incoming: bool) -> Vec<(PageId, PageId)> {
+pub fn get_links_of_ids(
+    conn: &Connection,
+    ids: Vec<PageId>,
+    incoming: bool,
+) -> Vec<(PageId, PageId)> {
     let what = if incoming { "page_id" } else { "page_link" };
     let where_str = if incoming { "page_link" } else { "page_id" };
     let ids_str = ids.iter().map(|pid| pid.0.to_string()).join(",");
 
-    let mut stmt = conn.prepare(
-        &format!("SELECT page_id, page_link FROM WikiLink WHERE {where_str} in ({ids_str})")
-    ).unwrap();
+    let mut stmt = conn
+        .prepare(&format!(
+            "SELECT page_id, page_link FROM WikiLink WHERE {where_str} in ({ids_str})"
+        ))
+        .unwrap();
 
-    let rows = stmt.query_map([],
-                              |row| Ok((row.get(0).unwrap(), row.get(1).unwrap()))).unwrap();
+    let rows = stmt
+        .query_map([], |row| Ok((row.get(0).unwrap(), row.get(1).unwrap())))
+        .unwrap();
 
     let mut links = vec![];
     for row in rows {
@@ -405,11 +457,13 @@ pub fn count_redirects(db_path: &str) {
 
     let mut stmt = conn.prepare("SELECT page_link FROM WikiLink").unwrap();
 
-    let rows = stmt.query_map([], |row|
-        Ok(row.get(0).unwrap())).unwrap();
+    let rows = stmt.query_map([], |row| Ok(row.get(0).unwrap())).unwrap();
 
     let redirects_set: FxHashSet<u32> = load_wiki_pages(db_path)
-        .iter().filter(|wp| wp.is_redirect).map(|wp| wp.id).collect();
+        .iter()
+        .filter(|wp| wp.is_redirect)
+        .map(|wp| wp.id)
+        .collect();
 
     let mut redirects = 0;
     let bar = default_bar(u32::MAX as u64);
@@ -426,19 +480,28 @@ pub fn count_redirects(db_path: &str) {
     dbg!(&redirects);
 }
 
-
 pub fn count_duplicates(db_path: &str) {
     let conn = Connection::open(db_path).unwrap();
 
-    let mut stmt = conn.prepare("SELECT page_id, page_link, COUNT(*) FROM WikiLink \
-            GROUP BY page_id, page_link HAVING COUNT(*) > 1").unwrap();
+    let mut stmt = conn
+        .prepare(
+            "SELECT page_id, page_link, COUNT(*) FROM WikiLink \
+            GROUP BY page_id, page_link HAVING COUNT(*) > 1",
+        )
+        .unwrap();
 
-    let rows = stmt.query_map([], |row|
-        Ok((row.get(0).unwrap(), row.get(1).unwrap(), row.get(2).unwrap()))).unwrap();
+    let rows = stmt
+        .query_map([], |row| {
+            Ok((
+                row.get(0).unwrap(),
+                row.get(1).unwrap(),
+                row.get(2).unwrap(),
+            ))
+        })
+        .unwrap();
 
     for row in rows {
         let res: (u32, u32, u32) = row.unwrap();
         dbg!(&res);
     }
 }
-

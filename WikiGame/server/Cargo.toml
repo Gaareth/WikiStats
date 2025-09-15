@@ -24,7 +24,7 @@ futures = "0.3.30"
 tokio-stream = "0.1.15"
 async-stream = "0.3.5"
 dotenv = "0.15.0"
-clap = { version = "4.5.16", features = ["derive"] }
+clap = { version = "4.5.47", features = ["derive", "cargo"] }
 simplelog = "0.12.2"
 dirs = "5.0.1"
 log = "0.4.28"

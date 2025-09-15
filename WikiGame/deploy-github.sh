@@ -62,8 +62,15 @@ build_and_push() {
 }
 
 #build_and_push server sp-server
+#build_and_push server sp-server
 if bump_package_version server; then
   build_and_push server sp-server
+else
+  echo "Skipping server build (no changes or user cancelled)"
 fi
 
-bump_package_version cli
+if bump_package_version cli; then
+  echo "CLI version bumped successfully"
+else
+  echo "Skipping CLI version bump (no changes or user cancelled)"
+fi

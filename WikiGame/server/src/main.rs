@@ -8,7 +8,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::{routing::get, Json, Router};
 use axum_streams::*;
-use clap::{ArgAction, Parser};
+use clap::{ArgAction, Parser, crate_version};
 use dirs::home_dir;
 use dotenv::dotenv;
 use futures::{pin_mut, Stream, StreamExt};
@@ -24,7 +24,7 @@ use simplelog::{
 use std::process::exit;
 
 use wiki_stats::calc::{bfs_bidirectional, bfs_stream};
-use wiki_stats::sqlite::page_links::load_link_to_map_db_limit;
+use wiki_stats::sqlite::page_links::{get_cache, load_link_to_map_db_limit};
 use wiki_stats::sqlite::{db_wiki_path, get_all_database_files, join_db_wiki_path};
 use wiki_stats::stats::select_link_count_groupby;
 use wiki_stats::{sqlite, DBCache};
@@ -37,7 +37,7 @@ lazy_static! {
     static ref CACHES: HashMap<String, DBCache> = {
         let cli = Cli::parse();
         let (_, wikis) = validate_cli_args(cli.db_path, cli.wikis);
-        get_cache(wikis, cli.num_load)
+        get_caches(wikis, cli.num_load)
     };
 }
 
@@ -238,21 +238,11 @@ fn validate_cli_args(
     (db_dir, wikis_to_check)
 }
 
-fn get_cache(wikis: impl AsRef<[String]>, num_load: usize) -> HashMap<String, DBCache> {
+fn get_caches(wikis: impl AsRef<[String]>, num_load: Option<usize>) -> HashMap<String, DBCache> {
     let mut db_cache: HashMap<String, DBCache> = HashMap::new();
 
     for wiki in wikis.as_ref().iter() {
-        let cached_entries: Vec<PageId> = if num_load == 0 {
-            vec![]
-        } else {
-            select_link_count_groupby(num_load, wiki, "WikiLink.page_id")
-                .into_iter()
-                .map(|(pid, _)| PageId(pid as u32))
-                .collect()
-        };
-        println!("Loaded top {num_load} links entries to cache");
-
-        let cache = load_link_to_map_db_limit(db_wiki_path(wiki), cached_entries);
+        let cache = get_cache(db_wiki_path(wiki), num_load);
         db_cache.insert(wiki.to_string(), cache);
     }
     db_cache
@@ -333,6 +323,7 @@ async fn main() {
 #[command(name = "Shortest Path Server")]
 #[command(author = "Gaareth")]
 #[command(about = "Start a WebServer returning the shortest path between two wikipedia pages")]
+#[command(version = crate_version!())]
 struct Cli {
     /// Server address
     #[arg(long, default_value = "localhost")]
@@ -343,8 +334,8 @@ struct Cli {
     port: u16,
 
     /// Cache links of num_loads pages.
-    #[arg(long, default_value_t = 0)]
-    num_load: usize,
+    #[arg(long)]
+    num_load: Option<usize>,
 
     /// Path containing the sqlite db files. Use env var DB_WIKIS_DIR if not set.
     #[arg(short, long, value_name = "PATH")]
