@@ -307,13 +307,13 @@ fn insert(tx: &Transaction, data: InsertData, length: usize) -> u32 {
 pub fn load_link_to_map_db(
     db_path: impl AsRef<Path>,
 ) -> HashMap<PageId, Vec<PageId>, FxBuildHasher> {
-    load_link_to_map_db_limit(db_path, vec![])
+    load_link_to_map_db_limit(db_path, vec![], false)
 }
 
 pub fn load_link_to_map_db_wiki(
     db_path: impl AsRef<Path>,
 ) -> HashMap<PageId, Vec<PageId>, FxBuildHasher> {
-    load_link_to_map_db_limit(db_path, vec![])
+    load_link_to_map_db_limit(db_path, vec![], false)
 }
 
 /// Returns a map of pageid to all the pageids it links to
@@ -321,7 +321,7 @@ pub fn load_link_to_map_db_wiki(
 /// - If num_load_opt is None, load all entries
 /// - If num_load_opt is Some(n), load the links of the n pages with the most links
 /// - If num_load_opt is Some(0), load no entries
-pub fn get_cache(path: impl AsRef<Path>, num_load_opt: Option<usize>) -> DBCache {
+pub fn get_cache(path: impl AsRef<Path>, num_load_opt: Option<usize>, incoming: bool) -> DBCache {
     let cached_entries: Vec<PageId> = match num_load_opt {
         None => vec![],
         Some(num_load) => {
@@ -337,15 +337,32 @@ pub fn get_cache(path: impl AsRef<Path>, num_load_opt: Option<usize>) -> DBCache
     };
     info!("Loaded the links of the top {num_load_opt:?} most links entries to cache");
 
-    load_link_to_map_db_limit(path, cached_entries)
+    load_link_to_map_db_limit(path, cached_entries, incoming)
 }
 
-pub fn load_link_to_map_db_limit(path: impl AsRef<Path>, select: Vec<PageId>) -> DBCache {
+/// Returns a map of pageid to all the pageids it links to (or links from it)
+/// ### Args:
+/// - path: Database path
+/// - select: If empty, load all entries. Otherwise, load only entries for these page IDs
+/// - incoming: If true, map target -> sources (incoming links). If false, map source -> targets (outgoing links)
+pub fn load_link_to_map_db_limit(
+    path: impl AsRef<Path>, 
+    select: Vec<PageId>,
+    incoming: bool
+) -> DBCache {
     let conn = Connection::open(path).unwrap();
     let mut limit_str = String::new();
+    
+    let (key_col, value_col) = if incoming {
+        ("page_link", "page_id")  // target -> source
+    } else {
+        ("page_id", "page_link")  // source -> target
+    };
+    
     if !select.is_empty() {
         limit_str = format!(
-            "where page_id in ({})",
+            "where {} in ({})",
+            key_col,
             select
                 .iter()
                 .map(|p| p.0.to_string())
@@ -353,20 +370,18 @@ pub fn load_link_to_map_db_limit(path: impl AsRef<Path>, select: Vec<PageId>) ->
                 .join(",")
         );
     }
-    // should be safe, as l can only be an int
+    
     let mut stmt = conn
         .prepare(&format!(
-            "SELECT page_id, page_link FROM WikiLink {limit_str}"
+            "SELECT {}, {} FROM WikiLink {limit_str}",
+            key_col, value_col
         ))
         .unwrap();
-
-    // where clause slow down considerably from 50s -> 6min :(
 
     let rows = stmt
         .query_map([], |row| Ok((row.get(0).unwrap(), row.get(1).unwrap())))
         .unwrap();
 
-    // 1_622_404_812
     let len = 136_343_429;
     let bar = ProgressBarBuilder::new()
         .with_name("Loading cache")
@@ -375,10 +390,10 @@ pub fn load_link_to_map_db_limit(path: impl AsRef<Path>, select: Vec<PageId>) ->
 
     let mut map = FxHashMap::default();
     for row in rows {
-        let (from, target): (u32, u32) = row.unwrap();
-        map.entry(PageId(from))
+        let (key, value): (u32, u32) = row.unwrap();
+        map.entry(PageId(key))
             .or_insert_with(Vec::new)
-            .push(PageId(target));
+            .push(PageId(value));
         bar.inc(1);
     }
 

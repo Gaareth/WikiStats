@@ -23,7 +23,7 @@ use serde::{de, Deserialize, Serialize};
 use tokio::join;
 use tokio::sync::mpsc;
 
-use crate::calc::{bfs, bfs_bidirectional, build_path, SpBiStream};
+use crate::calc::{bfs, bfs_bidirectional, bfs_undirected, build_path, SpBiStream};
 use crate::sqlite::page_links::{get_cache, load_link_to_map_db};
 use crate::sqlite::title_id_conv::{get_random_page, load_rows_from_page, page_id_to_title};
 use crate::sqlite::{join_db_wiki_path, title_id_conv};
@@ -909,59 +909,69 @@ pub async fn sample_bidirectional_bfs_stats(
     }
 }
 
-pub fn find_connected_components(wiki_ident: WikiIdent) {
+pub fn find_wcc(wiki_ident: WikiIdent) {
     let db_path = wiki_ident.clone().db_path;
 
     let all_pages = load_rows_from_page(&db_path)
         .into_iter()
         .map(|p| p.0 .0)
         .collect::<FxHashSet<_>>();
+    let redirects = query_page(
+        "SELECT * FROM WikiPage WHERE is_redirect = 1;",
+        &db_path,
+        wiki_ident.wiki_name.clone(),
+    )
+    .into_iter()
+    .map(|p| p.page_id as u32)
+    .collect::<FxHashSet<_>>();
 
-    // let dead_orphan_pages = get_dead_orphan_pages(wiki_ident)
-    //     .into_iter()
-    //     .map(|p| p.page_id as u32)
-    //     .collect::<FxHashSet<_>>();
+    let mut components: Vec<FxHashSet<u32>> = Vec::new();
+    let mut visited: FxHashSet<u32> = FxHashSet::default();
+    let cache = get_cache(&db_path, None, false);
+    let incoming_cache = get_cache(&db_path, None, true);
 
-    let unreachable_pages = get_orphan_pages(wiki_ident)
-        .into_iter()
-        .map(|p| p.page_id as u32)
-        .collect::<FxHashSet<_>>();
+    let bar = ProgressBarBuilder::new()
+        .with_name("Finding WCC")
+        .with_length(all_pages.len() as u64)
+        .build();
 
-    // I want to find connected componenents, and i want to ignore pages that are unknown and only know themselves
-    let mut candidates: FxHashSet<u32> =
-        all_pages.difference(&unreachable_pages).cloned().collect();
+    for page in all_pages {
+        if !visited.contains(&page) {
+            let connected_component: FxHashSet<u32> =
+                bfs_undirected(&PageId(page), &cache, &incoming_cache, db_path.clone())
+                    .into_iter()
+                    .map(|pid| pid.0)
+                    .collect();
 
-    let cache = get_cache(&db_path, None);
+            // bar.println(format!("Found WCC: {:?}", connected_component.len()));
+            // bar.inc(connected_component.len() as u64);
 
-    let sample_pages = get_random_page(&db_path, 1);
-    let start_link_id = sample_pages.iter().next().unwrap();
-
-    let bfs_result = bfs(&PageId(start_link_id.id), None, None, &cache, db_path);
-    let visited: FxHashSet<u32> = bfs_result.prev_map.keys().map(|pid| pid.0).collect();
-
-    candidates = candidates.difference(&visited).cloned().collect();
-    info!(
-        "Num candidates after removing visited from sample page {}: {}",
-        start_link_id.title,
-        candidates.len()
-    );
-
-    // remove candidates that link to visited pages
-    candidates.retain(|candidate| {
-        if let Some(links) = cache.get(&PageId(*candidate)) {
-            !links.iter().any(|link| visited.contains(&link.0))
-        } else {
-            true
+            components.push(connected_component.clone());
+            visited.extend(connected_component);
         }
+        bar.inc(1);
+    }
+    info!("Num components: {}", components.len());
+
+    // remove all redirects
+    components.retain_mut(|c| {
+        c.retain(|p| !redirects.contains(p));
+        c.len() > 1
     });
 
-    info!(
-        "Num candidates after removing those that link to visited: {}",
-        candidates.len()
-    );
+    components.sort_by(|a, b| a.len().cmp(&b.len())); // ascending
+    components.pop(); // remove last, so largest component
+    // todo: also remove Begriffsklärungsseiten
 
-    println!("Candidates: {:?}", candidates.iter().take(10).collect::<Vec<_>>());
+    info!("Num components after pruning: {}", components.len());
 
+    let path = "components.json";
+    let json = serde_json::to_string_pretty(&components).unwrap();
+    fs::write(&path, json).expect(&format!("Failed writing stats to file {}", path));
+}
+
+pub fn find_scc(wiki_ident: WikiIdent) {
+    todo!()
 }
 
 pub fn sample_bfs_stats(
@@ -975,7 +985,7 @@ pub fn sample_bfs_stats(
     let db_path = &wiki_ident.db_path;
     let wiki_name = wiki_ident.wiki_name;
 
-    let cache = get_cache(&db_path, cache_max_size);
+    let cache = get_cache(&db_path, cache_max_size, false);
     // let cache = load_link_to_map_db(db_path);
     info!("Cache size: {}", cache.len());
 

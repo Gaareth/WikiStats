@@ -344,7 +344,7 @@ async fn main() {
             } = sample_options;
             println!("Creating sample bfs stats..");
 
-            wiki_stats::stats::find_connected_components(WikiIdent::new(
+            wiki_stats::stats::find_wcc(WikiIdent::new(
                 "dewiki",
                 db_path.join("dewiki_database.sqlite"),
             ))

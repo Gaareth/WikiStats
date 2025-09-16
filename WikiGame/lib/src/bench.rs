@@ -51,14 +51,14 @@ pub fn test_limit() {
     let t1 = Instant::now();
     let cached_entries: Vec<PageId> = select_link_count_groupby(1000, &wiki_name, "WikiLink.page_id")
         .into_iter().map(|(pid, _)| PageId(pid as u32)).collect();
-    let cache = load_link_to_map_db_limit(&path, cached_entries);
+    let cache = load_link_to_map_db_limit(&path, cached_entries, false);
     dbg!(&t1.elapsed());
 
 
     let t1 = Instant::now();
     let cached_entries: Vec<PageId> = select_link_count_groupby(100_000, &wiki_name, "WikiLink.page_id")
         .into_iter().map(|(pid, _)| PageId(pid as u32)).collect();
-    let cache = load_link_to_map_db_limit(&path, cached_entries);
+    let cache = load_link_to_map_db_limit(&path, cached_entries, false);
 
 
     dbg!(&t1.elapsed());
@@ -83,7 +83,7 @@ pub fn test_save_sp() {
     let end_link_id = sqlite::title_id_conv::page_title_to_id(&end_link, &conn).unwrap();
     dbg!(&end_link_id);
 
-    let cache = load_link_to_map_db_limit(&path, vec![]);
+    let cache = load_link_to_map_db_limit(&path, vec![], false);
     crate::calc::precalc_interlinks_most_popular_threaded(&path_sp, &path, &cache, wiki_name);
 
 
@@ -106,7 +106,7 @@ pub fn test_bfs() {
     let cached_entries: Vec<PageId> = select_link_count_groupby(1000, &wiki_name, "WikiLink.page_id")
         .into_iter().map(|(pid, _)| PageId(pid as u32)).collect();
 
-    let cache = load_link_to_map_db_limit(&path, cached_entries);
+    let cache = load_link_to_map_db_limit(&path, cached_entries, false);
     // let cache = FxHashMap::default();
     dbg!(&t1.elapsed());
 

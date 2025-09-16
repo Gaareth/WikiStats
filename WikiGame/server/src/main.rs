@@ -242,7 +242,7 @@ fn get_caches(wikis: impl AsRef<[String]>, num_load: Option<usize>) -> HashMap<S
     let mut db_cache: HashMap<String, DBCache> = HashMap::new();
 
     for wiki in wikis.as_ref().iter() {
-        let cache = get_cache(db_wiki_path(wiki), num_load);
+        let cache = get_cache(db_wiki_path(wiki), num_load, false);
         db_cache.insert(wiki.to_string(), cache);
     }
     db_cache

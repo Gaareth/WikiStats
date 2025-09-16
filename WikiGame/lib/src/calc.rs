@@ -465,21 +465,21 @@ static ACCESSES: AtomicUsize = AtomicUsize::new(0);
 // TODO: fix redirect in database
 // => replace all redircts with their target page id
 
-fn get_incoming_linkes<T: BuildHasher>(
+fn get_incoming_links<T: BuildHasher>(
     conn: &Connection,
     page_id: &PageId,
     cache: &HashMap<PageId, Vec<PageId>, T>,
 ) -> Vec<PageId> {
-    sqlite::page_links::get_incoming_links_of_id(conn, page_id)
+    // sqlite::page_links::get_incoming_links_of_id(conn, page_id)
 
 
-    // return if cache.contains_key(page_id) {
-    //     HITS.fetch_add(1, Ordering::SeqCst);
-    //     cache.get(page_id).unwrap().clone()
-    // } else {
-    //     MISSES.fetch_add(1, Ordering::SeqCst);
-    //     sqlite::page_links::get_links_of_id(conn, page_id)
-    // };
+    return if cache.contains_key(page_id) {
+        HITS.fetch_add(1, Ordering::SeqCst);
+        cache.get(page_id).unwrap().clone()
+    } else {
+        MISSES.fetch_add(1, Ordering::SeqCst);
+        sqlite::page_links::get_incoming_links_of_id(conn, page_id)
+    };
   
 }
 
@@ -1034,6 +1034,39 @@ pub fn bfs(
         len_deepest_sp: deepest_depth,
     }
 }
+
+
+pub fn bfs_undirected(
+    start_link_id: &PageId,
+    cache_outgoing: &DBCache,
+    cache_incoming: &DBCache,
+    db_path: impl AsRef<Path>,
+) -> FxHashSet<PageId> {
+    let conn: Connection = Connection::open(db_path).unwrap();
+
+    let mut to_visit: VecDeque<PageId> = VecDeque::from([*start_link_id]);
+    let mut visited: FxHashSet<PageId> = FxHashSet::default();
+    visited.insert(*start_link_id);
+
+    while let Some(current_id) = to_visit.pop_front() {
+        // Outgoing neighbors
+        for link in get_links(&conn, &current_id, cache_outgoing) {
+            if visited.insert(link) {
+                to_visit.push_back(link);
+            }
+        }
+
+        // Incoming neighbors (backlinks)
+        for backlink in get_incoming_links(&conn, &current_id, cache_incoming) {
+            if visited.insert(backlink) {
+                to_visit.push_back(backlink);
+            }
+        }
+    }
+
+    visited
+}
+
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SpStream {
