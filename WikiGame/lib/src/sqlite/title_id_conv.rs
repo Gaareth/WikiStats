@@ -100,7 +100,7 @@ pub fn load_wiki_pages(page_db_path: impl AsRef<Path>) -> Vec<WikiPage> {
 
 
 //TODO: return iterator
-fn load_rows_from_page(page_db_path: impl AsRef<Path>) -> Vec<(PageId, PageTitle)> {
+pub fn load_rows_from_page(page_db_path: impl AsRef<Path>) -> Vec<(PageId, PageTitle)> {
     // let path = "/home/gareth/dev/Rust/WikiGame/page_db.db";
     // let page_db_path = "/run/media/gareth/7FD71CF32A89EF6A/dev/wiki/sqlite/ja_page_db.sqlite";
     let conn = Connection::open(page_db_path).unwrap();
@@ -115,7 +115,7 @@ fn load_rows_from_page(page_db_path: impl AsRef<Path>) -> Vec<(PageId, PageTitle
                                   Ok(WikiPage {
                                       id: row.get(0).unwrap(),
                                       title: row.get(1).unwrap(),
-                                      is_redirect: false,
+                                      is_redirect: false, // not used, unknown here, does not matter
                                   })
                               }).unwrap();
 

@@ -465,6 +465,24 @@ static ACCESSES: AtomicUsize = AtomicUsize::new(0);
 // TODO: fix redirect in database
 // => replace all redircts with their target page id
 
+fn get_incoming_linkes<T: BuildHasher>(
+    conn: &Connection,
+    page_id: &PageId,
+    cache: &HashMap<PageId, Vec<PageId>, T>,
+) -> Vec<PageId> {
+    sqlite::page_links::get_incoming_links_of_id(conn, page_id)
+
+
+    // return if cache.contains_key(page_id) {
+    //     HITS.fetch_add(1, Ordering::SeqCst);
+    //     cache.get(page_id).unwrap().clone()
+    // } else {
+    //     MISSES.fetch_add(1, Ordering::SeqCst);
+    //     sqlite::page_links::get_links_of_id(conn, page_id)
+    // };
+  
+}
+
 fn get_links<T: BuildHasher>(
     conn: &Connection,
     page_id: &PageId,
@@ -780,6 +798,7 @@ fn bfs_parallel(
 }
 
 pub struct BfsResult {
+    pub visited: FxHashSet<PageId>,
     pub depth_histogram: DepthHistogram,
     pub prev_map: PrevMap,
     pub num_visited: u32,
@@ -1007,6 +1026,7 @@ pub fn bfs(
     );
 
     BfsResult {
+        visited,
         depth_histogram: histogram,
         prev_map: prev,
         num_visited: visited_counter,

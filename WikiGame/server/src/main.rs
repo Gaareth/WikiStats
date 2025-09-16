@@ -309,7 +309,7 @@ async fn main() {
         // .route("/test", get(test_json_nl_stream))
         .with_state(state);
 
-    println!("Starting server at: {addr} with load: {:?}", cli.num_load);
+    println!("Starting server at: {addr} with load: {:?} | Version: {}", cli.num_load, crate_version!());
     println!("Supported wikis: {:?}", wikis);
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap_or_else(|error| {

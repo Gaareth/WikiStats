@@ -22,7 +22,7 @@ use simplelog::{ColorChoice, CombinedLogger, Config, TermLogger, TerminalMode, W
 use wiki_stats::process::{process_threaded, process_wikis_seq, test_bench_threaded};
 use wiki_stats::sqlite::load::load_linktarget_map;
 use wiki_stats::sqlite::{get_all_database_files, join_db_wiki_path, DATABASE_SUFFIX};
-use wiki_stats::stats::Stats;
+use wiki_stats::stats::{Stats, WikiIdent};
 use wiki_stats::web::find_smallest_wikis;
 use wiki_stats::{download, stats, validate, web};
 
@@ -343,16 +343,22 @@ async fn main() {
                 threads,
             } = sample_options;
             println!("Creating sample bfs stats..");
-            wiki_stats::stats::add_sample_bfs_stats(
-                &output_path,
-                db_path,
-                wikis.clone(),
-                *sample_size,
-                *threads,
-                None,
-                true,
-            )
-            .await;
+
+            wiki_stats::stats::find_connected_components(WikiIdent::new(
+                "dewiki",
+                db_path.join("dewiki_database.sqlite"),
+            ))
+
+            // wiki_stats::stats::add_sample_bfs_stats(
+            //     &output_path,
+            //     db_path,
+            //     wikis.clone(),
+            //     *sample_size,
+            //     *threads,
+            //     None,
+            //     true,
+            // )
+            // .await;
 
             // wiki_stats::stats::add_sample_bibfs_stats(
             //     &output_path,

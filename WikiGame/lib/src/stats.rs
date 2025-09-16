@@ -1,3 +1,4 @@
+use core::num;
 use std::cmp::{max, max_by, min_by, Ordering};
 use std::collections::HashSet;
 use std::fmt::Debug;
@@ -8,6 +9,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{self, Instant};
 use std::{fs, thread};
 
+use chrono::format;
 use crossbeam::channel::{unbounded, Sender};
 use crossbeam::queue::ArrayQueue;
 use futures::{pin_mut, StreamExt};
@@ -21,9 +23,9 @@ use serde::{de, Deserialize, Serialize};
 use tokio::join;
 use tokio::sync::mpsc;
 
-use crate::calc::{bfs, bfs_bidirectional, SpBiStream};
+use crate::calc::{bfs, bfs_bidirectional, build_path, SpBiStream};
 use crate::sqlite::page_links::{get_cache, load_link_to_map_db};
-use crate::sqlite::title_id_conv::{get_random_page, page_id_to_title};
+use crate::sqlite::title_id_conv::{get_random_page, load_rows_from_page, page_id_to_title};
 use crate::sqlite::{join_db_wiki_path, title_id_conv};
 use crate::utils::{bar_color, default_bar, default_bar_unknown, ProgressBarBuilder};
 use crate::web::find_smallest_wikis;
@@ -41,6 +43,15 @@ static DB_STATS: &str =
 pub struct WikiIdent {
     wiki_name: String,
     db_path: PathBuf,
+}
+
+impl WikiIdent {
+    pub fn new<S: Into<String>>(wiki_name: S, db_path: PathBuf) -> Self {
+        Self {
+            wiki_name: wiki_name.into(),
+            db_path,
+        }
+    }
 }
 
 pub fn create_wiki_idents(db_path: PathBuf, wikis: Vec<String>) -> Vec<WikiIdent> {
@@ -75,7 +86,7 @@ fn get_dead_pages(wiki_ident: WikiIdent) -> Vec<Page> {
     res
 }
 
-fn get_root_pages(wiki_ident: WikiIdent) -> Vec<Page> {
+pub fn get_orphan_pages(wiki_ident: WikiIdent) -> Vec<Page> {
     let t1 = Instant::now();
     let name = wiki_ident.wiki_name;
     let db_path = wiki_ident.db_path;
@@ -659,7 +670,7 @@ pub async fn add_sample_bfs_stats(
     sample_size: usize,
     num_threads: usize,
     cache_max_size: Option<usize>,
-    always: bool
+    always: bool,
 ) {
     let database_path = db_path.into();
     let wiki_idents: Vec<WikiIdent> = create_wiki_idents(database_path, wikis);
@@ -671,7 +682,11 @@ pub async fn add_sample_bfs_stats(
         wiki_idents,
         |w_id: WikiIdent| sample_bfs_stats(w_id, sample_size, num_threads, cache_max_size),
         global_ignore,
-        if !always { stats.bfs_sample_stats.clone() } else { None },
+        if !always {
+            stats.bfs_sample_stats.clone()
+        } else {
+            None
+        },
     );
 
     stats.bfs_sample_stats = Some(bfs_sample_stats.await);
@@ -753,9 +768,12 @@ pub struct BfsSample {
 
     // max, min, avg of deepest bfs path found. storing the (start, end) page titles with the depth
     pub deep_stat: MaxMinAvg<(PageTitle, PageTitle), u32>,
+    pub path_depth_map: FxHashMap<u32, Vec<PageTitle>>,
 
     // how many page were visited starting from this page
     pub visit_stat: MaxMinAvg<PageTitle, u32>,
+    pub num_visited_map: FxHashMap<u32, PageTitle>,
+
     pub avg_depth_histogram: AvgDepthHistogram,
     pub seconds_taken: u64,
 }
@@ -891,6 +909,61 @@ pub async fn sample_bidirectional_bfs_stats(
     }
 }
 
+pub fn find_connected_components(wiki_ident: WikiIdent) {
+    let db_path = wiki_ident.clone().db_path;
+
+    let all_pages = load_rows_from_page(&db_path)
+        .into_iter()
+        .map(|p| p.0 .0)
+        .collect::<FxHashSet<_>>();
+
+    // let dead_orphan_pages = get_dead_orphan_pages(wiki_ident)
+    //     .into_iter()
+    //     .map(|p| p.page_id as u32)
+    //     .collect::<FxHashSet<_>>();
+
+    let unreachable_pages = get_orphan_pages(wiki_ident)
+        .into_iter()
+        .map(|p| p.page_id as u32)
+        .collect::<FxHashSet<_>>();
+
+    // I want to find connected componenents, and i want to ignore pages that are unknown and only know themselves
+    let mut candidates: FxHashSet<u32> =
+        all_pages.difference(&unreachable_pages).cloned().collect();
+
+    let cache = get_cache(&db_path, None);
+
+    let sample_pages = get_random_page(&db_path, 1);
+    let start_link_id = sample_pages.iter().next().unwrap();
+
+    let bfs_result = bfs(&PageId(start_link_id.id), None, None, &cache, db_path);
+    let visited: FxHashSet<u32> = bfs_result.prev_map.keys().map(|pid| pid.0).collect();
+
+    candidates = candidates.difference(&visited).cloned().collect();
+    info!(
+        "Num candidates after removing visited from sample page {}: {}",
+        start_link_id.title,
+        candidates.len()
+    );
+
+    // remove candidates that link to visited pages
+    candidates.retain(|candidate| {
+        if let Some(links) = cache.get(&PageId(*candidate)) {
+            !links.iter().any(|link| visited.contains(&link.0))
+        } else {
+            true
+        }
+    });
+
+    info!(
+        "Num candidates after removing those that link to visited: {}",
+        candidates.len()
+    );
+
+    println!("Candidates: {:?}", candidates.iter().take(10).collect::<Vec<_>>());
+
+}
+
 pub fn sample_bfs_stats(
     wiki_ident: WikiIdent,
     sample_size: usize,
@@ -913,7 +986,11 @@ pub fn sample_bfs_stats(
     info!("NUM_THREADS: {num_threads}");
 
     let mut deep_stat: Option<MaxMinAvg<(PageTitle, PageTitle), u32>> = None;
+    let mut path_depth_map: FxHashMap<u32, Vec<PageTitle>> = FxHashMap::default();
+
     let mut visit_stat: Option<MaxMinAvg<PageTitle, u32>> = None;
+    let mut num_visited_map: FxHashMap<u32, PageTitle> = FxHashMap::default();
+
     let mut depth_histograms: Vec<FxHashMap<u32, f64>> = Vec::new();
 
     let pid_queue: Arc<ArrayQueue<PageId>> = Arc::new(ArrayQueue::new(sample_size));
@@ -980,10 +1057,29 @@ pub fn sample_bfs_stats(
             info!("Num pages in id_title_map: {num_pages}");
 
             while let Ok((pid, result)) = r.recv() {
-                // dbg!(&pid);
+                let start_page_title = id_title_map.get(&pid).unwrap().clone().0;
+                let end_page_title = id_title_map.get(&result.deepest_id).unwrap().clone().0;
+
+                num_visited_map.insert(result.num_visited, start_page_title.clone());
+
+                let deepest_path: Vec<String> = build_path(&result.deepest_id, &result.prev_map)
+                    .iter()
+                    .map(|pid| id_title_map.get(&pid).unwrap().clone().0)
+                    .collect();
+
+                // i think the deepest_path includes the start page, so its length is len_deepest_sp + 1
+                assert_eq!(
+                    deepest_path.len() as u32,
+                    result.len_deepest_sp + 1,
+                    "Length of deepest path {} does not match len_deepest_sp {}",
+                    deepest_path.len(),
+                    result.len_deepest_sp + 1
+                );
+                path_depth_map.insert(deepest_path.len() as u32, deepest_path);
+
                 let deepest_stat_key = (
-                    id_title_map.get(&pid).unwrap().clone().0, // start
-                    id_title_map.get(&result.deepest_id).unwrap().clone().0, // end
+                    start_page_title.clone(), // start
+                    end_page_title.clone(),   // end
                 );
 
                 if let Some(ref mut deep_stat) = deep_stat {
@@ -993,15 +1089,9 @@ pub fn sample_bfs_stats(
                 }
 
                 if let Some(ref mut visit_stat) = visit_stat {
-                    visit_stat.add(
-                        id_title_map.get(&PageId(pid.0)).unwrap().clone().0,
-                        result.num_visited,
-                    );
+                    visit_stat.add(start_page_title.clone(), result.num_visited);
                 } else {
-                    visit_stat = Some(MaxMinAvg::new(
-                        id_title_map.get(&PageId(pid.0)).unwrap().clone().0,
-                        result.num_visited,
-                    ));
+                    visit_stat = Some(MaxMinAvg::new(start_page_title.clone(), result.num_visited));
                 }
 
                 depth_histograms.push(
@@ -1019,7 +1109,11 @@ pub fn sample_bfs_stats(
 
     // dbg!(&depth_histograms);
 
-    let avg_depth_histogram = average_histograms(depth_histograms);
+    let avg_depth_histogram = average_histograms(&depth_histograms);
+
+    let path = "/home/gareth/dev/WikiStats/igraph/hist/depth_histogram_bfs.json";
+    let json = serde_json::to_string_pretty(&depth_histograms).unwrap();
+    fs::write(&path, json).expect(&format!("Failed writing stats to file {}", path));
 
     let time_taken = t1.elapsed();
     info!(
@@ -1030,18 +1124,20 @@ pub fn sample_bfs_stats(
     BfsSample {
         sample_size: sample_size as u32,
         deep_stat: deep_stat.unwrap(),
+        path_depth_map,
         visit_stat: visit_stat.unwrap(),
+        num_visited_map,
         avg_depth_histogram: avg_depth_histogram,
         seconds_taken: time_taken.as_secs(),
     }
 }
 
-fn average_histograms(depth_histograms: Vec<FxHashMap<u32, f64>>) -> AvgDepthHistogram {
+fn average_histograms(depth_histograms: &[FxHashMap<u32, f64>]) -> AvgDepthHistogram {
     // First, sum up all histograms
     let mut sum_hist: FxHashMap<u32, f64> = FxHashMap::default();
     let mut count_hist: FxHashMap<u32, u32> = FxHashMap::default();
 
-    for hist in &depth_histograms {
+    for hist in depth_histograms {
         for (&depth, &count) in hist {
             *sum_hist.entry(depth).or_insert(0.0) += count as f64;
             *count_hist.entry(depth).or_insert(0) += 1;
@@ -1062,7 +1158,7 @@ fn average_histograms(depth_histograms: Vec<FxHashMap<u32, f64>>) -> AvgDepthHis
         let mut sum_sq = 0.0;
 
         let mut n: i32 = 0;
-        for hist in &depth_histograms {
+        for hist in depth_histograms {
             if let Some(&count) = hist.get(&depth) {
                 let diff = count as f64 - avg;
                 sum_sq += diff * diff;
