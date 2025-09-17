@@ -1,0 +1,91 @@
+---
+import { getCollection } from "astro:content";
+import { WikiSizesTable } from "../../../components/WikiSizesTable";
+import { get_stat } from "../../../db/constants";
+import Layout from "../../../layouts/Layout.astro";
+import Card from "../../../components/Card";
+
+export async function getStaticPaths() {
+    const entries = await getCollection("stats");
+
+    let params = [];
+
+    for (const entry of entries) {
+        params.push({
+            params: { dump_date: entry.data.dump_date },
+        });
+    }
+
+    // Global stats for latest
+    if (entries.length > 0) {
+        params.push({
+            params: { dump_date: "latest" },
+        });
+
+        params.push({
+            params: { dump_date: undefined },
+        });
+    }
+
+    console.log("params", params);
+
+    return params;
+}
+
+const { dump_date } = Astro.params;
+
+const entry = await get_stat(dump_date || "latest");
+const all_wiki_sizes = entry!.wiki_sizes;
+const supported_wikis = entry!.wikis;
+
+const wikis_columns = all_wiki_sizes.sizes;
+---
+
+<Layout title="WikiStats - All Wikis">
+    <main>
+        <div class="mt-10 flex justify-between items-baseline">
+            <h1 class="text-3xl">Wikis</h1>
+            <p>
+                Available ({all_wiki_sizes.sizes.length}) | Supported ({supported_wikis.length})
+            </p>
+        </div>
+
+        <p class="my-2 text-secondary">
+            This table lists all available wikis at <a
+                href="https://dumps.wikimedia.org">
+                dumps.wikimedia.org
+            </a> along with the following sizes:
+
+            <ul class="list-disc list-inside -mt-2 text-secondary">
+                <li>
+                    <b>Total</b>: All available sql.gz files (compressed)
+                </li>
+                <li>
+                    <b>Relevant</b>: Downloaded sql.gz files (compressed). [{
+                        all_wiki_sizes.tables.join(", ")
+                    }]
+                </li>
+                <li>
+                    <b>Decompressed</b>: Total size after decompressing all
+                </li>
+                <li>
+                    <b>Processed</b>: Size of data after processing to a single
+                    sqlite file
+                </li>
+            </ul>
+        </p>
+
+        <!-- <Card className="p-4 my-5 text-center">
+            Want another wiki supported? <a href="/about">Contact me</a>
+        </Card> -->
+
+        <div class="mt-10">
+            <WikiSizesTable
+                supported_wikis={supported_wikis}
+                wikis_columns={wikis_columns}
+                dump_date={dump_date ?? ""}
+                client:load
+            />
+        </div>
+    </main>
+</Layout>

@@ -1,6 +1,10 @@
 import clsx, { type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+export const WIKI_TYPES = [
+    "wiki", "wiktionary", "wikinews", "wikisource", "wikiquote", "wikivoyage", "wikibooks", "wikiversity", "wikimedia"
+]
+
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
@@ -11,12 +15,12 @@ export function wiki_link(title: string, lang: string) {
 }
 
 export function get_wiki_prefix(lang: string) {
-    const wiki_split = lang.split("wiki");
-    if (wiki_split.length < 1) {
-        throw new Error("Invalid wiki name" + lang + ". Does not contain 'wiki'");
+    for (const type of WIKI_TYPES) {
+        if (lang.endsWith(type)) {
+            return lang.slice(0, lang.length - type.length);
+        }
     }
-    const lang_prefix = wiki_split[0]
-    return lang_prefix
+    throw new Error("Invalid wiki name '" + lang + "'. Does not contain any of " + WIKI_TYPES.join(", "));
 }
 
 export function reverse_string(s: string): string {
@@ -137,6 +141,22 @@ export function formatNumberUnitPrefix(n: number, prec?: number) {
 
     return n.toString();
 }
+
+export function formatBytesIntl(bytes: number, decimals = 2, locale: Intl.LocalesArgument = "en-US") {
+  if (bytes === 0) return "0 Bytes";
+
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  const value = bytes / Math.pow(k, i);
+
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: decimals
+  }).format(value) + " " + sizes[i];
+}
+
 
 // https://www.media-division.com/easy-human-readable-date-difference/
 // returns array containing the difference and the time unit of measure

@@ -1,12 +1,73 @@
 import { z } from "zod";
 
 const statsSchema = z.object({
-    bfs_sample_stats: z.union([z.record(z.any()), z.null()]).optional(),
-    bi_bfs_sample_stats: z.union([z.record(z.any()), z.null()]).optional(),
+    bfs_sample_stats: z
+        .union([
+            z.record(
+                z.object({
+                    avg_depth_histogram: z.record(
+                        z.object({
+                            avg_occurences: z.number(),
+                            std_dev: z.number(),
+                        }),
+                    ),
+                    deep_stat: z.object({
+                        avg: z.number(),
+                        max: z.tuple([
+                            z.tuple([z.string(), z.string()]),
+                            z.number().int().gte(0),
+                        ]),
+                        min: z.tuple([
+                            z.tuple([z.string(), z.string()]),
+                            z.number().int().gte(0),
+                        ]),
+                    }),
+                    num_visited_map: z.record(z.string()),
+                    path_depth_map: z.record(z.array(z.string())),
+                    sample_size: z.number().int().gte(0),
+                    seconds_taken: z.number().int().gte(0),
+                    visit_stat: z.object({
+                        avg: z.number(),
+                        max: z.tuple([z.string(), z.number().int().gte(0)]),
+                        min: z.tuple([z.string(), z.number().int().gte(0)]),
+                    }),
+                }),
+            ),
+            z.null(),
+        ])
+        .optional(),
+    bi_bfs_sample_stats: z
+        .union([
+            z.record(
+                z.object({
+                    longest_path_stat: z.object({
+                        avg: z.number(),
+                        max: z.tuple([
+                            z.tuple([z.string(), z.string()]),
+                            z.number().int().gte(0),
+                        ]),
+                        min: z.tuple([
+                            z.tuple([z.string(), z.string()]),
+                            z.number().int().gte(0),
+                        ]),
+                    }),
+                    path_length_histogram: z.record(z.number().int().gte(0)),
+                    sample_size: z.number().int().gte(0),
+                    seconds_taken: z.number().int().gte(0),
+                }),
+            ),
+            z.null(),
+        ])
+        .optional(),
     created_at: z.number().int().describe("utc timestamp"),
     dump_date: z.string(),
-    longest_name: z.record(z.any()),
-
+    longest_name: z.record(
+        z.object({
+            page_id: z.number().int().gte(0),
+            page_title: z.string(),
+            wiki_name: z.string(),
+        }),
+    ),
     longest_name_no_redirect: z.record(
         z.object({
             page_id: z.number().int().gte(0),
@@ -45,6 +106,23 @@ const statsSchema = z.object({
     num_orphan_pages: z.record(z.number().int().gte(0)),
     num_pages: z.record(z.number().int().gte(0)),
     num_redirects: z.record(z.number().int().gte(0)),
+    seconds_taken: z.number().int().gte(0),
+    wiki_sizes: z.object({
+        sizes: z.array(
+            z.object({
+                compressed_selected_tables_size: z.number().int().gte(0),
+                compressed_total_size: z.number().int().gte(0),
+                decompressed_size: z
+                    .union([z.number().int().gte(0), z.null()])
+                    .optional(),
+                name: z.string(),
+                processed_size: z
+                    .union([z.number().int().gte(0), z.null()])
+                    .optional(),
+            }),
+        ),
+        tables: z.array(z.string()),
+    }),
     wikis: z.array(z.string()),
 });
 

@@ -24,9 +24,10 @@ use tokio::join;
 use tokio::sync::mpsc;
 
 use crate::calc::{bfs, bfs_bidirectional, bfs_undirected, build_path, SpBiStream};
+use crate::download::ALL_DB_TABLES;
 use crate::sqlite::page_links::{get_cache, load_link_to_map_db};
 use crate::sqlite::title_id_conv::{get_random_page, load_rows_from_page, page_id_to_title};
-use crate::sqlite::{join_db_wiki_path, title_id_conv};
+use crate::sqlite::{join_db_wiki_path, title_id_conv, wiki};
 use crate::utils::{bar_color, default_bar, default_bar_unknown, ProgressBarBuilder};
 use crate::web::find_smallest_wikis;
 use crate::{AvgDepthHistogram, AvgDepthStat, DepthHistogram};
@@ -54,11 +55,11 @@ impl WikiIdent {
     }
 }
 
-pub fn create_wiki_idents(db_path: PathBuf, wikis: Vec<String>) -> Vec<WikiIdent> {
+pub fn create_wiki_idents(db_path: &Path, wikis: Vec<String>) -> Vec<WikiIdent> {
     wikis
         .into_iter()
         .map(|wiki_name| WikiIdent {
-            db_path: join_db_wiki_path(db_path.clone(), &wiki_name),
+            db_path: join_db_wiki_path(db_path, &wiki_name),
             wiki_name,
         })
         .collect()
@@ -353,7 +354,22 @@ pub struct Stats {
     pub bfs_sample_stats: Option<StatRecord<BfsSample>>,
     pub bi_bfs_sample_stats: Option<StatRecord<BiBfsSample>>,
 
-    pub all_wiki_sizes: Vec<(String, u64)>,
+    pub wiki_sizes: WikiSizes,
+}
+
+#[derive(Serialize, Deserialize, JsonSchema)]
+struct WikiSize {
+    name: String,
+    compressed_total_size: u64,
+    compressed_selected_tables_size: u64,
+    decompressed_size: Option<u64>,
+    processed_size: Option<u64>,
+}
+
+#[derive(Serialize, Deserialize, JsonSchema)]
+struct WikiSizes {
+    pub sizes: Vec<WikiSize>,
+    pub tables: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, JsonSchema)]
@@ -410,7 +426,7 @@ pub async fn create_stats(
     let num_linked_redirects_prev = stats.as_ref().map(|s| s.num_linked_redirects.clone());
 
     let database_path = database_path.into();
-    let wiki_idents: Vec<WikiIdent> = create_wiki_idents(database_path, wikis.clone());
+    let wiki_idents: Vec<WikiIdent> = create_wiki_idents(&database_path, wikis.clone());
 
     let pages_stat_future = make_stat_record(
         wiki_idents.clone(),
@@ -600,6 +616,8 @@ pub async fn create_stats(
     //
     // let bi_bfs_sample_stats = make_stat_record_async(wikis.clone(), async_bibfs_name_wrapper, global_ignore);
 
+    let wiki_sizes = get_wiki_sizes(database_path.parent().unwrap(), &ALL_DB_TABLES).await;
+
     let time_taken: time::Duration = t1.elapsed();
 
     let stats = Stats {
@@ -633,9 +651,7 @@ pub async fn create_stats(
         // bi_bfs_sample_stats: Some(bi_bfs_sample_stats.await),
         bfs_sample_stats: None,
         bi_bfs_sample_stats: None,
-        all_wiki_sizes: find_smallest_wikis(&[] as &[&str])
-            .await
-            .expect("Failed finding smallest wikis"),
+        wiki_sizes,
     };
 
     save_stats(&stats, path);
@@ -643,6 +659,69 @@ pub async fn create_stats(
         "Done generating stats. Total time elapsed: {:?}",
         time_taken
     );
+}
+
+async fn get_wiki_sizes(base_path: impl AsRef<Path>, tables: &[&str]) -> WikiSizes {
+    let web_wiki_sizes = find_smallest_wikis(tables)
+        .await
+        .expect("Failed finding smallest wikis");
+
+    let download_path = base_path.as_ref().join("downloads");
+    let decompressed_sizes: Vec<(String, u64)> = fs::read_dir(&download_path)
+        .expect("Failed reading wiki download dir")
+        .filter_map(|entry| entry.ok())
+        .filter_map(|entry| {
+            let path = entry.path();
+            if path.is_file() && path.extension().map_or(false, |ext| ext == "sql") {
+                let metadata = fs::metadata(&path).ok()?;
+                let file_size = metadata.len();
+                let file_stem = path.file_stem()?.to_str()?.to_string();
+                let wiki_name = file_stem.split('-').next()?.to_string();
+                Some((wiki_name, file_size))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    let mut decompressed_size_map: HashMap<String, u64> = HashMap::new();
+    for (key, value) in decompressed_sizes {
+        *decompressed_size_map.entry(key).or_insert(0) += value;
+    }
+
+    let sqlite_path = base_path.as_ref().join("sqlite");
+    let processed_sizes: HashMap<String, u64> = fs::read_dir(&sqlite_path)
+        .expect("Failed reading wiki sqlite dir")
+        .filter_map(|entry| entry.ok())
+        .filter_map(|entry| {
+            let path = entry.path();
+            if path.is_file() && path.extension().map_or(false, |ext| ext == "sqlite") {
+                let metadata = fs::metadata(&path).ok()?;
+                let file_size = metadata.len();
+                let file_stem = path.file_stem()?.to_str()?.to_string();
+                let wiki_name = file_stem.split("_database").next()?.to_string();
+                Some((wiki_name, file_size))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    let wiki_sizes = WikiSizes {
+        sizes: web_wiki_sizes
+            .into_iter()
+            .map(|ws| WikiSize {
+                name: ws.name.clone(),
+                compressed_total_size: ws.total_size,
+                compressed_selected_tables_size: ws.selected_tables_size,
+                decompressed_size: decompressed_size_map.get(&ws.name).cloned(),
+                processed_size: processed_sizes.get(&ws.name).cloned(),
+            })
+            .collect(),
+        tables: tables.iter().map(|s| s.to_string()).collect(),
+    };
+
+    wiki_sizes
 }
 
 fn try_load_stats(path: &Path) -> Option<Stats> {
@@ -673,7 +752,7 @@ pub async fn add_sample_bfs_stats(
     always: bool,
 ) {
     let database_path = db_path.into();
-    let wiki_idents: Vec<WikiIdent> = create_wiki_idents(database_path, wikis);
+    let wiki_idents: Vec<WikiIdent> = create_wiki_idents(&database_path, wikis);
     let path: &Path = path.as_ref();
 
     let mut stats = load_stats(path);
@@ -703,7 +782,7 @@ pub async fn add_sample_bibfs_stats(
 ) {
     let output_path = output_path.as_ref();
     let database_path = db_path.into();
-    let wiki_idents: Vec<WikiIdent> = create_wiki_idents(database_path, wikis);
+    let wiki_idents: Vec<WikiIdent> = create_wiki_idents(&database_path, wikis);
 
     let mut stats = load_stats(output_path);
 
@@ -961,7 +1040,7 @@ pub fn find_wcc(wiki_ident: WikiIdent) {
 
     components.sort_by(|a, b| a.len().cmp(&b.len())); // ascending
     components.pop(); // remove last, so largest component
-    // todo: also remove Begriffsklärungsseiten
+                      // todo: also remove Begriffsklärungsseiten
 
     info!("Num components after pruning: {}", components.len());
 

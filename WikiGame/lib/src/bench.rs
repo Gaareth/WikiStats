@@ -200,78 +200,78 @@ pub fn test_show_duplicates() {
     bar.finish();
 }
 
-#[cfg(test)]
-mod benchs {
-    use std::collections::HashMap;
-    use std::sync::OnceLock;
-    use test::Bencher;
+// #[cfg(test)]
+// mod benchs {
+//     use std::collections::HashMap;
+//     use std::sync::OnceLock;
+//     use test::Bencher;
 
-    use async_stream::stream;
-    use futures::{pin_mut, Stream, StreamExt};
-    use fxhash::FxBuildHasher;
-    use rand::seq::SliceRandom;
+//     use async_stream::stream;
+//     use futures::{pin_mut, Stream, StreamExt};
+//     use fxhash::FxBuildHasher;
+//     use rand::seq::SliceRandom;
 
-    use crate::calc::bfs_bidirectional;
-    use crate::sqlite::page_links::load_link_to_map_db_wiki;
-    use crate::sqlite::title_id_conv::get_random_page;
+//     use crate::calc::bfs_bidirectional;
+//     use crate::sqlite::page_links::load_link_to_map_db_wiki;
+//     use crate::sqlite::title_id_conv::get_random_page;
 
-    use super::*;
+//     use super::*;
 
-    const WIKI_NAME: &str = "dewiki";
+//     const WIKI_NAME: &str = "dewiki";
 
-    fn cache() -> &'static HashMap<PageId, Vec<PageId>, FxBuildHasher> {
-        dotenv::dotenv().unwrap();
-        static CACHE: OnceLock<HashMap<PageId, Vec<PageId>, FxBuildHasher>> = OnceLock::new();
-        CACHE.get_or_init(|| {
-            let path = db_wiki_path(WIKI_NAME);
+//     fn cache() -> &'static HashMap<PageId, Vec<PageId>, FxBuildHasher> {
+//         dotenv::dotenv().unwrap();
+//         static CACHE: OnceLock<HashMap<PageId, Vec<PageId>, FxBuildHasher>> = OnceLock::new();
+//         CACHE.get_or_init(|| {
+//             let path = db_wiki_path(WIKI_NAME);
 
-            let cache = load_link_to_map_db_wiki(&path);
-            // Arc::new(Mutex::new(cache))
-            cache
-        })
-    }
+//             let cache = load_link_to_map_db_wiki(&path);
+//             // Arc::new(Mutex::new(cache))
+//             cache
+//         })
+//     }
 
-    fn random_pages() -> &'static Vec<u32> {
-        static PAGES: OnceLock<Vec<u32>> = OnceLock::new();
-        PAGES.get_or_init(|| {
-            get_random_page(&WIKI_NAME, 1000).iter().map(|wp| wp.id).collect()
-        })
-    }
+//     fn random_pages() -> &'static Vec<u32> {
+//         static PAGES: OnceLock<Vec<u32>> = OnceLock::new();
+//         PAGES.get_or_init(|| {
+//             get_random_page(&WIKI_NAME, 1000).iter().map(|wp| wp.id).collect()
+//         })
+//     }
 
 
-    // #[bench]
-    fn bench_bfs(b: &mut Bencher) {
-        dotenv::dotenv().unwrap();
+//     // #[bench]
+//     fn bench_bfs(b: &mut Bencher) {
+//         dotenv::dotenv().unwrap();
 
-        // let cache = FxHashMap::default();
-        let mut ids = random_pages().choose_multiple(&mut rand::thread_rng(), 2);
-        let start = ids.next().unwrap();
-        let end = ids.next().unwrap();
-        let cache = cache();
-        let path = db_wiki_path(WIKI_NAME);
+//         // let cache = FxHashMap::default();
+//         let mut ids = random_pages().choose_multiple(&mut rand::thread_rng(), 2);
+//         let start = ids.next().unwrap();
+//         let end = ids.next().unwrap();
+//         let cache = cache();
+//         let path = db_wiki_path(WIKI_NAME);
 
-        b.iter(|| {
-            bfs(&PageId(*start), Some(&PageId(*end)), None, cache, path.clone())
-        })
-    }
+//         b.iter(|| {
+//             bfs(&PageId(*start), Some(&PageId(*end)), None, cache, path.clone())
+//         })
+//     }
 
-    #[tokio::test]
-    async fn bench_bfs_bidirectional() {
-        dotenv::dotenv().unwrap();
+//     #[tokio::test]
+//     async fn bench_bfs_bidirectional() {
+//         dotenv::dotenv().unwrap();
 
-        let path = db_wiki_path(WIKI_NAME);
+//         let path = db_wiki_path(WIKI_NAME);
 
-        let mut ids = random_pages().choose_multiple(&mut rand::thread_rng(), 2);
-        let start = ids.next().unwrap();
-        let end = ids.next().unwrap();
+//         let mut ids = random_pages().choose_multiple(&mut rand::thread_rng(), 2);
+//         let start = ids.next().unwrap();
+//         let end = ids.next().unwrap();
         
 
-        let s = PageId(*start);
-        let e = PageId(*end);
-        let s = bfs_bidirectional(s, e, path.clone()).await;
-        pin_mut!(s); // needed for iteration
-        while let Some(v) = s.next().await {
-            dbg!(&v);
-        }
-    }
-}
+//         let s = PageId(*start);
+//         let e = PageId(*end);
+//         let s = bfs_bidirectional(s, e, path.clone()).await;
+//         pin_mut!(s); // needed for iteration
+//         while let Some(v) = s.next().await {
+//             dbg!(&v);
+//         }
+//     }
+// }

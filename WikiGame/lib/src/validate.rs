@@ -215,7 +215,7 @@ mod tests {
         let random_pages = web::get_random_wikipedia_pages(2, "pwn").await.unwrap();
 
         let res = post_validation("tests/data/small/test_database.sqlite", "20240901",
-                                  "pwn", &random_pages.into_iter().map(|p| PageTitle(p.title)).collect()).await;
+                                  "pwn", &random_pages.into_iter().map(|p| PageTitle(p.title)).collect::<Vec<PageTitle>>()).await;
         assert!(res);
     }
 
@@ -224,7 +224,7 @@ mod tests {
         let random_pages = web::get_random_wikipedia_pages(2, "pwn").await.unwrap();
 
         let res = post_validation("tests/data/small/not_working_test_database.sqlite", "20240901",
-                                  "pwn", &random_pages.into_iter().map(|p| PageTitle(p.title)).collect()).await;
+                                  "pwn", &random_pages.into_iter().map(|p| PageTitle(p.title)).collect::<Vec<PageTitle>>()).await;
         assert!(!res);
     }
 

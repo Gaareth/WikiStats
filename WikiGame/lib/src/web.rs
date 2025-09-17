@@ -5,6 +5,7 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::anyhow;
 use chrono::{DateTime, Datelike, SecondsFormat, TimeZone, Utc};
+use indicatif::ProgressBar;
 use log::{debug, info, trace};
 use num_format::Locale::{el, ta};
 use regex::Regex;
@@ -16,6 +17,7 @@ use serde_json::Value;
 use thiserror::Error;
 
 use crate::process::split_workload;
+use crate::utils::ProgressBarBuilder;
 use crate::web::WikipediaApiError::{MissingAttribute, MissingContinue};
 
 #[derive(Debug, Deserialize, Eq, PartialEq, Hash)]
@@ -374,10 +376,9 @@ fn parse_size_to_bytes(input: &str) -> Option<u64> {
     Some(bytes as u64)
 }
 
-// parses tables size of https://dumps.wikimedia.org/${wikiname}/${dump_date}/
-// returns total size of $tables or all if $tables is empty
-async fn parse_table_sizes(body: &str, tables: &[String]) -> u64 {
-    let mut wiki_total_size = 0;
+// parses file size of https://dumps.wikimedia.org/${wikiname}/${dump_date}/
+async fn parse_file_sizes(body: &str) -> Vec<(String, u64)> {
+    let mut file_sizes = Vec::new();
 
     let document = Html::parse_document(body);
     let selector = Selector::parse("body ul li.done").unwrap();
@@ -387,18 +388,13 @@ async fn parse_table_sizes(body: &str, tables: &[String]) -> u64 {
     for dump in document.select(&selector) {
         if let Some(filesize) = dump.select(&selector_filesize).next() {
             let filesize = &filesize.text().nth(1).unwrap().trim();
-            let filename = dump.select(&selector_filename).next().unwrap().inner_html();
+            let filename: String = dump.select(&selector_filename).next().unwrap().inner_html();
 
-            let re = Regex::new(r"\d{8}-(.+?)\.sql").unwrap();
-            if let Some(table_name) = re.captures(&filename).and_then(|captures| captures.get(1)) {
-                if tables.is_empty() || tables.contains(&table_name.as_str().to_string()) {
-                    wiki_total_size += parse_size_to_bytes(filesize).unwrap();
-                }
-            }
+            file_sizes.push((filename, parse_size_to_bytes(filesize).unwrap()));
         }
     }
 
-    wiki_total_size
+    file_sizes
 }
 
 //  (
@@ -408,11 +404,17 @@ async fn parse_table_sizes(body: &str, tables: &[String]) -> u64 {
 //  ("punjabiwikimedia", 1818)
 // ("pihwiki", 41000),
 
-/// if tables is empty, will consider all tables available
+#[derive(Clone, Debug)]
+pub struct WebWikiSize {
+    pub name: String,
+    pub total_size: u64,
+    pub selected_tables_size: u64,
+}
+
 /// Returns wikis sorted by size (ASCENDING)
 pub async fn find_smallest_wikis(
     tables: &[impl AsRef<str>],
-) -> Result<Vec<(String, u64)>, reqwest::Error> {
+) -> Result<Vec<WebWikiSize>, reqwest::Error> {
     let tables: Vec<String> = tables
         .iter()
         .map(|item| item.as_ref().to_string())
@@ -427,7 +429,7 @@ pub async fn find_smallest_wikis(
     // all links
     let selector = Selector::parse("a").unwrap();
 
-    let wiki_sizes: Arc<Mutex<Vec<(String, u64)>>> = Arc::new(Mutex::new(Vec::new()));
+    let wiki_sizes: Arc<Mutex<Vec<WebWikiSize>>> = Arc::new(Mutex::new(Vec::new()));
 
     // wikilinks include their dumpdate
     let dump_date_regex = Regex::new(r"\d{8}").unwrap();
@@ -448,7 +450,7 @@ pub async fn find_smallest_wikis(
     // let all_links: Vec<String> = all_links.into_iter().take(20).collect();
 
     debug!("{} links found", all_links.len());
-    let num_threads = 10;
+    let num_threads = 1;
     let worksloads = split_workload(&all_links, num_threads).await;
     debug!(
         "{} Threads with Workload per thread: {:?}",
@@ -456,27 +458,28 @@ pub async fn find_smallest_wikis(
         worksloads.iter().map(|w| w.len()).collect::<Vec<usize>>()
     );
 
+    let bar = Arc::new(Mutex::new(
+        ProgressBarBuilder::new()
+            .with_length(all_links.len() as u64)
+            .with_name("Fetching wiki sizes")
+            .build(),
+    ));
+
     let mut tasks = vec![];
 
     for (tid, links) in worksloads.into_iter().enumerate() {
         let wiki_sizes = wiki_sizes.clone();
         let tables = tables.clone();
+        let bar = bar.clone();
 
         tasks.push(tokio::spawn(async move {
             for link in links {
                 trace!("[{tid}]: {:?}", &link);
 
-                let wiki_name = link.split("/").next().unwrap();
-                let body = get_wikipedia_async(&format!("{base_path}/{link}"))
-                    .await?
-                    .text()
-                    .await?;
-                let wiki_total_size = parse_table_sizes(&body, &tables).await;
+                let wiki_size = calc_wiki_size(base_path, &tables, link).await?;
 
-                wiki_sizes
-                    .lock()
-                    .unwrap()
-                    .push((wiki_name.to_string(), wiki_total_size));
+                wiki_sizes.lock().unwrap().push(wiki_size);
+                bar.lock().unwrap().inc(1);
             }
             Ok(())
         }));
@@ -485,21 +488,87 @@ pub async fn find_smallest_wikis(
     for task in tasks {
         task.await.unwrap()?;
     }
+    bar.lock().unwrap().finish_and_clear();
 
     let mut wiki_sizes = wiki_sizes.lock().unwrap();
-    wiki_sizes.sort_by(|a, b| a.1.cmp(&b.1)); // smaller are first
+    wiki_sizes.sort_by(|a, b| a.total_size.cmp(&b.total_size)); // smaller are first
     Ok(wiki_sizes.clone())
+}
+
+async fn calc_wiki_size(
+    base_path: &'static str,
+    tables: &[impl AsRef<str>],
+    link: String,
+) -> Result<WebWikiSize, reqwest::Error> {
+    let re: Regex = Regex::new(r"\d{8}-(.+?)\.sql").unwrap();
+    let tables = tables
+        .into_iter()
+        .map(|s| s.as_ref())
+        .collect::<Vec<&str>>();
+
+    let wiki_name = link.split("/").next().unwrap();
+    let resp = get_wikipedia_async(&format!("{base_path}/{link}")).await?;
+    let resp = resp.error_for_status()?;
+
+    let body = resp.text().await?;
+
+    let file_sizes = parse_file_sizes(&body).await;
+    let mut wiki_size = WebWikiSize {
+        name: wiki_name.to_string(),
+        total_size: 0,
+        selected_tables_size: 0,
+    };
+    for (filename, filesize_bytes) in file_sizes {
+        if let Some(table_name) = re.captures(&filename).and_then(|captures| captures.get(1)) {
+            wiki_size.total_size += filesize_bytes;
+            if tables.contains(&table_name.as_str()) {
+                wiki_size.selected_tables_size += filesize_bytes;
+            }
+        }
+    }
+    Ok(wiki_size)
 }
 
 #[cfg(test)]
 mod tests {
-    use chrono::{TimeZone, Utc};
+    use chrono::{format, Datelike, TimeZone, Utc};
 
-    use crate::web::{
-        find_smallest_wikis, get_added_diff_to_current, get_incoming_links,
-        get_latest_revision_id_before_date, get_outgoing_links, get_page_info_by_id,
-        get_page_info_by_title, parse_size_to_bytes,
+    use crate::{
+        download::ALL_DB_TABLES,
+        web::{
+            calc_wiki_size, find_smallest_wikis, get_added_diff_to_current, get_incoming_links,
+            get_latest_revision_id_before_date, get_outgoing_links, get_page_info_by_id,
+            get_page_info_by_title, parse_size_to_bytes,
+        },
     };
+
+    fn setup() {
+        dotenv::dotenv().ok();
+    }
+
+    #[tokio::test]
+    async fn test_calc_wiki_size() {
+        setup();
+
+        let now = chrono::Utc::now().with_day(1).unwrap();
+        let dump_date = format!("{:04}{:02}01", now.year(), now.month() - 1);
+
+        let ws = calc_wiki_size(
+            "https://dumps.wikimedia.org",
+            &ALL_DB_TABLES,
+            format!("enwiki/{dump_date}/"),
+        )
+        .await;
+        assert!(ws.unwrap().total_size > 0);
+
+        let ws = calc_wiki_size(
+            "https://dumps.wikimedia.org",
+            &ALL_DB_TABLES,
+            format!("hywiki/{dump_date}/"),
+        )
+        .await;
+        assert!(ws.unwrap().total_size > 0);
+    }
 
     #[tokio::test]
     async fn test_incoming_links() {

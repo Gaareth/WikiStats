@@ -3,11 +3,12 @@ import Alert from "../../../../components/Alert.astro";
 import ShortestPath from "../../../../components/SP/ShortestPath";
 import Search from "../../../../components/Search.astro";
 import WikiSelection from "../../../../components/Selection/WikiSelection.astro";
+import { get_supported_wikis } from "../../../../db/constants";
 import Layout from "../../../../layouts/Layout.astro";
 
 export const prerender = false;
 
-const { wiki_name, noscript } = Astro.params;
+let { wiki_name, noscript } = Astro.params;
 
 // return Astro.redirect("/")
 
@@ -16,6 +17,12 @@ let start = params.get("start") ?? "";
 let end = params.get("end") ?? "";
 
 // let noscript = (params.get("noscript") ?? "false") !== "false";
+let unsupported_wiki = wiki_name != null && !(await get_supported_wikis("latest")).includes(wiki_name);
+if (wiki_name == "noscript") {
+    noscript = "noscript";
+    unsupported_wiki = false;
+    wiki_name = undefined;
+}
 
 let path;
 let error;
@@ -59,19 +66,28 @@ if (noscript == "noscript" && start.length > 0 && end.length > 0) {
     desc="Find the shortest path between two wikipedia pages"
 >
     <main class="max-[300px]:max-w-full">
-        <WikiSelection currrent_wikiname={wiki_name} dir="path" />
+        <WikiSelection currrent_wikiname={wiki_name} dir="path" noscript={noscript == "noscript"} />
+        {
+            unsupported_wiki && (
+                <Alert type="error">
+                    <p>
+                        The selected wiki is not supported.
+                    </p>
+                </Alert>
+            )
+        }
 
         {
             noscript && (
                 <Alert type="warning">
                     <p>
-                        You are using the noscript endpoint. The page will only
-                        load when shortest path is ready.
+                        You are using the noscript endpoint, which works without javascript. However, the page will only
+                        load when shortest path is ready, and may seem unresponsive while loading.
                     </p>
                     <p>
-                        If you want a smoother experience, consider
+                        If you want a smoother experience, consider enabling javascript and
                         <a href="../path">
-                            removing the "noscript" part from the url
+                            using the normal endpoint
                         </a>
                     </p>
                 </Alert>
