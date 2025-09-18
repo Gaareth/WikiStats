@@ -344,30 +344,23 @@ async fn main() {
             } = sample_options;
             println!("Creating sample bfs stats..");
 
-            wiki_stats::stats::find_wcc(WikiIdent::new(
-                "dewiki",
-                db_path.join("dewiki_database.sqlite"),
-            ))
+            // wiki_stats::stats::find_wcc(WikiIdent::new(
+            //     "dewiki",
+            //     db_path.join("dewiki_database.sqlite"),
+            // ))
 
-            // wiki_stats::stats::add_sample_bfs_stats(
-            //     &output_path,
-            //     db_path,
-            //     wikis.clone(),
-            //     *sample_size,
-            //     *threads,
-            //     None,
-            //     true,
-            // )
-            // .await;
+            wiki_stats::stats::add_sample_bfs_stats(
+                &output_path,
+                db_path,
+                wikis.clone(),
+                *sample_size,
+                *threads,
+                None,
+                true,
+            )
+            .await;
 
-            // wiki_stats::stats::add_sample_bibfs_stats(
-            //     &output_path,
-            //     db_path,
-            //     wikis.clone(),
-            //     *sample_size,
-            //     *threads,
-            // )
-            // .await;
+            
         }
 
         Commands::DumpDates { wikis, tables } => {

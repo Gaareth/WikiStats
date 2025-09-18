@@ -773,6 +773,7 @@ pub async fn add_sample_bfs_stats(
 }
 
 /// Calculates bidirectional bfs stats and adds or overwrites stats to/of existing json file
+/// Not as interesting as doing a full bfs
 pub async fn add_sample_bibfs_stats(
     output_path: impl AsRef<Path>,
     db_path: impl Into<PathBuf>,
