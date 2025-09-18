@@ -64,7 +64,7 @@ for (const stat of all_stats) {
             // console.log(value, number_value);
 
             for (const wiki_name of data.wikis) {
-                console.log(wiki_name);
+                // console.log(wiki_name);
                 let value = values[wiki_name];
                 // if (value == null) {
                 //     continue
@@ -75,14 +75,14 @@ for (const stat of all_stats) {
                     chart_data[key][wiki_name] = [];
                 }
 
-                console.log(key, "v", value);
+                // console.log(key, "v", value);
 
                 chart_data[key][wiki_name].push(value);
             }
         }
     }
 }
-console.log(chart_data);
+// console.log(chart_data);
 ---
 
 <Layout title="Stats History">

@@ -116,7 +116,7 @@ for (const key in site_matrix) {
             <WikiSizesTable
                 {supported_wikis}
                 {wikis_columns}
-                dump_date={dump_date ?? ""}
+                {dump_date}
                 {dbname_to_siteinfo}
                 client:load
             />

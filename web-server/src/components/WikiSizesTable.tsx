@@ -9,7 +9,7 @@ import { Table } from "./Table";
 export function WikiSizesTable(props: {
     wikis_columns: z.infer<typeof statsSchema.shape.wiki_sizes.shape.sizes>;
     supported_wikis: string[];
-    dump_date: string;
+    dump_date?: string;
     dbname_to_siteinfo: Map<string, SiteInfo>;
 }) {
     const [selection, setSelection] = createSignal(["wiki"]);
@@ -28,7 +28,7 @@ export function WikiSizesTable(props: {
     });
 
     const renderWikiLink = (item: string) => {
-        const url = `https://dumps.wikimedia.org/${props.dump_date}/${item}`;
+        const url = `https://dumps.wikimedia.org/${props.dump_date != null ? props.dump_date + "/" : ""}${item}`;
         const siteinfo = props.dbname_to_siteinfo.get(item);
         return (
             <div class="flex flex-wrap items-center gap-1 sm:gap-2">
@@ -143,7 +143,13 @@ export function WikiSizesTable(props: {
             </div>
 
             <div>
-                <p>All<span class="text-secondary">{selection() != WIKI_TYPES ? "*" : ""}</span> Wikis ({data().length})</p>
+                <p>
+                    All
+                    <span class="text-secondary">
+                        {selection() != WIKI_TYPES ? "*" : ""}
+                    </span>{" "}
+                    Wikis ({data().length})
+                </p>
                 <Table
                     data={data()}
                     columns={[

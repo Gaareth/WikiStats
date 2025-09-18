@@ -1,5 +1,4 @@
 import { getCollection, getEntry, type InferEntrySchema } from "astro:content";
-import type { Stats } from "../content/stats-schema";
 import { parseDumpDate, type KeysOfType } from "../utils";
 
 export const WIKI_NAMES = (await get_supported_wikis("latest")).map((n) => {
@@ -15,37 +14,10 @@ type WikiStat<T> = {
     get: (wiki_name: string | undefined) => T;
 };
 
-// export async function make_wiki_stat_fn<V>(
-//     fn: (name: string | undefined) => Promise<V>,
-// ): Promise<WikiStat<V>> {
-//     let t1 = performance.now();
-//     console.log("making stat");
 
-//     try {
-//         console.log(fn.toString().split("function")[1].split(" {")[0]);
-//     } catch {
-//         console.log(fn.toString());
-//     }
 
-//     const [data_all, data_per_wiki] = await Promise.all([
-//         fn(undefined),
-//         make_wiki_stat_record(fn, WIKI_NAMES),
-//     ]);
-//     // const data_all = await fn(undefined);
-//     // let data_per_wiki: Record<string, V> = {"ja": data_all};
-
-//     const get = (wiki_name: string | undefined) =>
-//         get_unwrap_or(wiki_name, data_per_wiki, data_all);
-//     console.log("made: elapsed: " + (performance.now() - t1) / 1000);
-
-//     return {
-//         data_per_wiki,
-//         data_all,
-//         get,
-//     };
-// }
-
-type RecordKeys = KeysOfType<InferEntrySchema<"stats">, Record<string, any>>;
+type Stats = InferEntrySchema<"stats">;
+type RecordKeys = KeysOfType<Stats, Record<string, any>>;
 type ValueOf<T> = T[keyof T];
 
 export async function get_latest_date(): Promise<string | undefined> {
@@ -176,7 +148,7 @@ export const NUM_DEAD_ROOT_PAGES_STAT = await make_wiki_stat(
 );
 
 export async function make_global_stat<
-    key extends KeysOfType<InferEntrySchema<"stats">, any>,
+    key extends RecordKeys,
 >(key: key): Promise<(dump_date: string) => Promise<Stats[key]>> {
     // @ts-ignore
     return async (dump_date: string) => {

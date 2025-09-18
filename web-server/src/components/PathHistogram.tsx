@@ -22,7 +22,7 @@ const MyChart = ({
     const [showAll, setShowAll] = createSignal(false);
 
     const sortedEntries = Object.entries(depth_histogram).sort(
-        ([k, v], [l, b]) => Number(k) - Number(l),
+        ([k, _v], [l, _b]) => Number(k) - Number(l),
     );
 
     const skippedEntries = skip_ones(structuredClone(sortedEntries));
@@ -39,7 +39,7 @@ const MyChart = ({
         const idx_of_max = Number(
             entries
                 .slice()
-                .sort(([k1, v1], [k2, v2]) => Number(v2) - Number(v1))[0][0],
+                .sort(([_k1, v1], [_k2, v2]) => Number(v2) - Number(v1))[0][0],
         );
 
         const slice_idx = 5 * idx_of_max;
@@ -75,7 +75,7 @@ const MyChart = ({
         maintainAspectRatio: false,
         plugins: {
             datalabels: {
-                formatter: function (value: any, context: any) {
+                formatter: function (value: any, _context: any) {
                     return formatNumberUnitPrefix(Number(Math.ceil(value)), 3);
                 },
             },

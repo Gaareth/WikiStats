@@ -36,15 +36,15 @@ if (noscript == "noscript" && start.length > 0 && end.length > 0) {
         path = [];
         const url = `http://localhost:1870/path/dewiki?start_title=${start}&end_title=${end}&stream=false`;
         const res = await fetch(url);
-        console.log(res.ok);
-        console.log(res.status);
+        // console.log(res.ok);
+        // console.log(res.status);
         // console.log(await res.text());
 
         if (!res.ok) {
             error = await res.text();
         } else {
             const json = await res.json();
-            console.log(json);
+            // console.log(json);
 
             if (json["paths"].length > 0) {
                 for (const page_title of json["paths"][0]) {

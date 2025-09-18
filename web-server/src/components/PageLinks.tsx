@@ -5,7 +5,7 @@ import { wiki_link } from "../utils";
 import { LoadingSpinner } from "./ClientIcons/Icons";
 import { PathLink } from "./SP/PathLink";
 
-const PAGINATION_SIZE = 50;
+// const PAGINATION_SIZE = 50;
 
 const fetchLinks = async ({
     wiki_name,

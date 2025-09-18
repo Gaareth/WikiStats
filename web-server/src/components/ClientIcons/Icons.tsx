@@ -449,11 +449,11 @@ export function Hamburger() {
     );
 }
 
-export function TrendingUp(props: JSX.IntrinsicElements["svg"]) {
+export function TrendingUp(_props: JSX.IntrinsicElements["svg"]) {
     return <MaterialSymbolsArrowDownwardRounded class="rotate-180" />;
 }
 
-export function TrendingDown(props: JSX.IntrinsicElements["svg"]) {
+export function TrendingDown(_props: JSX.IntrinsicElements["svg"]) {
     return <MaterialSymbolsArrowDownwardRounded />;
 }
 

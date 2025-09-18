@@ -25,7 +25,7 @@ let tasksByDumpDate: Record<string, TaskType[]> = finishedTasks.reduce(
 <div class="flex flex-col gap-4">
     {
         Object.entries(tasksByDumpDate)
-            .sort(([d1, any], [d2, _]) => (d1 > d2 ? -1 : 1))
+            .sort(([d1, _t1], [d2, _t2]) => (d1 > d2 ? -1 : 1))
             .map(([date, tasks], i) => (
                 <Collapsible open={i == 0}>
                     <div slot="summary" class="w-full">

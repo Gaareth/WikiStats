@@ -72,7 +72,7 @@ export const prerender = false;
 
 const { wiki_name, page_name } = Astro.params;
 
-console.log("pagename", wiki_name, page_name);
+// console.log("pagename", wiki_name, page_name);
 
 if (wiki_name === undefined || page_name === undefined) {
     return Astro.redirect("/");

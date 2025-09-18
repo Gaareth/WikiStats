@@ -12,7 +12,6 @@ export const GET: APIRoute = async ({ params, url }) => {
 
     const wiki_name = params.wiki_name;
     const prefix = url.searchParams.get("prefix") || "";
-    console.log(url.searchParams);
     const sp_start = (url.searchParams.get("sp_start") ?? "false") != "false";
 
     if (wiki_name === undefined) {
