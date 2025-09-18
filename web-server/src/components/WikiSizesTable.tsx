@@ -91,9 +91,9 @@ export function WikiSizesTable(props: {
                                     setSelection(newSelection);
                                 }}
                                 class={cn(
-                                    "button dark:!bg-dark_02/20 dark:!border-dark_05/50 rounded-none ",
+                                    "button-select",
                                     selection().includes(type) &&
-                                        "bg-neutral-100 border-neutral-300 dark:dark-layer-2 dark:!border-dark_05",
+                                        "button-select-selected",
                                 )}>
                                 {type}
                             </button>

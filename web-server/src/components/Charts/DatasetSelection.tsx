@@ -50,7 +50,6 @@ export const DatasetSelection = (props: Props) => {
 
     const [chart, _] = createSignal(props.chartType == "bar" ? Bar : Line);
 
-    const cssSelected = "bg-neutral-100 dark:dark-layer-2";
 
     let selectElement!: HTMLSelectElement;
 
@@ -77,8 +76,8 @@ export const DatasetSelection = (props: Props) => {
                                         selectElement.selectedIndex = 0;
                                     }}
                                     class={cn(
-                                        "button dark-layer-1 rounded-none",
-                                        index() == selection() && cssSelected,
+                                        "button-select",
+                                        index() == selection() && "button-select-selected",
                                     )}
                                 >
                                     {props.selectionLabels[index()]}
@@ -90,7 +89,7 @@ export const DatasetSelection = (props: Props) => {
                             class={cn(
                                 "input-default bg-white hover:bg-neutral-50 !dark-layer-1 col-span-2 appearance-none",
                                 selection() >= DEFAULT_SHOWING
-                                    ? cssSelected
+                                    ? "button-select-selected"
                                     : "text-secondary",
                             )}
                             onInput={(e) =>

@@ -11,7 +11,8 @@ interface Props {
     noscript?: boolean;
 }
 
-const { currrent_wikiname, dir, global_possible, dump_date, noscript } = Astro.props;
+const { currrent_wikiname, dir, global_possible, dump_date, noscript } =
+    Astro.props;
 const wikis = await get_supported_wikis(dump_date || "latest");
 ---
 
@@ -21,7 +22,10 @@ const wikis = await get_supported_wikis(dump_date || "latest");
     items={wikis}
     what="Wikis"
     {global_possible}
-    get_url={(item) => ["/wiki", item, noscript ? "noscript" : "", dir].filter(Boolean).join("/")}></Selection>
+    get_url={(item) =>
+        ["/wiki", item, noscript ? "noscript" : "", dir]
+            .filter(Boolean)
+            .join("/")}>
     {
         global_possible && (
             <a

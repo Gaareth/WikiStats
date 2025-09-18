@@ -49,13 +49,11 @@ w-full text-sm text-center py-2">
                 <span>No stats generated</span>
             )
         }
-        <div class="flex justify-around mt-2">
-            <a href="/wiki/all" class="text-secondary">All wikis</a>
-            <a href="/wiki/stats/history" class="text-secondary">History</a>
-            <a href="/wiki/graph" class="text-secondary">Graphs</a>
-            <a href="/wiki/noscript/path" class="text-secondary">
-                NoScript SP
-            </a>
+        <div class="flex justify-around mt-2 footer-links">
+            <a href="/wiki/all">All wikis</a>
+            <a href="/wiki/stats/history">History</a>
+            <a href="/wiki/graph">Graphs</a>
+            <a href="/wiki/noscript/path">NoScript SP</a>
         </div>
     </div>
 
@@ -81,5 +79,9 @@ w-full text-sm text-center py-2">
         filter: blur(40px);
         z-index: -1;
         background: linear-gradient(47deg, #3245ff 21%, #b845ed 76%);
+    }
+
+    .footer-links a {
+        @apply text-gray-300 dark:text-gray-400;
     }
 </style>
