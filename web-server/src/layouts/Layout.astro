@@ -73,7 +73,7 @@ const appleTouchIcon = await getImage({
     </head>
     <body class={twMerge("dark:bg-dark_00 min-h-screen relative", bodyClass)}>
         <Header />
-        <div class="max-w-4xl px-4 mx-auto">
+        <div class="max-w-[900px] px-4 mx-auto">
             <Alert type="error">
                 <p class="font-bold mb-[0.1rem] text-lg">Disclaimer: WIP</p>
                 Still work in progress :) Expect some bugs, errors, wrong data, ...
@@ -106,7 +106,21 @@ const appleTouchIcon = await getImage({
                 </div>
             </Alert>
         </div>
-        <slot />
+
+        <!-- <main>
+            <div class="sidebar">
+                <slot name="left-sidebar"></slot>
+            </div>
+            <div class="p-4">
+                <slot />
+            </div>
+            <div class="sidebar">
+                <slot name="right-sidebar"></slot>
+            </div>
+        </main> -->
+        <main>
+            <slot />
+        </main>
 
         <Footer />
         <script src="../scripts/flowbite@2.5.1.min.js"></script>
@@ -118,14 +132,20 @@ const appleTouchIcon = await getImage({
         background-size: 224px;
     }
 
+    .sidebar {
+        position: fixed
+    }
+
     main {
         font-size: 20px;
         line-height: 1.6;
 
         padding: 1rem;
         width: 900px;
-        /* max-width: calc(100% - 2rem); */
+        max-width: calc(100% - 2rem);
         max-width: 100%;
         margin: auto;
+        /* display: grid;
+        grid-template-columns: 1fr min(100%, 900px) 1fr */
     }
 </style>

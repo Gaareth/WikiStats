@@ -1,11 +1,12 @@
 ---
 import { getCollection } from "astro:content";
 import Card from "../../../components/Card";
+import { Table } from "../../../components/Table";
 import { WikiSizesTable } from "../../../components/WikiSizesTable";
 import { get_stat } from "../../../db/constants";
 import Layout from "../../../layouts/Layout.astro";
-import { WIKIPEDIA_REST_API_HEADERS } from "../../../utils";
 import { type SiteInfo, fetchSiteMatrix } from "../../../wiki-api";
+import { cn } from "../../../utils";
 
 export async function getStaticPaths() {
     const entries = await getCollection("stats");
@@ -29,11 +30,8 @@ export async function getStaticPaths() {
         });
     }
 
-
     return params;
 }
-
-
 
 const { dump_date } = Astro.params;
 
@@ -73,8 +71,8 @@ for (const key in site_matrix) {
 ---
 
 <Layout title="WikiStats - All Wikis">
-    <main>
-        <div class="mt-10 flex justify-between items-baseline">
+    <div>
+        <div class="flex flex-wrap justify-between items-baseline">
             <h1 class="text-3xl">Wikis</h1>
             <p>
                 Available ({all_wiki_sizes.sizes.length}) | Supported ({
@@ -87,32 +85,55 @@ for (const key in site_matrix) {
             This table lists all available wikis at <a
                 href="https://dumps.wikimedia.org">
                 dumps.wikimedia.org
-            </a> along with the following sizes:
-
-            <ul class="list-disc list-inside -mt-2 text-secondary">
-                <li>
-                    <b>Total</b>: All available sql.gz files (compressed)
-                </li>
-                <li>
-                    <b>Relevant</b>: Downloaded sql.gz files (compressed). [{
-                        all_wiki_sizes.tables.join(", ")
-                    }]
-                </li>
-                <li>
-                    <b>Decompressed</b>: Total size after decompressing all
-                </li>
-                <li>
-                    <b>Processed</b>: Size of data after processing to a single
-                    sqlite file
-                </li>
-            </ul>
+            </a> along with their sizes. You can filter by their type, but most interesting
+            are probably the language wikis
         </p>
 
-        <!-- <Card className="p-4 my-5 text-center">
-            Want another wiki supported? <a href="/about">Contact me</a>
-        </Card> -->
+        <div
+            class={cn(`flex flex-col items-center w-full min-[${900 + 2*450 + 32}px]:w-[450px] gap-2 static min-[${900 + 2*450 + 32}px]:fixed top-20 right-8`)}>
+            <Table
+                classNameWrapper="!text-base w-full"
+                classNameCell="!px-3 !py-1.5"
+                classNameHeader="!px-3 !py-1.5"
+                title="Size Legend"
+                client:load
+                columns={[
+                    {
+                        key: "size",
+                        label: "Size",
+                        isSortable: false,
+                    },
+                    {
+                        key: "desc",
+                        label: "Description",
+                        isSortable: false,
+                    },
+                ]}
+                data={[
+                    {
+                        size: "Total",
+                        desc: "All available sql.gz files (compressed)",
+                    },
+                    {
+                        size: "Relevant",
+                        desc: `Downloaded sql.gz files (compressed). These are currently the tables: [${all_wiki_sizes.tables.join(", ")}]`,
+                    },
+                    {
+                        size: "Decompressed",
+                        desc: "Total size after decompressing all",
+                    },
+                    {
+                        size: "Processed",
+                        desc: "Size of data after processing to a single sqlite file",
+                    },
+                ]}
+            />
+            <Card className="text-center p-2 w-full">
+                Want another wiki supported? <a href="/about">Contact me</a>
+            </Card>
+        </div>
 
-        <div class="mt-10">
+        <div class="mt-14">
             <WikiSizesTable
                 {supported_wikis}
                 {wikis_columns}
@@ -121,5 +142,5 @@ for (const key in site_matrix) {
                 client:load
             />
         </div>
-    </main>
+    </div>
 </Layout>

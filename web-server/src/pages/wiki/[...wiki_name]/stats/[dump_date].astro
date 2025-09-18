@@ -64,7 +64,7 @@ let bfs_sample_stats = (await getEntry("stats", dump_date))?.data
 <Layout
     title={"WikiStats - " + (wiki_name || "Global") + " Statistics"}
     desc={`Statistics about the ${wiki_name || "Global"} Wikipedia`}>
-    <main>
+    <div>
         <WikiSelection
             dump_date={dump_date}
             currrent_wikiname={wiki_name}

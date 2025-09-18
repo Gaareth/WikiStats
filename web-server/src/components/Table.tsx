@@ -17,6 +17,12 @@ type TableProps<T> = {
     data: T[];
     columns: Column<T>[];
     sortConfig?: SortConfig<T>;
+    title?: string;
+
+    classNameWrapper?: string;
+    classNameTable?: string;
+    classNameHeader?: string;
+    classNameCell?: string;
 };
 
 export function Table<T extends Record<string, any>>(props: TableProps<T>) {
@@ -53,8 +59,19 @@ export function Table<T extends Record<string, any>>(props: TableProps<T>) {
     const padding = "px-1.5 py-1.5 sm:px-4 sm:py-2";
 
     return (
-        <div class="overflow-x-auto text-sm sm:text-lg">
-            <table class="min-w-full border border-gray-300 rounded-lg">
+        <div
+            class={cn(
+                "overflow-x-auto text-sm sm:text-lg",
+                props.classNameWrapper,
+            )}>
+            <table
+                class={cn(
+                    "min-w-full border border-gray-300 rounded-lg",
+                    props.classNameTable,
+                )}>
+                <caption class="caption-top text-base text-right">
+                    {props.title}
+                </caption>
                 <thead class="bg-gray-100 dark-layer-2">
                     <tr>
                         {props.columns.map((col) => (
@@ -63,6 +80,7 @@ export function Table<T extends Record<string, any>>(props: TableProps<T>) {
                                     "border text-left group dark-border-2 break-all",
                                     padding,
                                     col.isSortable && "cursor-pointer",
+                                    props.classNameHeader
                                 )}
                                 onClick={() =>
                                     col.isSortable && handleSort(col.key)
@@ -89,7 +107,7 @@ export function Table<T extends Record<string, any>>(props: TableProps<T>) {
                     {sortedData().map((row) => (
                         <tr>
                             {props.columns.map((col) => (
-                                <td class={cn("border dark-border-1", padding)}>
+                                <td class={cn("border dark-border-1", padding, props.classNameCell)}>
                                     {col.render
                                         ? col.render(row[col.key])
                                         : row[col.key]}
