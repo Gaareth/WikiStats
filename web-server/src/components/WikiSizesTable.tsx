@@ -2,14 +2,17 @@ import type { z } from "astro/zod";
 import { createEffect, createSignal, For } from "solid-js";
 import type statsSchema from "../content/stats-schema";
 import { cn, formatBytesIntl, WIKI_TYPES } from "../utils";
+import type { SiteInfo } from "../wiki-api";
+import Pill from "./Pill";
 import { Table } from "./Table";
 
 export function WikiSizesTable(props: {
     wikis_columns: z.infer<typeof statsSchema.shape.wiki_sizes.shape.sizes>;
     supported_wikis: string[];
     dump_date: string;
+    dbname_to_siteinfo: Map<string, SiteInfo>;
 }) {
-    const [selection, setSelection] = createSignal(WIKI_TYPES);
+    const [selection, setSelection] = createSignal(["wiki"]);
     const [data, setData] = createSignal(props.wikis_columns);
 
     const supported = () =>
@@ -26,10 +29,22 @@ export function WikiSizesTable(props: {
 
     const renderWikiLink = (item: string) => {
         const url = `https://dumps.wikimedia.org/${props.dump_date}/${item}`;
+        const siteinfo = props.dbname_to_siteinfo.get(item);
         return (
-            <a href={url} target="_blank" rel="noopener noreferrer">
-                {item}
-            </a>
+            <div class="flex flex-wrap items-center gap-1 sm:gap-2">
+                {siteinfo != null && (
+                    <div class="flex flex-wrap gap-1">
+                        <Pill>{siteinfo?.name ?? siteinfo?.sitename}</Pill>
+                        {siteinfo.localname != null &&
+                            siteinfo.localname != siteinfo.name && (
+                                <Pill>{siteinfo?.localname}</Pill>
+                            )}
+                    </div>
+                )}
+                <a href={url} target="_blank" rel="noopener noreferrer">
+                    {item}
+                </a>
+            </div>
         );
     };
 
@@ -128,7 +143,7 @@ export function WikiSizesTable(props: {
             </div>
 
             <div>
-                <p>All Wikis ({data().length})</p>
+                <p>All<span class="text-secondary">{selection() != WIKI_TYPES ? "*" : ""}</span> Wikis ({data().length})</p>
                 <Table
                     data={data()}
                     columns={[

@@ -1,9 +1,11 @@
 ---
 import { getCollection } from "astro:content";
+import Card from "../../../components/Card";
 import { WikiSizesTable } from "../../../components/WikiSizesTable";
 import { get_stat } from "../../../db/constants";
 import Layout from "../../../layouts/Layout.astro";
-import Card from "../../../components/Card";
+import { WIKIPEDIA_REST_API_HEADERS } from "../../../utils";
+import { type SiteInfo, fetchSiteMatrix } from "../../../wiki-api";
 
 export async function getStaticPaths() {
     const entries = await getCollection("stats");
@@ -27,10 +29,11 @@ export async function getStaticPaths() {
         });
     }
 
-    console.log("params", params);
 
     return params;
 }
+
+
 
 const { dump_date } = Astro.params;
 
@@ -39,6 +42,34 @@ const all_wiki_sizes = entry!.wiki_sizes;
 const supported_wikis = entry!.wikis;
 
 const wikis_columns = all_wiki_sizes.sizes;
+
+const dbname_to_siteinfo = new Map<string, SiteInfo>();
+const site_matrix = await fetchSiteMatrix();
+for (const key in site_matrix) {
+    if (!isNaN(Number(key))) {
+        const data = site_matrix[key];
+        for (const site of data.site) {
+            dbname_to_siteinfo.set(site.dbname, {
+                url: site.url,
+                dbname: site.dbname,
+                code: data.code,
+                sitename: site.sitename,
+                name: data.name,
+                localname: data.localname,
+            });
+        }
+    } else if (key === "specials") {
+        for (const special_key in site_matrix.specials) {
+            const site = site_matrix.specials[special_key];
+            dbname_to_siteinfo.set(site.dbname, {
+                url: site.url,
+                dbname: site.dbname,
+                code: site.code,
+                sitename: site.sitename,
+            });
+        }
+    }
+}
 ---
 
 <Layout title="WikiStats - All Wikis">
@@ -46,7 +77,9 @@ const wikis_columns = all_wiki_sizes.sizes;
         <div class="mt-10 flex justify-between items-baseline">
             <h1 class="text-3xl">Wikis</h1>
             <p>
-                Available ({all_wiki_sizes.sizes.length}) | Supported ({supported_wikis.length})
+                Available ({all_wiki_sizes.sizes.length}) | Supported ({
+                    supported_wikis.length
+                })
             </p>
         </div>
 
@@ -81,9 +114,10 @@ const wikis_columns = all_wiki_sizes.sizes;
 
         <div class="mt-10">
             <WikiSizesTable
-                supported_wikis={supported_wikis}
-                wikis_columns={wikis_columns}
+                {supported_wikis}
+                {wikis_columns}
                 dump_date={dump_date ?? ""}
+                {dbname_to_siteinfo}
                 client:load
             />
         </div>

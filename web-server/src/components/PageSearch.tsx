@@ -70,15 +70,18 @@ const fetchPagesWikipediaAPI = async (
 
     const resp = await fetch(
         `${base_url}?action=query&format=json&
-      gpssearch=${prefix}&
-      generator=prefixsearch&
-      prop=pageprops|pageterms&
-      redirects=1&
-      wbptterms=description&
-      gpsnamespace=0&
-      gpslimit=${num_results}&
-      formatversion=2&
-      origin=*`,
+        gpssearch=${prefix}&
+        generator=prefixsearch&
+        prop=pageprops|pageterms&
+        redirects=1&
+        wbptterms=description&
+        gpsnamespace=0&
+        gpslimit=${num_results}&
+        formatversion=2&
+        origin=*`,
+        {
+            headers: WIKIPEDIA_REST_API_HEADERS,
+        },
     );
     const json: QueryResult = await resp.json();
     if (json.query == undefined) {
@@ -116,7 +119,11 @@ const fetchRandomPage = async (wiki_name: string) => {
     const title = json["items"][0]["title"];
     const namespace = json["items"][0]["namespace"];
     if (namespace != 0) {
-        throw new Error("Not a main namespace page: " + title + " but this should not happen");
+        throw new Error(
+            "Not a main namespace page: " +
+                title +
+                " but this should not happen",
+        );
     }
     return title;
 };
@@ -209,8 +216,7 @@ export function PageSearch(props: Props) {
                                 data-tooltip-target={
                                     "refresh-tip-" + componentID
                                 }
-                                ref={tooltipRef}
-                            >
+                                ref={tooltipRef}>
                                 <span class="w-6 h-6 block">
                                     <Refresh />
                                 </span>
@@ -218,8 +224,7 @@ export function PageSearch(props: Props) {
                             <div
                                 id={"refresh-tip-" + componentID}
                                 class="tooltip default-tooltip"
-                                role="tooltip"
-                            >
+                                role="tooltip">
                                 Try another
                                 <div class="tooltip-arrow" data-popper-arrow />
                             </div>
@@ -233,27 +238,23 @@ export function PageSearch(props: Props) {
                             {props.wiki_name?.substring(0, 2)}
                             .wikipedia.org/api/rest_v1/page/random/title
                         </p>
-                    }
-                >
+                    }>
                     <Suspense
-                        fallback={<p class="my-1 w-36 h-6 bg-skeleton" />}
-                    >
+                        fallback={<p class="my-1 w-36 h-6 bg-skeleton" />}>
                         <div class="flex flex-wrap gap-2">
                             <p
                                 class="w-full break-words hover:underline cursor-pointer"
                                 onClick={() => {
                                     setValue(randomPage());
                                     updateSuggestions(randomPage()!);
-                                }}
-                            >
+                                }}>
                                 {randomPage()}
                             </p>
                             <Show
                                 when={
                                     randomPage() !== undefined &&
                                     props.wiki_name !== undefined
-                                }
-                            >
+                                }>
                                 <PageLinkPills
                                     title={randomPage()}
                                     wiki_name={props.wiki_name!}
@@ -330,8 +331,7 @@ export function PageSearch(props: Props) {
                         "min-h-10 max-h-[380px]",
                     !show() && "hidden border-none",
                     value()?.length != 0 && "overflow-y-scroll overflow-x-clip",
-                )}
-            >
+                )}>
                 {loading() && (
                     <div class="absolute backdrop-blur-[1px] dark:bg-dark_02/10 bg-gray-300/10 w-full h-full flex justify-center">
                         <div
@@ -339,8 +339,7 @@ export function PageSearch(props: Props) {
                                 pages().length > 2
                                     ? "absolute top-[15%]"
                                     : "flex items-center",
-                            )}
-                        >
+                            )}>
                             <span class="block w-8 h-8">
                                 <LoadingSpinner />
                             </span>
@@ -355,8 +354,7 @@ export function PageSearch(props: Props) {
                         pages().length == 0 &&
                         !loading() &&
                         value()?.length != 0
-                    }
-                >
+                    }>
                     <p class="px-2 py-1">No results found</p>
                 </Show>
 
@@ -379,8 +377,7 @@ export function PageSearch(props: Props) {
                                 { page_title: page.title, index: index() },
                             ]}
                             tabindex="0"
-                            id={selectIdName(index())}
-                        >
+                            id={selectIdName(index())}>
                             <div class="flex flex-wrap justify-between items-center gap-1">
                                 <p class="break-words break-normal leading-tight">
                                     {page.title}

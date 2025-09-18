@@ -60,14 +60,14 @@ export function Table<T extends Record<string, any>>(props: TableProps<T>) {
                         {props.columns.map((col) => (
                             <th
                                 class={cn(
-                                    "border text-left group dark-border-2",
+                                    "border text-left group dark-border-2 break-all",
                                     padding,
                                     col.isSortable && "cursor-pointer",
                                 )}
                                 onClick={() =>
                                     col.isSortable && handleSort(col.key)
                                 }>
-                                {col.label}{" "}
+                                {col.label}
                                 <span
                                     class={cn(
                                         "hidden",
