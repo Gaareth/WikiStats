@@ -1,0 +1,48 @@
+---
+import { cn } from "../../utils";
+import DumpDateSelection from "./DumpDateSelection.astro";
+import WikiSelection from "./WikiSelection.astro";
+
+interface Props {
+    dump_date?: string;
+    wiki_name?: string;
+    dir: string;
+}
+
+const { dump_date, wiki_name, dir } = Astro.props;
+---
+
+<nav class="hidden lg:block sticky top-8 w-[15rem] ml-auto pl-4 mr-4">
+    <div>
+        <!-- Navigation -->
+        <WikiSelection
+            dump_date={dump_date}
+            currrent_wikiname={wiki_name}
+            global_possible={true}
+            {dir}
+            classNameWrapper={cn(
+                "bg-transparent p-0 m-0 pt-2 !flex-col-reverse",
+                dump_date != null && "border-b-0 pb-6",
+            )}
+            className="!flex !flex-col !text-start text-base"
+            classNameLegend="text-lg"
+            vertical={true}
+            max_shown={10}
+        />
+
+        {
+            dump_date != null && (
+                <DumpDateSelection
+                    currrent_dumpdate={dump_date}
+                    current_wikiname={wiki_name}
+                    {dir}
+                    classNameWrapper="bg-transparent p-0 m-0 -mt-3 py-2 pb-4 !flex-col-reverse"
+                    classNameLegend="bg-white dark:bg-dark_01 !text-lg"
+                    className="!flex !flex-col !text-start text-base"
+                    vertical={true}
+                    max_shown={10}
+                />
+            )
+        }
+    </div>
+</nav>

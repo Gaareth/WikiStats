@@ -41,7 +41,7 @@ export default function SearchWithDropdown(props: Props) {
             <input
                 type="text"
                 placeholder="Select more"
-                class="ml-auto dark-layer-2 dark:text-slate-50 input-default dark-layer-2"
+                class="ml-auto dark-layer-2 dark:text-slate-50 input-default dark-layer-2 w-full"
                 list={"datalist-selection-" + uuid}
                 name="resource"
                 ref={input}

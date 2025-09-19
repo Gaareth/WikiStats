@@ -9,11 +9,8 @@ import {
     Show,
     Suspense,
 } from "solid-js";
-import type { Pages } from "../pages/api/[wiki_name]/pages";
-import {
-    reinitializeFlowBiteTooltips,
-    WIKIPEDIA_REST_API_HEADERS,
-} from "../utils";
+import { reinitializeFlowBiteTooltips } from "../utils";
+import { fetchPagesWikipediaAPI, fetchRandomPage, type Page } from "../wiki-api";
 import { LoadingSpinner, Refresh } from "./ClientIcons/Icons";
 import FloatingLabelInput from "./FloatingLabelInput";
 import PageLinkPills from "./PageLinkPills";
@@ -23,115 +20,8 @@ interface Props {
     default_value?: string | null;
     name: string;
     placeholder: string;
+    classNameWrapper?: string;
 }
-
-type QueryResult = {
-    query: {
-        redirects: [
-            {
-                index: number;
-                from: string;
-                to: string;
-                tofragment?: string;
-            },
-        ];
-        pages: [
-            {
-                pageid: number;
-                ns: number;
-                title: string;
-                index: number;
-                terms?: {
-                    description: [string];
-                };
-            },
-        ];
-    };
-};
-
-const fetchPages = async (wikiName: string, prefix: string) => {
-    try {
-        const resp = await fetch(`/api/${wikiName}/pages?prefix=${prefix}`);
-        const json: Pages = await resp.json();
-        return json.map((o) => o.pageTitle);
-    } catch {
-        return [];
-    }
-};
-
-const fetchPagesWikipediaAPI = async (
-    wiki_name: string,
-    prefix: string,
-): Promise<Page[]> => {
-    // await sleep(5000);
-    const lang_prefix = wiki_name.substring(0, 2);
-    const base_url = `https://${lang_prefix}.wikipedia.org/w/api.php`;
-    const num_results = 10;
-
-    const resp = await fetch(
-        `${base_url}?action=query&format=json&
-        gpssearch=${prefix}&
-        generator=prefixsearch&
-        prop=pageprops|pageterms&
-        redirects=1&
-        wbptterms=description&
-        gpsnamespace=0&
-        gpslimit=${num_results}&
-        formatversion=2&
-        origin=*`,
-        {
-            headers: WIKIPEDIA_REST_API_HEADERS,
-        },
-    );
-    const json: QueryResult = await resp.json();
-    if (json.query == undefined) {
-        return [];
-    }
-
-    const result = json.query.pages.map(({ title, terms }) => ({
-        title,
-        description: terms?.description[0] ?? "-",
-    }));
-
-    return result;
-};
-
-const fetchRandomPage = async (wiki_name: string) => {
-    const lang_prefix = wiki_name.substring(0, 2);
-
-    const resp = await fetch(
-        `https://${lang_prefix}.wikipedia.org/api/rest_v1/page/random/title`,
-        {
-            headers: WIKIPEDIA_REST_API_HEADERS,
-        },
-    );
-
-    const json = await resp.json();
-
-    if (!resp.ok) {
-        // https://phabricator.wikimedia.org/T364153
-        const title = resp.url.split(
-            `https://${lang_prefix}.wikipedia.org/api/rest_v1/page/title/`,
-        )[1];
-        return decodeURIComponent(title);
-    }
-
-    const title = json["items"][0]["title"];
-    const namespace = json["items"][0]["namespace"];
-    if (namespace != 0) {
-        throw new Error(
-            "Not a main namespace page: " +
-                title +
-                " but this should not happen",
-        );
-    }
-    return title;
-};
-
-type Page = {
-    title: string;
-    description: string;
-};
 
 export function PageSearch(props: Props) {
     const [value, setValue] = createSignal(props.default_value);
@@ -206,7 +96,7 @@ export function PageSearch(props: Props) {
                     {props.wiki_name !== undefined && (
                         <div>
                             <button
-                                class="button dark-layer-1 px-1 py-1 group"
+                                class="button dark-layer-3 px-1 py-1 group"
                                 type="button"
                                 onClick={async () => {
                                     setShow(true);
@@ -243,7 +133,7 @@ export function PageSearch(props: Props) {
                         fallback={<p class="my-1 w-36 h-6 bg-skeleton" />}>
                         <div class="flex flex-wrap gap-2">
                             <p
-                                class="w-full break-words hover:underline cursor-pointer"
+                                class="break-all hover:underline cursor-pointer"
                                 onClick={() => {
                                     setValue(randomPage());
                                     updateSuggestions(randomPage()!);
@@ -293,7 +183,7 @@ export function PageSearch(props: Props) {
     };
 
     return (
-        <div class="relative h-full">
+        <div class={clsx("relative h-full", props.classNameWrapper)}>
             <FloatingLabelInput
                 autocomplete="off"
                 label={props.placeholder}
@@ -327,7 +217,7 @@ export function PageSearch(props: Props) {
 
             <div
                 class={clsx(
-                    "absolute bg-white border [:not(.dark)]border-neutral-200 dark-layer-1 w-full mt-1.5 z-20 " +
+                    "absolute bg-white border [:not(.dark)]border-neutral-200 dark-layer-2 w-full mt-1.5 z-20 " +
                         "min-h-10 max-h-[380px]",
                     !show() && "hidden border-none",
                     value()?.length != 0 && "overflow-y-scroll overflow-x-clip",
@@ -367,9 +257,9 @@ export function PageSearch(props: Props) {
                         <div
                             class={clsx(
                                 "px-2 py-1 first-letter:break-all cursor-pointer",
-                                "hover:bg-gray-100 dark:hover:bg-dark_02 focus:bg-gray-100 dark:focus:bg-dark_02 focus:outline-none",
+                                "hover:bg-gray-100 dark:hover:!bg-dark_03 focus:bg-gray-100 dark:focus:bg-dark_03 focus:outline-none",
                                 page.title == value() &&
-                                    "bg-gray-200 dark:bg-dark_03",
+                                    "bg-gray-200 dark:bg-dark_04",
                             )}
                             onClick={() => setValue(page.title)}
                             onKeyDown={[

@@ -1,18 +1,23 @@
 ---
 import clsx from "clsx";
 import { get_supported_wikis } from "../../db/constants";
-import Selection from "./Selection.astro";
+import Selection, { type SelectionProps } from "./Selection.astro";
 
-interface Props {
-    currrent_wikiname: string | undefined;
-    dir: string;
+interface Props extends SelectionProps {
+    currrent_wikiname?: string | undefined;
     global_possible?: boolean;
     dump_date?: string;
     noscript?: boolean;
 }
 
-const { currrent_wikiname, dir, global_possible, dump_date, noscript } =
-    Astro.props;
+const {
+    currrent_wikiname,
+    dir,
+    global_possible,
+    dump_date,
+    noscript,
+    ...rest
+} = Astro.props;
 const wikis = await get_supported_wikis(dump_date || "latest");
 ---
 
@@ -22,6 +27,7 @@ const wikis = await get_supported_wikis(dump_date || "latest");
     items={wikis}
     what="Wikis"
     {global_possible}
+    {...rest}
     get_url={(item) =>
         ["/wiki", item, noscript ? "noscript" : "", dir]
             .filter(Boolean)
@@ -35,7 +41,7 @@ const wikis = await get_supported_wikis(dump_date || "latest");
                     currrent_wikiname === undefined
                         ? "font-bold"
                         : "font-normal",
-                    "text-center",
+                    "text-center-a",
                 )}>
                 GLOBAL
             </a>

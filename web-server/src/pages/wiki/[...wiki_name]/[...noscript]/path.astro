@@ -2,6 +2,7 @@
 import Alert from "../../../../components/Alert.astro";
 import ShortestPath from "../../../../components/SP/ShortestPath";
 import Search from "../../../../components/Search.astro";
+import SelectionNavigation from "../../../../components/Selection/SelectionNavigation.astro";
 import WikiSelection from "../../../../components/Selection/WikiSelection.astro";
 import { get_supported_wikis } from "../../../../db/constants";
 import Layout from "../../../../layouts/Layout.astro";
@@ -17,7 +18,9 @@ let start = params.get("start") ?? "";
 let end = params.get("end") ?? "";
 
 // let noscript = (params.get("noscript") ?? "false") !== "false";
-let unsupported_wiki = wiki_name != null && !(await get_supported_wikis("latest")).includes(wiki_name);
+let unsupported_wiki =
+    wiki_name != null &&
+    !(await get_supported_wikis("latest")).includes(wiki_name);
 if (wiki_name == "noscript") {
     noscript = "noscript";
     unsupported_wiki = false;
@@ -63,16 +66,20 @@ if (noscript == "noscript" && start.length > 0 && end.length > 0) {
 
 <Layout
     title="WikiStats - Shortest Path"
-    desc="Find the shortest path between two wikipedia pages"
->
-    <main class="max-[300px]:max-w-full">
-        <WikiSelection currrent_wikiname={wiki_name} dir="path" noscript={noscript == "noscript"} />
+    desc="Find the shortest path between two wikipedia pages">
+    <SelectionNavigation wiki_name={wiki_name} slot="left-sidebar" dir="path" />
+
+    <div>
+        <WikiSelection
+            currrent_wikiname={wiki_name}
+            dir="path"
+            noscript={noscript == "noscript"}
+            classNameWrapper="block mb-5 lg:hidden"
+        />
         {
             unsupported_wiki && (
                 <Alert type="error">
-                    <p>
-                        The selected wiki is not supported.
-                    </p>
+                    <p>The selected wiki is not supported.</p>
                 </Alert>
             )
         }
@@ -81,14 +88,15 @@ if (noscript == "noscript" && start.length > 0 && end.length > 0) {
             noscript && (
                 <Alert type="warning">
                     <p>
-                        You are using the noscript endpoint, which works without javascript. However, the page will only
-                        load when shortest path is ready, and may seem unresponsive while loading.
+                        You are using the noscript endpoint, which works without
+                        javascript. However, the page will only load when
+                        shortest path is ready, and may seem unresponsive while
+                        loading.
                     </p>
                     <p>
-                        If you want a smoother experience, consider enabling javascript and
-                        <a href="../path">
-                            using the normal endpoint
-                        </a>
+                        If you want a smoother experience, consider enabling
+                        javascript and
+                        <a href="../path">using the normal endpoint</a>
                     </p>
                 </Alert>
             )
@@ -107,11 +115,10 @@ if (noscript == "noscript" && start.length > 0 && end.length > 0) {
             }
         </noscript>
 
-        <h1 class="text-3xl mt-10 mb-1">Find the shortest path</h1>
+        <h1 class="text-3xl mt-2 mb-1">Find the shortest path</h1>
         <p class="text-secondary text-base mb-5">
             Use the input fields below to find the shortest path between two
-            wikipedia articles. Can't think of any? Use the refresh button to
-            randomly select page.
+            wikipedia articles. Can't think of any? Use the refresh button to select a random page.
         </p>
 
         <Search {start} {end} classNames="mt-3 mb-7" wiki_name={wiki_name} />
@@ -138,7 +145,7 @@ if (noscript == "noscript" && start.length > 0 && end.length > 0) {
                 // <p>a</p>
             )
         }
-    </main>
+    </div>
 </Layout>
 
 <script>

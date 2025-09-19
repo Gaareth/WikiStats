@@ -107,8 +107,8 @@ const appleTouchIcon = await getImage({
             </Alert>
         </div>
 
-        <!-- <main>
-            <div class="sidebar">
+        <main class="">
+            <div class="sidebar py-4">
                 <slot name="left-sidebar"></slot>
             </div>
             <div class="p-4">
@@ -117,10 +117,12 @@ const appleTouchIcon = await getImage({
             <div class="sidebar">
                 <slot name="right-sidebar"></slot>
             </div>
-        </main> -->
-        <main>
-            <slot />
         </main>
+        <!-- <main>
+            <slot />
+        </main> -->
+
+    
 
         <Footer />
         <script src="../scripts/flowbite@2.5.1.min.js"></script>
@@ -132,20 +134,21 @@ const appleTouchIcon = await getImage({
         background-size: 224px;
     }
 
-    .sidebar {
+    /* .sidebar {
         position: fixed
-    }
+    } */
 
     main {
         font-size: 20px;
         line-height: 1.6;
 
-        padding: 1rem;
-        width: 900px;
-        max-width: calc(100% - 2rem);
-        max-width: 100%;
-        margin: auto;
-        /* display: grid;
-        grid-template-columns: 1fr min(100%, 900px) 1fr */
+        /* padding: 1rem; */
+        /* width: 900px; */
+        /* max-width: calc(100% - 2rem); */
+        /* max-width: 100%; */
+        /* margin: auto; */
+
+        display: grid;
+        grid-template-columns: 1fr min(100%, 900px) 1fr
     }
 </style>

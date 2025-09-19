@@ -1,27 +1,24 @@
 ---
 import { GraphIcon, IonMdStatsIcon } from "../components/ClientIcons/Icons";
+import WikiSelection from "../components/Selection/WikiSelection.astro";
 import ShowCard from "../components/ShowCard.astro";
-import StatCards from "../components/SimpleStatCards.astro";
+import SimpleStatCards from "../components/SimpleStatCards.astro";
 import Layout from "../layouts/Layout.astro";
 ---
 
 <Layout title="WikiStats">
     <div>
-        <h1 class="text-3xl mb-5">
-            <span class="text-gradient dark:text-gradient-dark">
-                Wiki-Stats
-            </span>
+        <h1 class="text-4xl mb-2 mt-5">
+            <span class="text-gradient dark:text-gradient-dark">WikiStats</span>
         </h1>
 
-        <StatCards simple={true} dump_date="latest" />
-
-        <h2 class="mt-5">More..</h2>
+        <!-- <h2 class="mt-5">More..</h2> -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <ShowCard
                 href="/wiki/stats/latest"
                 title="Statistics"
                 desc="Which article has the most links?"
-            >
+                className="dark:border-dark_02 dark:hover:border-dark_03 dark:border-2 dark:rounded-sm">
                 <IonMdStatsIcon aria-label="Statistics Icon" />
             </ShowCard>
 
@@ -36,9 +33,15 @@ import Layout from "../layouts/Layout.astro";
                 href="/wiki/graph"
                 title="Graphs"
                 desc="Explore thousands of articles"
-            >
+                className="dark:border-dark_02 dark:hover:border-dark_03 dark:border-2 dark:rounded-sm">
                 <GraphIcon aria-label="(Network) Graph Icon" />
             </ShowCard>
         </div>
-    </main>
+
+        <h2 class="text-2xl mt-10 mb-1">Quick stats</h2>
+         <WikiSelection
+            dir={"stats/latest"}
+        />
+        <SimpleStatCards dump_date="latest" simple={true} />
+    </div>
 </Layout>

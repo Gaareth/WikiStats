@@ -9,6 +9,7 @@ import {
     TOP_TEN_MOST_LINKS_STAT,
 } from "../db/constants";
 
+import { getCollection } from "astro:content";
 import { getEarlierEntry } from "../content/config";
 import { big_num_format } from "../utils";
 import CardTabs from "./CardTabs.astro";
@@ -56,11 +57,12 @@ const linked_redirects_percentage = (
     (linked_redirects / num_links) *
     100
 ).toFixed(2);
+
+const num_dump_dates = (await getCollection("stats")).map((c) => c.id);
 ---
 
 <div
-    class="grid grid-cols-1 min-[550px]:grid-cols-2 lg:flex lg:flex-row gap-1 sm:gap-2 md:gap-3 my-1 sm:my-2 md:my-3"
->
+    class="grid grid-cols-1 min-[550px]:grid-cols-3 gap-1 sm:gap-2 md:gap-3 my-1 sm:my-2 md:my-3">
     <CardTabs tabs={["All Articles", "Redirects"]} className="w-full lg:w-72">
         <p class="font-bold" slot="tab1">{big_num_format(num_pages)}</p>
 
@@ -72,8 +74,7 @@ const linked_redirects_percentage = (
 
     <CardTabs
         tabs={["All Links", "Linked Redirects"]}
-        className="w-full lg:w-72"
-    >
+        className="w-full lg:w-72">
         <p class="font-bold" slot="tab1">{big_num_format(num_links)}</p>
 
         <p slot="tab2" class="font-bold flex items-center justify-center gap-2">
@@ -83,6 +84,17 @@ const linked_redirects_percentage = (
             </span>
         </p>
     </CardTabs>
+
+    {
+        simple && (
+            <Stat
+                client:load
+                title="Number of data points"
+                value={`${big_num_format(num_dump_dates.length)}`}
+                className="w-full"
+            />
+        )
+    }
 </div>
 
 <div class="grid grid-cols-2 lg:grid-cols-6 gap-1 sm:gap-2 md:gap-3">

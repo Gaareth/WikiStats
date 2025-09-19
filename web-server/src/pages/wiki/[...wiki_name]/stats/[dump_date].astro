@@ -1,6 +1,7 @@
 ---
 import MoreStatCards from "../../../../components/MoreStatCards.astro";
 import SampleStats from "../../../../components/SampleStats.astro";
+import SelectionNavigation from "../../../../components/Selection/SelectionNavigation.astro";
 import WikiSelection from "../../../../components/Selection/WikiSelection.astro";
 import SimpleStatCards from "../../../../components/SimpleStatCards.astro";
 import GlobalStats from "../../../../components/SPC/Stats/GlobalStats.astro";
@@ -61,18 +62,27 @@ let bfs_sample_stats = (await getEntry("stats", dump_date))?.data
     .bfs_sample_stats;
 ---
 
+<!-- w-[calc(((100vw-900px)/2)-2rem)] -->
 <Layout
     title={"WikiStats - " + (wiki_name || "Global") + " Statistics"}
     desc={`Statistics about the ${wiki_name || "Global"} Wikipedia`}>
+    <SelectionNavigation
+        dump_date={dump_date}
+        wiki_name={wiki_name}
+        slot="left-sidebar"
+        dir={"stats/" + dump_date}
+    />
+
     <div>
         <WikiSelection
             dump_date={dump_date}
             currrent_wikiname={wiki_name}
             dir={"stats/" + dump_date}
             global_possible={true}
+            classNameWrapper="block mb-5 lg:hidden"
         />
 
-        <h1 class="text-3xl mt-10">Statistics {wiki_name || "global"}</h1>
+        <h1 class="text-3xl mt-2">Statistics {wiki_name || "global"}</h1>
 
         <SimpleStatCards {wiki_name} {dump_date}>
             <MoreStatCards {wiki_name} {dump_date} />
@@ -129,8 +139,9 @@ let bfs_sample_stats = (await getEntry("stats", dump_date))?.data
 
         <DumpDateSelection
             currrent_dumpdate={dump_date}
-            dir="stats/latest"
             current_wikiname={wiki_name}
+            dir={"stats/" + dump_date}
+            classNameWrapper="block mb-5 lg:hidden"
         />
-    </main>
+    </div>
 </Layout>
