@@ -356,7 +356,7 @@ pub fn unpack_gz_pb(
     multi_pb: &MultiProgress,
     always_unpack: bool,
     try_remove: bool,
-) -> Result<(), io::Error> {
+) -> Result<PathBuf, io::Error> {
     let path = path.as_ref();
     let mut out_path: PathBuf = PathBuf::from(path);
     out_path.set_extension("");
@@ -416,12 +416,12 @@ pub fn unpack_gz_pb(
     }
 
     if try_remove {
-        if let Err(e) = fs::remove_file(&out_path) {
-            eprintln!("Failed removing file {out_path:?} {e}");
+        if let Err(e) = fs::remove_file(&path) {
+            eprintln!("Failed removing gzip file {path:?} {e}");
         }
     }
 
-    Ok(())
+    Ok(out_path)
 }
 
 fn unpack_gz(out_path: &PathBuf, input_gz: fs::File) -> Result<(), Error> {

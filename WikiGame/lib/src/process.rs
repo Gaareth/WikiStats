@@ -101,7 +101,8 @@ pub async fn process_wikis_seq(
     wiki_names: &[impl AsRef<str> + Debug],
     base_directory: impl Into<PathBuf>,
     dump_date_option: Option<String>,
-    skip_download: bool,
+    remove_after_finish: bool,
+    overwrite_sql: bool
 ) -> String {
     let tables = ALL_DB_TABLES;
 
@@ -120,27 +121,35 @@ pub async fn process_wikis_seq(
     let base_directory = base_directory.into().join(&dump_date);
     let download_path = base_directory.join("downloads");
 
+    check_existing_sqlite_files(overwrite_sql, &wiki_names, &base_directory);
+
+
     let multi_pb = MultiProgress::new();
 
     for wiki_name in wiki_names {
-        if !skip_download {
-            for table_name in tables {
-                download::download_wikis(
-                    &[wiki_name],
-                    &[table_name],
-                    &download_path,
-                    &dump_date,
-                    &multi_pb,
-                )
-                .await;
+        for table_name in tables {
+            download::download_wikis(
+                &[wiki_name],
+                &[table_name],
+                &download_path,
+                &dump_date,
+                &multi_pb,
+            )
+            .await;
 
-                let wiki_name = wiki_name.as_ref();
-                let gz_file_path =
-                    download_path.join(format!("{wiki_name}-{dump_date}-{table_name}.sql.gz"));
-                unpack_gz_pb(&gz_file_path, &multi_pb, false, false).unwrap();
-            }
+            let wiki_name = wiki_name.as_ref();
+            let gz_file_path =
+                download_path.join(format!("{wiki_name}-{dump_date}-{table_name}.sql.gz"));
+            unpack_gz_pb(&gz_file_path, &multi_pb, false, false).unwrap();
         }
+
         process_wiki_to_db(wiki_name, &base_directory, &dump_date).await;
+    }
+
+    if remove_after_finish {
+        fs::remove_dir_all(&download_path).unwrap_or_else(|e| {
+            eprintln!("{}", format!("Failed to remove download directory: {e}").red());
+        });
     }
 
     dump_date
@@ -182,23 +191,7 @@ pub async fn process_threaded(
     let download_path = base_directory.join("downloads");
     let download_path = Arc::new(download_path);
 
-    for wiki_name in &wiki_names {
-        let output_file = join_db_wiki_path(base_directory.join("sqlite"), wiki_name);
-        dbg!(&output_file);
-        // when calling the command twice, it will error upon inserting if there already is data (Unique error).
-        // that might be a bit late however, so check here first, that if a sqlite file exists it has to be empty
-        if !overwrite_sql
-            && fs::exists(&output_file).unwrap()
-            && fs::metadata(&output_file).unwrap().len() > 0
-        {
-            println!(
-                "{}: {:?} already exists and is not empty. Use --overwrite-sql",
-                "Success".green(),
-                output_file
-            );
-            exit(0); // assume it was already done, so we good (controversial)
-        }
-    }
+    check_existing_sqlite_files(overwrite_sql, &wiki_names, &base_directory);
 
     let num_jobs = wiki_names.len() * processed_tables.len();
     let num_sql_threads = 2;
@@ -314,6 +307,26 @@ pub async fn process_threaded(
     join_all(tasks).await;
     println!("Total time elapsed: {:?}", t1.elapsed());
     dump_date
+}
+
+fn check_existing_sqlite_files(overwrite_sql: bool, wiki_names: &[impl AsRef<str>], base_directory: &PathBuf) {
+    for wiki_name in wiki_names {
+        let output_file = join_db_wiki_path(base_directory.join("sqlite"), wiki_name);
+        dbg!(&output_file);
+        // when calling the command twice, it will error upon inserting if there already is data (Unique error).
+        // that might be a bit late however, so check here first, that if a sqlite file exists it has to be empty
+        if !overwrite_sql
+            && fs::exists(&output_file).unwrap()
+            && fs::metadata(&output_file).unwrap().len() > 0
+        {
+            println!(
+                "{}: {:?} already exists and is not empty. Use --overwrite-sql",
+                "Success".green(),
+                output_file
+            );
+            exit(0); // assume it was already done, so we good (controversial)
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -576,9 +589,7 @@ mod tests {
 
     // test for Unexpected EOF in copy of unpack gzipped file
     #[test]
-    fn test_unexpected_eof() {
-       
-    }
+    fn test_unexpected_eof() {}
 
     #[test]
     fn bench_insert() {

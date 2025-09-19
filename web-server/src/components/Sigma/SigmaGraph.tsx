@@ -555,6 +555,7 @@ export function NeighborGraph({
 }: NeighborGraphProps) {
     let graph = new Graph();
 
+    // TODO: set neighbors for depth one to all
     let renderSettings: GraphRenderSettings = {
         ...DEFAULT_RENDER_SETTINGS,
         depth: 2,

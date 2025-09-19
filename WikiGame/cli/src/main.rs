@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::ffi::OsStr;
 use std::fs;
 use std::fs::{File, OpenOptions};
 use std::os::unix::fs::MetadataExt;
@@ -10,7 +9,6 @@ use anyhow::anyhow;
 use clap::{ArgAction, Args, Parser, Subcommand};
 use colored::Colorize;
 use dirs::home_dir;
-use indicatif::MultiProgress;
 use log::{error, warn, LevelFilter};
 use parse_mediawiki_sql::field_types::PageTitle;
 use parse_mediawiki_sql::utils::memory_map;
@@ -19,14 +17,12 @@ use rusqlite::Connection;
 use schemars::schema_for;
 use simplelog::{ColorChoice, CombinedLogger, Config, TermLogger, TerminalMode, WriteLogger};
 
-use wiki_stats::process::{process_threaded, process_wikis_seq, test_bench_threaded};
+use wiki_stats::process::{process_threaded, process_wikis_seq};
 use wiki_stats::sqlite::load::load_linktarget_map;
-use wiki_stats::sqlite::{get_all_database_files, join_db_wiki_path, DATABASE_SUFFIX};
-use wiki_stats::stats::{Stats, WikiIdent};
+use wiki_stats::sqlite::{get_all_database_files, join_db_wiki_path};
+use wiki_stats::stats::Stats;
 use wiki_stats::web::find_smallest_wikis;
 use wiki_stats::{download, stats, validate, web};
-
-use crate::testdata::gentest;
 
 mod testdata;
 
@@ -50,23 +46,23 @@ struct Cli {
 enum Commands {
     /// Download, unpack, create sql files
     ProcessDatabases {
-        #[arg(
-            short,
-            long,
-            value_name = "PATH",
-            help = "Path containing dump dates sub dirs with the download and sqlite sub directories"
-        )]
+        /// Path containing dump dates sub dirs with the download and sqlite sub directories
+        #[arg(short, long, value_name = "PATH")]
         path: PathBuf,
 
+        /// Names of the wikis to process (space separated so: e.g. enwiki, dewiki, jawiki)
         #[arg(short, long, value_parser, num_args = 1.., value_delimiter = ' ', required = true)]
         wikis: Vec<String>,
 
+        /// Remove downloads dir after processing
         #[arg(short, long, default_value_t = false)]
-        skip_download: bool,
+        remove_downloads: bool,
 
+        /// Overwrite existing sqlite db files. Else an existing db file will be treated as already processed and the the program exits
         #[arg(long)]
         overwrite_sql: bool,
 
+        /// Specify which dump date to use (defaults to latest). Format: YYYYMMDD
         #[arg(short, long)]
         dump_date: Option<String>,
     },
@@ -232,7 +228,7 @@ async fn main() {
         Commands::ProcessDatabases {
             path,
             wikis,
-            skip_download,
+            remove_downloads,
             dump_date,
             overwrite_sql,
         } => {
@@ -250,7 +246,14 @@ async fn main() {
                 exit(-1);
             }
             // let names: Vec<String> = wikis.into_iter().map(|arg| wiki.clone()).collect();
-            process_wikis_seq(wikis, basepath, dump_date.clone(), false).await; // 6m 4s no download???
+            process_wikis_seq(
+                wikis,
+                basepath,
+                dump_date.clone(),
+                *remove_downloads,
+                *overwrite_sql,
+            )
+            .await; // 6m 4s no download???
 
             // process_threaded(wikis, basepath, dump_date.clone(), *overwrite_sql).await; // 169.16s
         }
@@ -359,8 +362,6 @@ async fn main() {
                 true,
             )
             .await;
-
-            
         }
 
         Commands::DumpDates { wikis, tables } => {
