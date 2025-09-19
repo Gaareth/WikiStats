@@ -123,6 +123,7 @@ def finish_dump(dump_date):
     # redis.hset(REDIS_PREFIX + "wiki-tasks-status", mapping={dump_date: "DONE"})
 
     all_done = all_tasks_done()
+    # TODO: check if dump_date is the latest date and then delete all others
     updated_wikis_dir = re.sub(r"(\d{8})", dump_date, DB_WIKIS_DIR)
 
     env_updates = {
