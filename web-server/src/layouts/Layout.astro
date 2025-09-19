@@ -17,9 +17,10 @@ interface Props {
     title: string;
     desc?: string;
     bodyClass?: string;
+    mainClass?: string;
 }
 
-const { title, desc, bodyClass } = Astro.props;
+const { title, desc, bodyClass, mainClass } = Astro.props;
 const latest_dump = await get_latest_date();
 const latest_dump_date = latest_dump
     ? formatDumpDate(latest_dump) + " (UTC)"
@@ -106,7 +107,7 @@ const appleTouchIcon = await getImage({
             </Alert>
         </div>
 
-        <main class="">
+        <main class={mainClass}>
             <div class="sidebar py-4">
                 <slot name="left-sidebar"></slot>
             </div>

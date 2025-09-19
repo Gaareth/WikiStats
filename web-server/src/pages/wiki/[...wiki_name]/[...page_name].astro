@@ -93,8 +93,8 @@ if (!(await get_supported_wikis("latest")).includes(wiki_name)) {
 }
 ---
 
-<Layout title={"WikiStats - " + page_name}>
-    <main class="max-w-screen-xl w-full">
+<Layout title={"WikiStats - " + page_name} mainClass="block max-w-screen-xl w-full mx-auto">
+    <div class="">
         {
             num_linked === undefined && (
                 <div class="max-w-[900px] px-4 mx-auto">
@@ -162,7 +162,7 @@ if (!(await get_supported_wikis("latest")).includes(wiki_name)) {
                         )}
                         <div
                             class={clsx(
-                                "flex flex-wrap justify-between mb-5 gap-1",
+                                "flex flex-wrap justify-between mb-3 gap-1",
                                 page_name.length > 40 && "flex-col-reverse",
                             )}>
                             <h1 class="text-2xl break-all">
@@ -188,7 +188,7 @@ if (!(await get_supported_wikis("latest")).includes(wiki_name)) {
                         times_linked={num_linked!}
                     />
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 px-2 gap-2">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 main-width gap-4">
                         <PageLinks
                             client:only="solid"
                             {wiki_name}
@@ -208,5 +208,5 @@ if (!(await get_supported_wikis("latest")).includes(wiki_name)) {
         }
 
         <!-- <p id="sigma-loading">loading</p> -->
-    </main>
+    </div>
 </Layout>
