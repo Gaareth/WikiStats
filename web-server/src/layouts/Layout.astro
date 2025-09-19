@@ -20,7 +20,6 @@ interface Props {
 }
 
 const { title, desc, bodyClass } = Astro.props;
-console.log(Astro.url.pathname);
 const latest_dump = await get_latest_date();
 const latest_dump_date = latest_dump
     ? formatDumpDate(latest_dump) + " (UTC)"

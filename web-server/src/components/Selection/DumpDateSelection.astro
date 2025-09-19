@@ -16,15 +16,11 @@ const items = (await getCollection("stats")).map((c) => c.id).reverse();
     currrent_item={currrent_dumpdate}
     {items}
     what="Dump dates"
-    global_possible={true}
     {...rest}
-    get_url={(item) =>
-        current_wikiname == null
-            ? `/wiki/stats/${item}`
-            : `/wiki/${current_wikiname}/stats/${item}`}>
+    get_url={(item) => item}>
     <a
         slot="global"
-        href="latest"
+        href={"latest"}
         class={clsx(
             currrent_dumpdate == "latest" ? "font-bold" : "font-normal",
         )}>

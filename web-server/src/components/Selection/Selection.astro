@@ -4,7 +4,6 @@ import { cn } from "../../utils";
 import SelectionSearch from "./SelectionSearch";
 
 export interface SelectionProps {
-    dir: string;
     className?: string;
     classNameWrapper?: string;
     classNameLegend?: string;
@@ -14,7 +13,6 @@ export interface SelectionProps {
 
 interface Props extends SelectionProps {
     currrent_item: string | undefined;
-    global_possible?: boolean;
     items: string[];
     what: string;
     get_url: (item: string) => string;
@@ -23,8 +21,6 @@ interface Props extends SelectionProps {
 const {
     get_url,
     currrent_item,
-    dir,
-    global_possible,
     items,
     what,
     classNameWrapper,

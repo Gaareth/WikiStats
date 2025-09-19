@@ -52,7 +52,6 @@ export async function page_id_to_name(id: number, wiki_name: string) {
     let res = await db_connections[wiki_name].query.wikiPage.findFirst({
         where: eq(wikiPage.pageId, id),
     });
-    console.log(res);
     return res?.pageTitle;
 }
 
@@ -103,7 +102,6 @@ export async function get_number_of_links(
     wiki_name: string,
 ) {
     const page_id = await name_to_page_id(page_name, wiki_name);
-    console.log(page_id);
 
     if (page_id === undefined) {
         return undefined;
@@ -446,7 +444,6 @@ export async function breadth_first_search(
             const title = await page_id_to_name(current_id, wiki_name);
             path.push(title!);
         }
-        console.log(path);
         return path;
     };
 

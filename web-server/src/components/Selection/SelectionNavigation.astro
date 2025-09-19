@@ -6,36 +6,40 @@ import WikiSelection from "./WikiSelection.astro";
 interface Props {
     dump_date?: string;
     wiki_name?: string;
-    dir: string;
+    dir?: string;
+    show_wiki_selection?: boolean;
+    show_date_selection?: boolean;
 }
 
-const { dump_date, wiki_name, dir } = Astro.props;
+const { dump_date, wiki_name, dir, show_wiki_selection=true, show_date_selection=true } = Astro.props;
 ---
 
 <nav class="hidden lg:block sticky top-8 w-[15rem] ml-auto pl-4 mr-4">
     <div>
-        <!-- Navigation -->
-        <WikiSelection
-            dump_date={dump_date}
-            currrent_wikiname={wiki_name}
-            global_possible={true}
-            {dir}
-            classNameWrapper={cn(
-                "bg-transparent p-0 m-0 pt-2 !flex-col-reverse",
-                dump_date != null && "border-b-0 pb-6",
-            )}
-            className="!flex !flex-col !text-start text-base"
-            classNameLegend="text-lg"
-            vertical={true}
-            max_shown={10}
-        />
+        {
+            show_wiki_selection  && (
+                <WikiSelection
+                    dump_date={dump_date}
+                    currrent_wikiname={wiki_name}
+                    global_possible={true}
+                    {dir}
+                    classNameWrapper={cn(
+                        "bg-transparent p-0 m-0 pt-2 !flex-col-reverse",
+                        show_date_selection && "border-b-0 pb-6",
+                    )}
+                    className="!flex !flex-col !text-start text-base"
+                    classNameLegend="text-lg"
+                    vertical={true}
+                    max_shown={10}
+                />
+            )
+        }
 
         {
-            dump_date != null && (
+            show_date_selection && (
                 <DumpDateSelection
                     currrent_dumpdate={dump_date}
                     current_wikiname={wiki_name}
-                    {dir}
                     classNameWrapper="bg-transparent p-0 m-0 -mt-3 py-2 pb-4 !flex-col-reverse"
                     classNameLegend="bg-white dark:bg-dark_01 !text-lg"
                     className="!flex !flex-col !text-start text-base"

@@ -67,7 +67,12 @@ if (noscript == "noscript" && start.length > 0 && end.length > 0) {
 <Layout
     title="WikiStats - Shortest Path"
     desc="Find the shortest path between two wikipedia pages">
-    <SelectionNavigation wiki_name={wiki_name} slot="left-sidebar" dir="path" />
+    <SelectionNavigation
+        wiki_name={wiki_name}
+        slot="left-sidebar"
+        dir="path"
+        show_date_selection={false}
+    />
 
     <div>
         <WikiSelection
@@ -118,7 +123,8 @@ if (noscript == "noscript" && start.length > 0 && end.length > 0) {
         <h1 class="text-3xl mt-2 mb-1">Find the shortest path</h1>
         <p class="text-secondary text-base mb-5">
             Use the input fields below to find the shortest path between two
-            wikipedia articles. Can't think of any? Use the refresh button to select a random page.
+            wikipedia articles. Can't think of any? Use the refresh button to
+            select a random page.
         </p>
 
         <Search {start} {end} classNames="mt-3 mb-7" wiki_name={wiki_name} />

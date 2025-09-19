@@ -1,12 +1,13 @@
 ---
 import { getCollection } from "astro:content";
 import Card from "../../../components/Card";
+import SelectionNavigation from "../../../components/Selection/SelectionNavigation.astro";
 import { Table } from "../../../components/Table";
 import { WikiSizesTable } from "../../../components/WikiSizesTable";
 import { get_stat } from "../../../db/constants";
 import Layout from "../../../layouts/Layout.astro";
-import { type SiteInfo, fetchSiteMatrix } from "../../../wiki-api";
 import { cn } from "../../../utils";
+import { type SiteInfo, fetchSiteMatrix } from "../../../wiki-api";
 
 export async function getStaticPaths() {
     const entries = await getCollection("stats");
@@ -25,9 +26,9 @@ export async function getStaticPaths() {
             params: { dump_date: "latest" },
         });
 
-        params.push({
-            params: { dump_date: undefined },
-        });
+        // params.push({
+        //     params: { dump_date: undefined },
+        // });
     }
 
     return params;
@@ -71,6 +72,12 @@ for (const key in site_matrix) {
 ---
 
 <Layout title="WikiStats - All Wikis">
+    <SelectionNavigation
+        dump_date={dump_date ?? "latest"}
+        slot="left-sidebar"
+        show_wiki_selection={false}
+    />
+
     <div>
         <div class="flex flex-wrap justify-between items-baseline">
             <h1 class="text-3xl">Wikis</h1>
@@ -90,7 +97,9 @@ for (const key in site_matrix) {
         </p>
 
         <div
-            class={cn(`flex flex-col items-center w-full w-[400px] gap-2 static min-[1800px]:fixed top-32 right-8`)}>
+            class={cn(
+                `flex flex-col items-center gap-2 sidebar-table`,
+            )}>
             <Table
                 classNameWrapper="!text-base w-full"
                 classNameCell="!px-3 !py-1.5"
@@ -144,3 +153,19 @@ for (const key in site_matrix) {
         </div>
     </div>
 </Layout>
+<!-- flex flex-col items-center w-full1 w-[calc(((100vw-900px)/2)-2rem)] 1min-w-[350px] gap-2 static min-[1500px]:fixed top-32 right-8 -->
+<style>
+    .sidebar-table {
+        position: static;
+        width: 100%;
+    }
+    @media (min-width: 1600px) {
+        .sidebar-table {
+            position: fixed;
+            top: 11rem;
+            right: 2rem;
+            width: calc(((100vw - 900px) / 2) - 4rem);
+            /* max-width: 420px; */
+        }
+    }
+</style>
