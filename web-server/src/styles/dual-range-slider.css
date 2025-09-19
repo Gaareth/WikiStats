@@ -1,6 +1,8 @@
 .dual-range-slider {
+    /* for some reason combining the two doesn't work */
     input[type="range"]::-webkit-slider-thumb {
         -webkit-appearance: none;
+        appearance: none;
         pointer-events: all;
         width: 18px;
         height: 18px;
@@ -8,7 +10,7 @@
         border-radius: 50%;
         /* box-shadow: 0 0 0 1px #C6C6C6; */
         cursor: pointer;
-        @apply dark:bg-dark_01 dark:border-dark_03 dark:hover:bg-dark_02 dark:hover:border-dark_04;
+        @apply dark:bg-dark_01 dark:border-dark_03 dark:hover:bg-dark_02 dark:hover:border-dark_04 border-solid border-blue-600 border hover:bg-blue-100;
     }
 
     input[type="range"]::-moz-range-thumb {
@@ -21,11 +23,12 @@
         border-radius: 50%;
         /* box-shadow: 0 0 0 1px #C6C6C6; */
         cursor: pointer;
-        @apply dark:bg-dark_01 dark:border-dark_03 dark:hover:bg-dark_02 dark:hover:border-dark_04;
+        @apply dark:bg-dark_01 dark:border-dark_03 dark:hover:bg-dark_02 dark:hover:border-dark_04 border-solid border-blue-600 border hover:bg-blue-100;
     }
 
     input[type="range"]::-webkit-slider-thumb:hover {
-        background: #f7f7f7;
+        /* background: #f7f7f7; */
+        @apply dark:hover:bg-dark_02 dark:hover:border-dark_04 hover:bg-blue-100
     }
 
     input[type="range"]::-webkit-slider-thumb:active {
@@ -55,5 +58,17 @@
     input[type="range"].to-slider {
         z-index: 10;
         background-color: transparent;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+        background: transparent !important;
+    }
+
+    input[type="range"]::-moz-range-track {
+        background: transparent !important;
+    }
+
+    input[type="range"]::-moz-range-progress {
+        background: transparent !important;
     }
 }
