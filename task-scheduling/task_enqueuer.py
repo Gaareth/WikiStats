@@ -8,14 +8,13 @@ from tasks import (
     STATS_OUTPUT_PATH,
     SUPPORTED_WIKIS,
     WIKI_TASKS_PREFIX,
-    process_wiki,
-    SIMULATE,
     redis,
     set_task_status
 )
 
 
 def check_for_tasks():
+    from tasks import process_wiki  # TODO: put in shared
     desired_wikis = SUPPORTED_WIKIS.split(", ")
     available_wikis_per_dump_date = {}
 
@@ -80,6 +79,7 @@ def check_for_tasks():
     redis.set(f"{WIKI_TASKS_PREFIX}:last_checked_for_tasks", now_utc_seconds)
 
 def simulate_check_for_tasks():
+    from tasks import process_wiki  # TODO: put in shared
     wikis = SUPPORTED_WIKIS.split(", ")
     for wiki in wikis:
         for dump_date in [

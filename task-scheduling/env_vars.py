@@ -38,8 +38,14 @@ if DB_WIKIS_DIR is None:
     exit(-1)
 
 SIMULATE = os.getenv("TASK_SCHEDULING_SIMULATE") == "true"
-if SIMULATE is None:
+if os.getenv("TASK_SCHEDULING_SIMULATE") is None:
     print("TASK_SCHEDULING_SIMULATE env var can't be None")
+    exit(-1)
+
+
+CRONTAB_SCHEDULE = os.getenv("TASK_SCHEDULING_SCHEDULE")
+if CRONTAB_SCHEDULE is None:
+    print("TASK_SCHEDULING_SCHEDULE env var can't be None")
     exit(-1)
 
 UPDATE_DONE_SH = "../update-done.sh"

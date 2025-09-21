@@ -251,25 +251,30 @@ export default z.object({
     num_pages: z.record(z.number().int().gte(0)),
     num_redirects: z.record(z.number().int().gte(0)),
     seconds_taken: z.number().int().gte(0),
-    wiki_sizes: z.object({
-        sizes: z.array(
+    wiki_sizes: z
+        .union([
             z.object({
-                compressed_selected_tables_size: z
-                    .union([z.number().int().gte(0), z.null()])
-                    .optional(),
-                compressed_total_size: z
-                    .union([z.number().int().gte(0), z.null()])
-                    .optional(),
-                decompressed_size: z
-                    .union([z.number().int().gte(0), z.null()])
-                    .optional(),
-                name: z.string(),
-                processed_size: z
-                    .union([z.number().int().gte(0), z.null()])
-                    .optional(),
+                sizes: z.array(
+                    z.object({
+                        compressed_selected_tables_size: z
+                            .union([z.number().int().gte(0), z.null()])
+                            .optional(),
+                        compressed_total_size: z
+                            .union([z.number().int().gte(0), z.null()])
+                            .optional(),
+                        decompressed_size: z
+                            .union([z.number().int().gte(0), z.null()])
+                            .optional(),
+                        name: z.string(),
+                        processed_size: z
+                            .union([z.number().int().gte(0), z.null()])
+                            .optional(),
+                    }),
+                ),
+                tables: z.array(z.string()),
             }),
-        ),
-        tables: z.array(z.string()),
-    }),
+            z.null(),
+        ])
+        .optional(),
     wikis: z.array(z.string()),
 });

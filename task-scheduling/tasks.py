@@ -12,6 +12,7 @@ from contextlib import contextmanager
 import redis
 from celery import Celery
 from celery.utils.log import get_task_logger
+from celery.schedules import crontab
 
 from env_vars import (
     WIKI_CLI_BINARY,
@@ -24,6 +25,7 @@ from env_vars import (
     UPDATE_DONE_SH,
     TABLES,
     env_path,
+    CRONTAB_SCHEDULE,
 )
 
 
@@ -33,10 +35,20 @@ logger = get_task_logger(__name__)
 REDIS_PREFIX = "CELERY-WIKI_"
 WIKI_TASKS_PREFIX = REDIS_PREFIX + "wiki-tasks"
 
-app = Celery("tasks", broker="amqp://localhost", backend="redis://localhost")
+broker_host = os.getenv("RABBITMQ_HOST", "localhost")
+broker_port = os.getenv("RABBITMQ_PORT", "5672")
+
+redis_host = os.getenv("REDIS_HOST", "localhost")
+redis_port = os.getenv("REDIS_PORT", "6379")
+redis_db = os.getenv("REDIS_DB", "0")
+
+app = Celery(
+    "tasks", broker=f"amqp://guest:guest@{broker_host}:{broker_port}//", backend=f"redis://{redis_host}:{redis_port}/{redis_db}"
+)
+
 app.conf.result_backend_transport_options = {"global_keyprefix": REDIS_PREFIX}
 app.conf.update(
-    broker_url="amqp://guest:guest@localhost:5672//",
+    broker_url=f"amqp://guest:guest@{broker_host}:{broker_port}//",
     broker_transport_options={
         # "visibility_timeout": 7200,  # 2 hours (use if long tasks)
         "heartbeat": 30,  # keep connection alive
@@ -47,7 +59,7 @@ app.conf.update(
 )
 
 
-redis = redis.Redis(host="localhost", port=6379, db=0)
+redis = redis.Redis(host=redis_host, port=redis_port, db=redis_db)
 
 
 import handlers  # imports the signal handlers
@@ -62,6 +74,27 @@ from utils import (
     safe_set_env_vars,
     get_latest_dump_date,
 )
+from task_enqueuer import check_for_tasks
+
+
+@app.on_after_configure.connect
+def setup_periodic_tasks(sender: Celery, **kwargs):
+    logger.info(f"Setting up periodic tasks with schedule {CRONTAB_SCHEDULE}")
+    sender.add_periodic_task(
+        crontab(
+            minute=CRONTAB_SCHEDULE[0],
+            hour=CRONTAB_SCHEDULE[1],
+            day_of_week=CRONTAB_SCHEDULE[2],
+            day_of_month=CRONTAB_SCHEDULE[3],
+            month_of_year=CRONTAB_SCHEDULE[4],
+        ),
+        task_enqueuer.s(),
+    )
+
+
+@app.task
+def task_enqueuer():
+    check_for_tasks()
 
 
 @app.task

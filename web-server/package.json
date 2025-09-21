@@ -8,7 +8,7 @@
         "build": "dotenv -e ../.env -- astro check && dotenv -e ../.env -- astro build",
         "preview": "dotenv -e ../.env -- astro preview",
         "astro": "dotenv -e ../.env --  astro",
-        "gen-schema": "json-refs resolve src/content/stats-schema.json | json-schema-to-zod | prettier --parser typescript > src/content/stats-schema.ts"
+        "gen-schema": "json-refs resolve stats-schema.json | json-schema-to-zod | prettier --parser typescript > src/content/stats-schema.ts"
     },
     "dependencies": {
         "@astrojs/check": "^0.9.3",

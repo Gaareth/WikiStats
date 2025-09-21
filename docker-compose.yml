@@ -64,3 +64,27 @@ services:
         volumes:
             - ./task-scheduling/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
         profiles: ["dev", "prod"]
+    # celery-worker:
+    #     build:
+    #         context: ./task-scheduling
+    #         dockerfile: Dockerfile
+    #     container_name: wiki-stats-celery-worker
+    #     depends_on:
+    #         - rabbitmq
+    #         - redis
+    #     environment:
+    #         REDIS_HOST: redis
+    #         REDIS_PORT: 6379
+    #         RABBITMQ_HOST: rabbitmq
+    #         RABBITMQ_PORT: 5672
+    #     env_file:
+    #         - .env
+    #     volumes:
+    #         - ${DB_WIKIS_DIR}:${DB_WIKIS_DIR}
+    #         - ${WIKI_CLI_BINARY}:${WIKI_CLI_BINARY}
+    #         - ${STATS_OUTPUT_PATH}:${STATS_OUTPUT_PATH}
+    #         - ${REBUILD_SERVER_BIN}:${REBUILD_SERVER_BIN}
+    #         - ${DB_WIKIS_BASEPATH}:${DB_WIKIS_BASEPATH}
+    #     command: celery -A tasks worker --loglevel=info
+    #     restart: always
+    #     profiles: ["prod", "dev"]
