@@ -7,6 +7,7 @@ import SimpleStatCards from "../../../../components/SimpleStatCards.astro";
 import GlobalStats from "../../../../components/SPC/Stats/GlobalStats.astro";
 import StatTable from "../../../../components/StatTable.astro";
 import {
+    get_latest_date,
     TOP_TEN_MOST_LINKED_STAT,
     TOP_TEN_MOST_LINKS_STAT,
 } from "../../../../db/constants";
@@ -19,22 +20,27 @@ import DumpDateSelection from "../../../../components/Selection/DumpDateSelectio
 // 1. Generate a new path for every collection entry
 export async function getStaticPaths() {
     const entries = await getCollection("stats");
+    const latest_date = await get_latest_date();
 
     let params = [];
 
     for (const entry of entries) {
+        const dump_date = entry.data.dump_date;
         for (const wiki of entry.data.wikis) {
             params.push({
-                params: { dump_date: entry.data.dump_date, wiki_name: wiki },
+                params: { dump_date, wiki_name: wiki },
             });
-            params.push({
-                params: { dump_date: "latest", wiki_name: wiki },
-            });
+            
+            if (dump_date === latest_date || latest_date == null) {
+                params.push({
+                    params: { dump_date: "latest", wiki_name: wiki },
+                });
+            }
         }
 
         // Global stats for each dump date
         params.push({
-            params: { dump_date: entry.data.dump_date, wiki_name: undefined },
+            params: { dump_date, wiki_name: undefined },
         });
     }
 

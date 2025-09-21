@@ -36,7 +36,7 @@ type RecordKeys = KeysOfType<InferEntrySchema<"stats">, Record<string, number>>;
 
 let labels = all_stats.map((s) => s.id);
 let chart_data: Record<RecordKeys, Record<string, number[]>> = {
-    longest_name: {},
+    // longest_name: {},
     // longest_name_no_redirect: {},
     num_dead_orphan_pages: {},
     num_dead_pages: {},
