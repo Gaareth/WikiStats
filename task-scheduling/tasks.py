@@ -157,9 +157,7 @@ def finish_dump(dump_date):
 
     all_done = all_tasks_done()
 
-    env_updates = {
-        "IS_UPDATING": "false" if all_done else "true",
-    }
+    redis.set(f"{WIKI_TASKS_PREFIX}:is-updating", not all_done)
 
     # check if dump_date is the latest date and then delete all others older than it if their stats file exists
     latest_dump_date = get_latest_dump_date(WIKI_BASEPATH)
@@ -193,10 +191,10 @@ def process_wiki(self, name, dump_date, supported_wikis: List[str]):
 
     # logger.info(DB_DIR)
 
-    is_updating = os.getenv("IS_UPDATING")
-    if is_updating == "true" and not SIMULATE:
+    is_updating = redis.get(f"{WIKI_TASKS_PREFIX}:is-updating")
+    if is_updating == False and not SIMULATE:
         try:
-            safe_set_env_vars(env_path, {"IS_UPDATING": "true"})
+            redis.set(f"{WIKI_TASKS_PREFIX}:is-updating", True)
             build_server()
         except Exception as e:
             logger.error(f"Failed building server {e} ")

@@ -77,7 +77,12 @@ let dbStatus: DB_STATUS_TYPE;
 // const isUpdatingRn = Object.entries(tasksStatusi)
 //     .map(([_, v]) => v)
 //     .some((v) => v === "RUNNING");
-const isUpdatingRn = tasks.some((t) => t.status === "RUNNING");
+// const isUpdatingRn = tasks.some((t) => t.status === "RUNNING");
+
+const is_updating = await redisClient.get("CELERY-WIKI_wiki-tasks:is-updating");
+const isUpdatingRn: boolean =
+    is_updating == "true" || is_updating == "True" ||
+    (typeof is_updating == "boolean" && is_updating);
 
 if (isUpdatingRn) {
     dbStatus = "RUNNING";

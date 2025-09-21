@@ -12,6 +12,7 @@ import "../styles/borders.scss";
 import "../styles/dual-range-slider.css";
 import "../styles/global.css";
 import { formatDumpDate } from "../utils";
+import { redisClient } from "../db/redis";
 
 interface Props {
     title: string;
@@ -26,10 +27,10 @@ const latest_dump_date = latest_dump
     ? formatDumpDate(latest_dump) + " (UTC)"
     : "N/A";
 
-const IS_UPDATING_ENV_STR: string = import.meta.env.IS_UPDATING;
+const is_updating = await redisClient.get("CELERY-WIKI_wiki-tasks:is-updating");
 const isUpdatingRn: boolean =
-    IS_UPDATING_ENV_STR == "true" ||
-    (typeof IS_UPDATING_ENV_STR == "boolean" && IS_UPDATING_ENV_STR);
+    is_updating == "true" || is_updating == "True" ||
+    (typeof is_updating == "boolean" && is_updating);
 
 const appleTouchIcon = await getImage({
     src: favicon,
@@ -92,7 +93,7 @@ const appleTouchIcon = await getImage({
                             What does this mean?
                         </a>
                     </div>
-                    <!-- {
+                    {
                         isUpdatingRn && (
                             <span class="inline-flex items-center gap-1 font-bold uppercase">
                                 <span class="inline-block w-4">
@@ -102,7 +103,7 @@ const appleTouchIcon = await getImage({
                                 <a href="/dump-progress">More here</a>
                             </span>
                         )
-                    } -->
+                    }
                 </div>
             </Alert>
         </div>
