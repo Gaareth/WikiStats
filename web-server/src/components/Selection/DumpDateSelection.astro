@@ -1,18 +1,24 @@
 ---
-import { getCollection } from "astro:content";
+import { getCollection, type InferEntrySchema } from "astro:content";
 import clsx from "clsx";
 import Selection, { type SelectionProps } from "./Selection.astro";
 
 interface Props extends SelectionProps {
     currrent_dumpdate?: string;
     current_wikiname?: string;
+    collection_filter?: (entry: {
+        id: string;
+        collection: "stats";
+        data: InferEntrySchema<"stats">;
+    }) => boolean;
 }
 
-const { currrent_dumpdate, current_wikiname, ...rest } = Astro.props;
+const { currrent_dumpdate, current_wikiname, collection_filter, ...rest } =
+    Astro.props;
 const items = (await getCollection("stats"))
     .filter(
         (c) =>
-            current_wikiname == null || c.data.wikis.includes(current_wikiname),
+            (current_wikiname == null || c.data.wikis.includes(current_wikiname)) && (collection_filter == null || collection_filter(c)),
     )
     .map((c) => c.id)
     .reverse();

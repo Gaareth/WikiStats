@@ -45,7 +45,7 @@ const entry = await get_stat(dump_date || "latest");
 const all_wiki_sizes = entry!.wiki_sizes;
 const supported_wikis = entry!.wikis;
 
-const wikis_columns = all_wiki_sizes.sizes;
+const wikis_columns = all_wiki_sizes?.sizes;
 
 const dbname_to_siteinfo = new Map<string, SiteInfo>();
 const site_matrix = await fetchSiteMatrix();
@@ -81,84 +81,106 @@ for (const key in site_matrix) {
         dump_date={dump_date ?? "latest"}
         slot="left-sidebar"
         show_wiki_selection={false}
+        dump_date_filter={(entry) => entry.data.wiki_sizes != null}
     />
 
     <DumpDateSelection
         currrent_dumpdate={dump_date}
         classNameWrapper="block mb-5 lg:hidden"
+        collection_filter={(entry) => entry.data.wiki_sizes != null}
     />
 
-    <div>
-        <div class="flex flex-wrap justify-between items-baseline">
-            <h1 class="text-3xl">Wikis</h1>
-            <p>
-                Available ({all_wiki_sizes.sizes.length}) | Supported ({
-                    supported_wikis.length
-                })
-            </p>
-        </div>
-
-        <p class="my-2 text-secondary">
-            This table lists all available wikis at <a
-                href="https://dumps.wikimedia.org">
-                dumps.wikimedia.org
-            </a> along with their sizes. You can filter by their type, but most interesting
-            are probably the language wikis
-        </p>
-
-        <div class={cn(`flex flex-col items-center gap-2 sidebar-table`)}>
-            <Table
-                classNameWrapper="!text-base w-full"
-                classNameCell="!px-3 !py-1.5"
-                classNameHeader="!px-3 !py-1.5"
-                title="Size Legend"
-                client:load
-                columns={[
-                    {
-                        key: "size",
-                        label: "Size",
-                        isSortable: false,
-                    },
-                    {
-                        key: "desc",
-                        label: "Description",
-                        isSortable: false,
-                    },
-                ]}
-                data={[
-                    {
-                        size: "Total",
-                        desc: "All available sql.gz files (compressed)",
-                    },
-                    {
-                        size: "Relevant",
-                        desc: `Downloaded sql.gz files (compressed). These are currently the tables: [${all_wiki_sizes.tables.join(", ")}]`,
-                    },
-                    {
-                        size: "Decompressed",
-                        desc: "Total size after decompressing all",
-                    },
-                    {
-                        size: "Processed",
-                        desc: "Size of data after processing to a single sqlite file",
-                    },
-                ]}
-            />
-            <Card className="text-center p-2 w-full">
-                Want another wiki supported? <a href="/about">Contact me</a>
+    {
+        all_wiki_sizes == null && (
+            <Card className="text-center p-2">
+                <p>No wiki sizes data available for this dump date (yet)</p>
+                <p class="text-secondary">
+                    This requires all dumps to be processed, so please check
+                    back later.
+                </p>
             </Card>
-        </div>
+        )
+    }
 
-        <div class="mt-14">
-            <WikiSizesTable
-                {supported_wikis}
-                {wikis_columns}
-                {dump_date}
-                {dbname_to_siteinfo}
-                client:load
-            />
-        </div>
-    </div>
+    {
+        all_wiki_sizes != null && (
+            <div>
+                <div class="flex flex-wrap justify-between items-baseline">
+                    <h1 class="text-3xl">Wikis</h1>
+                    <p>
+                        Available ({all_wiki_sizes.sizes.length}) | Supported (
+                        {supported_wikis.length})
+                    </p>
+                </div>
+
+                <p class="my-2 text-secondary">
+                    This table lists all available wikis at{" "}
+                    <a href="https://dumps.wikimedia.org">
+                        dumps.wikimedia.org
+                    </a>{" "}
+                    along with their sizes. You can filter by their type, but
+                    most interesting are probably the language wikis
+                </p>
+
+                <div
+                    class={cn(
+                        `flex flex-col items-center gap-2 sidebar-table`,
+                    )}>
+                    <Table
+                        classNameWrapper="!text-base w-full"
+                        classNameCell="!px-3 !py-1.5"
+                        classNameHeader="!px-3 !py-1.5"
+                        title="Size Legend"
+                        client:load
+                        columns={[
+                            {
+                                key: "size",
+                                label: "Size",
+                                isSortable: false,
+                            },
+                            {
+                                key: "desc",
+                                label: "Description",
+                                isSortable: false,
+                            },
+                        ]}
+                        data={[
+                            {
+                                size: "Total",
+                                desc: "All available sql.gz files (compressed)",
+                            },
+                            {
+                                size: "Relevant",
+                                desc: `Downloaded sql.gz files (compressed). These are currently the tables: [${all_wiki_sizes.tables.join(", ")}]`,
+                            },
+                            {
+                                size: "Decompressed",
+                                desc: "Total size after decompressing all",
+                            },
+                            {
+                                size: "Processed",
+                                desc: "Size of data after processing to a single sqlite file",
+                            },
+                        ]}
+                    />
+                    <Card className="text-center p-2 w-full">
+                        Want another wiki supported?{" "}
+                        <a href="/about">Contact me</a>
+                    </Card>
+                </div>
+
+                <div class="mt-14">
+                    <WikiSizesTable
+                        {supported_wikis}
+                        {wikis_columns}
+                        {dump_date}
+                        {dbname_to_siteinfo}
+                        client:load
+                    />
+                </div>
+            </div>
+        )
+    }
 </Layout>
 <!-- flex flex-col items-center w-full1 w-[calc(((100vw-900px)/2)-2rem)] 1min-w-[350px] gap-2 static min-[1500px]:fixed top-32 right-8 -->
 <style>

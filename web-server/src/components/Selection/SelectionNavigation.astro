@@ -1,4 +1,5 @@
 ---
+import type { InferEntrySchema } from "astro:content";
 import { cn } from "../../utils";
 import DumpDateSelection from "./DumpDateSelection.astro";
 import WikiSelection from "./WikiSelection.astro";
@@ -11,6 +12,11 @@ interface Props {
     dir?: string;
     show_wiki_selection?: boolean;
     show_date_selection?: boolean;
+    dump_date_filter?: (entry: {
+        id: string;
+        collection: "stats";
+        data: InferEntrySchema<"stats">;
+    }) => boolean;
 }
 
 const {
@@ -19,6 +25,7 @@ const {
     dir,
     show_wiki_selection = true,
     show_date_selection = true,
+    dump_date_filter,
 } = Astro.props;
 ---
 
@@ -49,10 +56,14 @@ const {
                     currrent_dumpdate={dump_date}
                     current_wikiname={wiki_name}
                     classNameWrapper="bg-transparent p-0 m-0 -mt-3 py-2 pb-4 !flex-col-reverse"
-                    classNameLegend="bg-white dark:bg-dark_01 !text-lg"
+                    classNameLegend={cn(
+                        "!text-lg",
+                        show_wiki_selection && "bg-white dark:bg-dark_01",
+                    )}
                     className="!flex !flex-col !text-start text-base"
                     vertical={true}
                     max_shown={10}
+                    collection_filter={dump_date_filter}
                 />
             )
         }
