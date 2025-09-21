@@ -56,7 +56,6 @@ const min_num_pages = await MIN_NUM_PAGES_STAT(dump_date);
 const max_num_links = await MAX_NUM_LINKS_STAT(dump_date);
 const min_num_links = await MIN_NUM_LINKS_STAT(dump_date);
 
-
 // transpose the dataset for better visualization, so all wikis are in one group and therefore easier to compare
 const dataLength = Math.max(...flattendDataset.map((d) => d.data.length));
 const transposedLabels = Object.keys(datasets);

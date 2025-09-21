@@ -29,4 +29,3 @@ export async function getEarlierEntry(dumpDate: string) {
 // export async function get_earlier_dump_date(dumpDate: string) {
 //     return getEarlierEntry(dumpDate).then((e) => e?.id);
 // }
-

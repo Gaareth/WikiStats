@@ -10,8 +10,7 @@ import ThemeToggle from "./ThemeToggle";
 <header>
     <div class="px-4 lg:px-6 py-2.5 mb-5 sm:mb-0">
         <div
-            class="grid grid-cols-1 sm:grid-cols-3 gap-3 justify-between items-center mx-auto max-w-screen-xl"
-        >
+            class="grid grid-cols-1 sm:grid-cols-3 gap-3 justify-between items-center mx-auto max-w-screen-xl">
             <div class="w-full flex justify-between items-center sm:w-auto">
                 <a class="flex gap-2 items-center !no-underline" href="/">
                     <div class="dark:block hidden">
@@ -34,8 +33,7 @@ import ThemeToggle from "./ThemeToggle";
                         class={cn(
                             "text-gradient_start",
                             Astro.url.pathname == "/" && "font-bold",
-                        )}
-                    >
+                        )}>
                         WikiStats
                     </span>
                 </a>
@@ -45,30 +43,28 @@ import ThemeToggle from "./ThemeToggle";
                     class="sm:hidden inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-dark_01 dark:focus:ring-gray-600"
                     aria-controls="navbar"
                     aria-expanded="false"
-                    data-collapse-toggle="navbar"
-                >
+                    data-collapse-toggle="navbar">
                     <span class="sr-only">Open main menu</span>
                     <svg
                         class="w-5 h-5"
                         aria-hidden="true"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
-                        viewBox="0 0 17 14"
-                    >
+                        viewBox="0 0 17 14">
                         <path
                             stroke="currentColor"
                             stroke-linecap="round"
                             stroke-linejoin="round"
                             stroke-width="2"
-                            d="M1 1h15M1 7h15M1 13h15"></path>
+                            d="M1 1h15M1 7h15M1 13h15">
+                        </path>
                     </svg>
                 </button>
             </div>
 
             <div
                 class="hidden w-full sm:flex sm:col-span-2 items-center"
-                id="navbar"
-            >
+                id="navbar">
                 <Nav />
                 <div class="px-3 py-2 w-full sm:w-auto sm:p-0 ml-auto">
                     <ThemeToggle client:load class="w-full sm:w-auto" />

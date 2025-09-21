@@ -93,7 +93,9 @@ if (!(await get_supported_wikis("latest")).includes(wiki_name)) {
 }
 ---
 
-<Layout title={"WikiStats - " + page_name} mainClass="block max-w-screen-xl w-full mx-auto">
+<Layout
+    title={"WikiStats - " + page_name}
+    mainClass="block max-w-screen-xl w-full mx-auto">
     <div class="">
         {
             num_linked === undefined && (

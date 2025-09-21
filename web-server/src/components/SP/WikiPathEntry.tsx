@@ -1,11 +1,11 @@
 import type { JSX } from "solid-js";
 import {
+    createResource,
     ErrorBoundary,
     Match,
     Show,
     Suspense,
     Switch,
-    createResource,
 } from "solid-js";
 import { get_wiki_prefix, WIKIPEDIA_REST_API_HEADERS } from "../../utils";
 import {
@@ -89,8 +89,7 @@ export default function WikiPathEntry(props: Props) {
                     <Show
                         when={["end", "end_hit", "end_miss"].includes(
                             props.type!,
-                        )}
-                    >
+                        )}>
                         <Pill class="bg-red-100 dark:bg-red-500">
                             <span class="block w-5">
                                 <Switch>
@@ -118,13 +117,11 @@ export default function WikiPathEntry(props: Props) {
                         Failed loading page description:
                         {desc.error}
                     </p>
-                }
-            >
+                }>
                 <Suspense
                     fallback={
                         <div class="text-base bg-skeleton px-2 h-3 w-20"></div>
-                    }
-                >
+                    }>
                     <p class="text-base text-neutral-400">{desc()}..</p>
                 </Suspense>
             </ErrorBoundary>

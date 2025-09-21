@@ -21,22 +21,19 @@ export default function GraphPanels(props: Props) {
         <div
             class={`absolute right-2 ${
                 props.isFullscreen() ? " bottom-8" : "bottom-2"
-            }`}
-        >
+            }`}>
             <div class="flex justify-end m-2">
                 <button
                     class="w-10 h-10 rounded-full bg-white
                         dark-layer-1 border hover:bg-gray-10 
                         flex items-center justify-center"
                     onClick={() => setExpanded(!expanded())}
-                    aria-label={(expanded() ? "Close" : "Open") + " panels"}
-                >
+                    aria-label={(expanded() ? "Close" : "Open") + " panels"}>
                     <div
                         class={cn(
                             "tham tham-e-squeeze tham-w-6",
                             expanded() && "tham-active",
-                        )}
-                    >
+                        )}>
                         <div class="tham-box">
                             <div class="tham-inner bg-gray-500 dark:bg-gray-400" />
                         </div>

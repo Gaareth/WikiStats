@@ -1,112 +1,97 @@
 {
-  "version": "5",
-  "dialect": "sqlite",
-  "id": "5d55a0d2-cc15-4c61-a959-1724e039a6fd",
-  "prevId": "00000000-0000-0000-0000-000000000000",
-  "tables": {
-    "WikiLinks": {
-      "name": "WikiLinks",
-      "columns": {
-        "page_id": {
-          "name": "page_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+    "version": "5",
+    "dialect": "sqlite",
+    "id": "5d55a0d2-cc15-4c61-a959-1724e039a6fd",
+    "prevId": "00000000-0000-0000-0000-000000000000",
+    "tables": {
+        "WikiLinks": {
+            "name": "WikiLinks",
+            "columns": {
+                "page_id": {
+                    "name": "page_id",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "autoincrement": false
+                },
+                "page_links": {
+                    "name": "page_links",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "autoincrement": false
+                }
+            },
+            "indexes": {
+                "idx_links_page": {
+                    "name": "idx_links_page",
+                    "columns": ["page_links"],
+                    "isUnique": false
+                },
+                "idx_links_id": {
+                    "name": "idx_links_id",
+                    "columns": ["page_id"],
+                    "isUnique": false
+                },
+                "WikiLinks_page_links_idx": {
+                    "name": "WikiLinks_page_links_idx",
+                    "columns": ["page_links"],
+                    "isUnique": false
+                },
+                "WikiLinks_page_id_idx": {
+                    "name": "WikiLinks_page_id_idx",
+                    "columns": ["page_id"],
+                    "isUnique": false
+                },
+                "WikiLinks_page_id_page_links_key": {
+                    "name": "WikiLinks_page_id_page_links_key",
+                    "columns": ["page_id", "page_links"],
+                    "isUnique": true
+                }
+            },
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {}
         },
-        "page_links": {
-          "name": "page_links",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+        "WikiPage": {
+            "name": "WikiPage",
+            "columns": {
+                "page_id": {
+                    "name": "page_id",
+                    "type": "integer",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "autoincrement": true
+                },
+                "page_title": {
+                    "name": "page_title",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "autoincrement": false
+                }
+            },
+            "indexes": {
+                "WikiPage_page_title_idx": {
+                    "name": "WikiPage_page_title_idx",
+                    "columns": ["page_title"],
+                    "isUnique": false
+                },
+                "WikiPage_page_id_idx": {
+                    "name": "WikiPage_page_id_idx",
+                    "columns": ["page_id"],
+                    "isUnique": false
+                }
+            },
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {}
         }
-      },
-      "indexes": {
-        "idx_links_page": {
-          "name": "idx_links_page",
-          "columns": [
-            "page_links"
-          ],
-          "isUnique": false
-        },
-        "idx_links_id": {
-          "name": "idx_links_id",
-          "columns": [
-            "page_id"
-          ],
-          "isUnique": false
-        },
-        "WikiLinks_page_links_idx": {
-          "name": "WikiLinks_page_links_idx",
-          "columns": [
-            "page_links"
-          ],
-          "isUnique": false
-        },
-        "WikiLinks_page_id_idx": {
-          "name": "WikiLinks_page_id_idx",
-          "columns": [
-            "page_id"
-          ],
-          "isUnique": false
-        },
-        "WikiLinks_page_id_page_links_key": {
-          "name": "WikiLinks_page_id_page_links_key",
-          "columns": [
-            "page_id",
-            "page_links"
-          ],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
     },
-    "WikiPage": {
-      "name": "WikiPage",
-      "columns": {
-        "page_id": {
-          "name": "page_id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": true
-        },
-        "page_title": {
-          "name": "page_title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "WikiPage_page_title_idx": {
-          "name": "WikiPage_page_title_idx",
-          "columns": [
-            "page_title"
-          ],
-          "isUnique": false
-        },
-        "WikiPage_page_id_idx": {
-          "name": "WikiPage_page_id_idx",
-          "columns": [
-            "page_id"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+    "enums": {},
+    "_meta": {
+        "schemas": {},
+        "tables": {},
+        "columns": {}
     }
-  },
-  "enums": {},
-  "_meta": {
-    "schemas": {},
-    "tables": {},
-    "columns": {}
-  }
 }

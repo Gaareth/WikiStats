@@ -25,8 +25,7 @@ export default function GraphController(props: ControllerProps) {
             width="1em"
             height="1em"
             viewBox="0 0 24 24"
-            class="w-6 h-6 hover:text-blue-500"
-        >
+            class="w-6 h-6 hover:text-blue-500">
             <path fill="currentColor" d="M8 5.14v14l11-7z" />
         </svg>
     );
@@ -36,8 +35,7 @@ export default function GraphController(props: ControllerProps) {
             width="1em"
             height="1em"
             viewBox="0 0 24 24"
-            class="w-6 h-6 hover:text-blue-500"
-        >
+            class="w-6 h-6 hover:text-blue-500">
             <path fill="currentColor" d="M14 19h4V5h-4M6 19h4V5H6z" />
         </svg>
     );
@@ -48,8 +46,7 @@ export default function GraphController(props: ControllerProps) {
             width="1em"
             height="1em"
             viewBox="0 0 24 24"
-            class="w-6 h-6 hover:text-blue-500"
-        >
+            class="w-6 h-6 hover:text-blue-500">
             <path
                 fill="currentColor"
                 d="M5 5h5v2H7v3H5zm9 0h5v5h-2V7h-3zm3 9h2v5h-5v-2h3zm-7 3v2H5v-5h2v3z"
@@ -64,8 +61,7 @@ export default function GraphController(props: ControllerProps) {
             height="1em"
             viewBox="0 0 24 24"
             class="w-6 h-6 hover:text-blue-500"
-            aria-label="arrow looping around dot, starting in the west ending nord so that the head points west"
-        >
+            aria-label="arrow looping around dot, starting in the west ending nord so that the head points west">
             <path
                 fill="currentColor"
                 d="M12 16c1.671 0 3-1.331 3-3s-1.329-3-3-3s-3 1.331-3 3s1.329 3 3 3"
@@ -106,8 +102,7 @@ export default function GraphController(props: ControllerProps) {
                 {props.resetZoom && (
                     <ControlButton
                         onClick={props.resetZoom}
-                        tooltip="Reset zoom"
-                    >
+                        tooltip="Reset zoom">
                         <p class="hidden">
                             Attribution: BoxIcon bx:reset
                             https://icon-sets.iconify.design/bx/reset/
@@ -118,16 +113,14 @@ export default function GraphController(props: ControllerProps) {
                 {props.toggleLayout && (
                     <ControlButton
                         onClick={props.toggleLayout}
-                        tooltip={`${props.layoutIsRunning() ? "Stop" : "Start"} layouting nodes`}
-                    >
+                        tooltip={`${props.layoutIsRunning() ? "Stop" : "Start"} layouting nodes`}>
                         {props.layoutIsRunning() ? pauseIcon() : playIcon()}
                     </ControlButton>
                 )}
                 {props.toggleFullScreen && (
                     <ControlButton
                         onClick={props.toggleFullScreen}
-                        tooltip="Enter/leave fullscreen"
-                    >
+                        tooltip="Enter/leave fullscreen">
                         {fullScreenIcon()}
                     </ControlButton>
                 )}

@@ -14,8 +14,6 @@ type WikiStat<T> = {
     get: (wiki_name: string | undefined) => T;
 };
 
-
-
 type Stats = InferEntrySchema<"stats">;
 type RecordKeys = KeysOfType<Stats, Record<string, any>>;
 type ValueOf<T> = T[keyof T];
@@ -147,9 +145,9 @@ export const NUM_DEAD_ROOT_PAGES_STAT = await make_wiki_stat(
     "num_dead_orphan_pages",
 );
 
-export async function make_global_stat<
-    key extends RecordKeys,
->(key: key): Promise<(dump_date: string) => Promise<Stats[key]>> {
+export async function make_global_stat<key extends RecordKeys>(
+    key: key,
+): Promise<(dump_date: string) => Promise<Stats[key]>> {
     // @ts-ignore
     return async (dump_date: string) => {
         let data = await get_stat(dump_date);

@@ -11,8 +11,7 @@ export const ShowMore = (props: Props) => {
     return (
         <p
             onClick={(e) => e.target.classList.toggle("line-clamp-1")}
-            class="line-clamp-1 break-all"
-        >
+            class="line-clamp-1 break-all">
             {props.text}
         </p>
     );

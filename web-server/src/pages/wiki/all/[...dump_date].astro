@@ -10,14 +10,18 @@ import Layout from "../../../layouts/Layout.astro";
 import { cn } from "../../../utils";
 import { type SiteInfo, fetchSiteMatrix } from "../../../wiki-api";
 
+// TODO: add wiki-sizes task that runs when all dumps are downloaded/processed
+
 export async function getStaticPaths() {
     const entries = await getCollection("stats");
 
     let params = [];
 
     for (const entry of entries) {
+        const data = entry.data;
+        if (!data.wiki_sizes) continue;
         params.push({
-            params: { dump_date: entry.data.dump_date },
+            params: { dump_date: data.dump_date },
         });
     }
 

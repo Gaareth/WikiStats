@@ -95,8 +95,7 @@ const MyChart = ({
                         } else {
                             setChartEntries(skippedEntries);
                         }
-                    }}
-                >
+                    }}>
                     {!showAll() ? "Show all" : "Hide some"}
                 </button>
             </div>

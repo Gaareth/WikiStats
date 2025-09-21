@@ -9,7 +9,7 @@ export type SiteInfo = {
     sitename: string;
     name?: string;
     localname?: string;
-}
+};
 
 export type SiteMatrixResult = {
     sitematrix: {
@@ -38,7 +38,7 @@ export type SiteMatrixResult = {
                 private?: string;
                 fishbowl?: string; // only to logged in?
             };
-        }
+        };
     };
 };
 

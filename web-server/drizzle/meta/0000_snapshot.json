@@ -1,210 +1,195 @@
 {
-  "id": "00000000-0000-0000-0000-000000000000",
-  "prevId": "",
-  "version": "5",
-  "dialect": "sqlite",
-  "tables": {
-    "_prisma_migrations": {
-      "name": "_prisma_migrations",
-      "columns": {
-        "id": {
-          "autoincrement": false,
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
+    "id": "00000000-0000-0000-0000-000000000000",
+    "prevId": "",
+    "version": "5",
+    "dialect": "sqlite",
+    "tables": {
+        "_prisma_migrations": {
+            "name": "_prisma_migrations",
+            "columns": {
+                "id": {
+                    "autoincrement": false,
+                    "name": "id",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "checksum": {
+                    "autoincrement": false,
+                    "name": "checksum",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "finished_at": {
+                    "autoincrement": false,
+                    "name": "finished_at",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "migration_name": {
+                    "autoincrement": false,
+                    "name": "migration_name",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "logs": {
+                    "autoincrement": false,
+                    "name": "logs",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "rolled_back_at": {
+                    "autoincrement": false,
+                    "name": "rolled_back_at",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "started_at": {
+                    "default": "(current_timestamp)",
+                    "autoincrement": false,
+                    "name": "started_at",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "applied_steps_count": {
+                    "default": 0,
+                    "autoincrement": false,
+                    "name": "applied_steps_count",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": true
+                }
+            },
+            "compositePrimaryKeys": {},
+            "indexes": {},
+            "foreignKeys": {},
+            "uniqueConstraints": {}
         },
-        "checksum": {
-          "autoincrement": false,
-          "name": "checksum",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
+        "Example": {
+            "name": "Example",
+            "columns": {
+                "id": {
+                    "autoincrement": false,
+                    "name": "id",
+                    "type": "text",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "createdAt": {
+                    "default": "(CURRENT_TIMESTAMP)",
+                    "autoincrement": false,
+                    "name": "createdAt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "updatedAt": {
+                    "autoincrement": false,
+                    "name": "updatedAt",
+                    "type": "numeric",
+                    "primaryKey": false,
+                    "notNull": true
+                }
+            },
+            "compositePrimaryKeys": {},
+            "indexes": {},
+            "foreignKeys": {},
+            "uniqueConstraints": {}
         },
-        "finished_at": {
-          "autoincrement": false,
-          "name": "finished_at",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
+        "WikiPage": {
+            "name": "WikiPage",
+            "columns": {
+                "page_id": {
+                    "autoincrement": true,
+                    "name": "page_id",
+                    "type": "integer",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "page_title": {
+                    "autoincrement": false,
+                    "name": "page_title",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                }
+            },
+            "compositePrimaryKeys": {},
+            "indexes": {
+                "WikiPage_page_title_idx": {
+                    "name": "WikiPage_page_title_idx",
+                    "columns": ["page_title"],
+                    "isUnique": false
+                },
+                "WikiPage_page_id_idx": {
+                    "name": "WikiPage_page_id_idx",
+                    "columns": ["page_id"],
+                    "isUnique": false
+                }
+            },
+            "foreignKeys": {},
+            "uniqueConstraints": {}
         },
-        "migration_name": {
-          "autoincrement": false,
-          "name": "migration_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "logs": {
-          "autoincrement": false,
-          "name": "logs",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "rolled_back_at": {
-          "autoincrement": false,
-          "name": "rolled_back_at",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "started_at": {
-          "default": "(current_timestamp)",
-          "autoincrement": false,
-          "name": "started_at",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "applied_steps_count": {
-          "default": 0,
-          "autoincrement": false,
-          "name": "applied_steps_count",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": true
+        "WikiLinks": {
+            "name": "WikiLinks",
+            "columns": {
+                "page_id": {
+                    "autoincrement": false,
+                    "name": "page_id",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "page_links": {
+                    "autoincrement": false,
+                    "name": "page_links",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                }
+            },
+            "compositePrimaryKeys": {},
+            "indexes": {
+                "idx_links_page": {
+                    "name": "idx_links_page",
+                    "columns": ["page_links"],
+                    "isUnique": false
+                },
+                "idx_links_id": {
+                    "name": "idx_links_id",
+                    "columns": ["page_id"],
+                    "isUnique": false
+                },
+                "WikiLinks_page_links_idx": {
+                    "name": "WikiLinks_page_links_idx",
+                    "columns": ["page_links"],
+                    "isUnique": false
+                },
+                "WikiLinks_page_id_idx": {
+                    "name": "WikiLinks_page_id_idx",
+                    "columns": ["page_id"],
+                    "isUnique": false
+                },
+                "WikiLinks_page_id_page_links_key": {
+                    "name": "WikiLinks_page_id_page_links_key",
+                    "columns": ["page_id", "page_links"],
+                    "isUnique": true
+                }
+            },
+            "foreignKeys": {},
+            "uniqueConstraints": {}
         }
-      },
-      "compositePrimaryKeys": {},
-      "indexes": {},
-      "foreignKeys": {},
-      "uniqueConstraints": {}
     },
-    "Example": {
-      "name": "Example",
-      "columns": {
-        "id": {
-          "autoincrement": false,
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "createdAt": {
-          "default": "(CURRENT_TIMESTAMP)",
-          "autoincrement": false,
-          "name": "createdAt",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updatedAt": {
-          "autoincrement": false,
-          "name": "updatedAt",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "compositePrimaryKeys": {},
-      "indexes": {},
-      "foreignKeys": {},
-      "uniqueConstraints": {}
-    },
-    "WikiPage": {
-      "name": "WikiPage",
-      "columns": {
-        "page_id": {
-          "autoincrement": true,
-          "name": "page_id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "page_title": {
-          "autoincrement": false,
-          "name": "page_title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "compositePrimaryKeys": {},
-      "indexes": {
-        "WikiPage_page_title_idx": {
-          "name": "WikiPage_page_title_idx",
-          "columns": [
-            "page_title"
-          ],
-          "isUnique": false
-        },
-        "WikiPage_page_id_idx": {
-          "name": "WikiPage_page_id_idx",
-          "columns": [
-            "page_id"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {},
-      "uniqueConstraints": {}
-    },
-    "WikiLinks": {
-      "name": "WikiLinks",
-      "columns": {
-        "page_id": {
-          "autoincrement": false,
-          "name": "page_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "page_links": {
-          "autoincrement": false,
-          "name": "page_links",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "compositePrimaryKeys": {},
-      "indexes": {
-        "idx_links_page": {
-          "name": "idx_links_page",
-          "columns": [
-            "page_links"
-          ],
-          "isUnique": false
-        },
-        "idx_links_id": {
-          "name": "idx_links_id",
-          "columns": [
-            "page_id"
-          ],
-          "isUnique": false
-        },
-        "WikiLinks_page_links_idx": {
-          "name": "WikiLinks_page_links_idx",
-          "columns": [
-            "page_links"
-          ],
-          "isUnique": false
-        },
-        "WikiLinks_page_id_idx": {
-          "name": "WikiLinks_page_id_idx",
-          "columns": [
-            "page_id"
-          ],
-          "isUnique": false
-        },
-        "WikiLinks_page_id_page_links_key": {
-          "name": "WikiLinks_page_id_page_links_key",
-          "columns": [
-            "page_id",
-            "page_links"
-          ],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {},
-      "uniqueConstraints": {}
+    "enums": {},
+    "_meta": {
+        "schemas": {},
+        "tables": {},
+        "columns": {}
     }
-  },
-  "enums": {},
-  "_meta": {
-    "schemas": {},
-    "tables": {},
-    "columns": {}
-  }
 }

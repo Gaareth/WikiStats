@@ -407,8 +407,8 @@ async fn parse_file_sizes(body: &str) -> Vec<(String, u64)> {
 #[derive(Clone, Debug)]
 pub struct WebWikiSize {
     pub name: String,
-    pub total_size: u64,
-    pub selected_tables_size: u64,
+    pub total_size: Option<u64>,
+    pub selected_tables_size: Option<u64>,
 }
 
 /// Returns wikis sorted by size (ASCENDING)
@@ -516,21 +516,28 @@ async fn calc_wiki_size(
 
     let wiki_name = link.split("/").next().unwrap();
     let resp = get_wikipedia_async(&format!("{base_path}/{link}")).await?;
-    let resp = resp.error_for_status()?;
+    // let resp = resp.error_for_status()?;
+    if !resp.status().is_success() {
+        return Ok(WebWikiSize {
+            name: wiki_name.to_string(),
+            total_size: None,
+            selected_tables_size: None,
+        });
+    }
 
     let body = resp.text().await?;
 
     let file_sizes = parse_file_sizes(&body).await;
     let mut wiki_size = WebWikiSize {
         name: wiki_name.to_string(),
-        total_size: 0,
-        selected_tables_size: 0,
+        total_size: Some(0),
+        selected_tables_size: Some(0),
     };
     for (filename, filesize_bytes) in file_sizes {
         if let Some(table_name) = re.captures(&filename).and_then(|captures| captures.get(1)) {
-            wiki_size.total_size += filesize_bytes;
+            wiki_size.total_size = Some(wiki_size.total_size.unwrap_or(0) + filesize_bytes);
             if tables.contains(&table_name.as_str()) {
-                wiki_size.selected_tables_size += filesize_bytes;
+                wiki_size.selected_tables_size = Some(wiki_size.selected_tables_size.unwrap_or(0) + filesize_bytes);
             }
         }
     }
@@ -567,7 +574,7 @@ mod tests {
             format!("enwiki/{dump_date}/"),
         )
         .await;
-        assert!(ws.unwrap().total_size > 0);
+        assert!(ws.unwrap().total_size.unwrap() > 0);
 
         let ws = calc_wiki_size(
             "https://dumps.wikimedia.org",
@@ -575,7 +582,7 @@ mod tests {
             format!("hywiki/{dump_date}/"),
         )
         .await;
-        assert!(ws.unwrap().total_size > 0);
+        assert!(ws.unwrap().total_size.unwrap() > 0);
     }
 
     #[tokio::test]

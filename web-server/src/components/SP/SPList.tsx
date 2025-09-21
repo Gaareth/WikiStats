@@ -46,8 +46,7 @@ export function SPList(props: Props) {
                 <Show
                     when={
                         shown_path() !== undefined && shown_path()?.length != 2
-                    }
-                >
+                    }>
                     <PathLink
                         className="absolute -bottom-5 justify-center w-full "
                         current_page_title={props.start}

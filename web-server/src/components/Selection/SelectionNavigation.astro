@@ -11,13 +11,19 @@ interface Props {
     show_date_selection?: boolean;
 }
 
-const { dump_date, wiki_name, dir, show_wiki_selection=true, show_date_selection=true } = Astro.props;
+const {
+    dump_date,
+    wiki_name,
+    dir,
+    show_wiki_selection = true,
+    show_date_selection = true,
+} = Astro.props;
 ---
 
 <nav class="hidden lg:block sticky top-8 w-[15rem] ml-auto pl-4 mr-4">
     <div>
         {
-            show_wiki_selection  && (
+            show_wiki_selection && (
                 <WikiSelection
                     dump_date={dump_date}
                     currrent_wikiname={wiki_name}

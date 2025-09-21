@@ -24,8 +24,7 @@ export const PathLink = (props: {
                 href={`mirror/${props.current_page_title}?link=${props.next_page_title}#scroll`}
                 data-tooltip-target={"tooltip-path-link-" + id}
                 aria-labelledby={"tooltip-path-link-" + id}
-                ref={tooltipRef}
-            >
+                ref={tooltipRef}>
                 <span class={twMerge("block w-5", props.iconClassName)}>
                     <MaterialSymbolsArrowDownwardRounded aria-label="right-pointing arrow" />
                 </span>
@@ -33,8 +32,7 @@ export const PathLink = (props: {
             <div
                 class="tooltip default-tooltip z-20"
                 id={"tooltip-path-link-" + id}
-                role="tooltip"
-            >
+                role="tooltip">
                 Show me where this link is on the wikipedia page
                 <div class="tooltip-arrow" data-popper-arrow />
             </div>

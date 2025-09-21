@@ -38,7 +38,6 @@ let tasks: TaskType[] = Object.entries(keys).map(([key, value]) => {
     };
 });
 
-
 // const tasksStatusi = await redisClient.hGetAll("CELERY-WIKI_wiki-tasks-status");
 
 const sortTasks = (a: TaskType, b: TaskType) => {
@@ -200,5 +199,5 @@ const timeFormat: Intl.DateTimeFormatOptions = {
         <div class="sm:col-end-[-1] w-full sm:col-span-3 mt-5 sm:mt-0">
             <DBSchedule />
         </div>
-    </main>
+    </div>
 </Layout>

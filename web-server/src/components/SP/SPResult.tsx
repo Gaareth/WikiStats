@@ -8,8 +8,7 @@ export default function SPResult(props: { streamData: Accessor<streamData> }) {
                 when={
                     props.streamData()?.paths != null &&
                     props.streamData()?.paths?.length! > 0
-                }
-            >
+                }>
                 <p class="my-3">
                     Found a{" "}
                     <span class="font-bold">

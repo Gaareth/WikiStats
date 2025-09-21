@@ -20,9 +20,8 @@ const uuid = uuidv4();
 <div
     class={cn(
         "text-sm text-secondary text-end gap-2 items-center flex justify-self-end",
-        className
-    )}
->
+        className,
+    )}>
     <div class="text-end justify-self-end flex gap-1">
         <LocaleDate
             client:load
@@ -31,12 +30,14 @@ const uuid = uuidv4();
         />
         {
             finishedAt != null && (
-                <span>-</span>
-                <LocaleDate
-                    client:load
-                    date={finishedAt}
-                    formatOption={DBSCHEDULE_FORMAT_OPTIONS}
-                />
+                <>
+                    <span>-</span>
+                    <LocaleDate
+                        client:load
+                        date={finishedAt}
+                        formatOption={DBSCHEDULE_FORMAT_OPTIONS}
+                    />
+                </>
             )
         }
     </div>
@@ -46,8 +47,7 @@ const uuid = uuidv4();
         data-tooltip-target={"tooltip-time-" + uuid}
         aria-describedby={"tooltip-time-" + uuid}
         aria-label="How long did it take?"
-        disabled={finishedAt == null}
-    >
+        disabled={finishedAt == null}>
         <MaterialSymbolsScheduleOutline aria-label="Time" />
     </button>
 
@@ -56,8 +56,7 @@ const uuid = uuidv4();
             <div
                 class="flex items-center gap-1 default-tooltip tooltip"
                 role="tooltip"
-                id={"tooltip-time-" + uuid}
-            >
+                id={"tooltip-time-" + uuid}>
                 <span class="text-end">
                     took
                     {formatTimeDiff(new Date(finishedAt!), new Date(startedAt))}

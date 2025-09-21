@@ -191,13 +191,12 @@ input-b {
 }
 
 @layer components {
-
     .button-select {
-        @apply button dark:!bg-dark_02/20 dark:!border-dark_05/50 rounded-none  dark:hover:!bg-dark_02/40 dark:hover:!border-dark_05/75
+        @apply button dark:!bg-dark_02/20 dark:!border-dark_05/50 rounded-none  dark:hover:!bg-dark_02/40 dark:hover:!border-dark_05/75;
     }
 
     .button-select-selected {
-        @apply bg-neutral-100 border-neutral-300 dark:dark-layer-2 dark:!border-dark_05
+        @apply bg-neutral-100 border-neutral-300 dark:dark-layer-2 dark:!border-dark_05;
     }
 
     .select {

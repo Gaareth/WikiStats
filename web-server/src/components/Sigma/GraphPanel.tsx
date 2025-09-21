@@ -18,8 +18,7 @@ export default function GraphPanel(props: PanelProps) {
                     " px-4 py-2 cursor-pointer" +
                     " dark:backdrop-blur-xl dark:bg-dark_01/80 dark:border-dark_02/75",
                 props.class,
-            )}
-        >
+            )}>
             <summary>{props.title} </summary>
             <div class="pt-2 cursor-default">{childComponents()}</div>
         </details>

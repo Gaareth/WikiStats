@@ -47,7 +47,7 @@ export function TaskStatusIndicator(props: Props) {
                         <LoadingSpinner />
                     </Match>
                     <Match when={status === "QUEUED"}>
-                         <MaterialSymbolsCalendarClock aria-label="Schedule" />
+                        <MaterialSymbolsCalendarClock aria-label="Schedule" />
                     </Match>
                 </Switch>
             </span>

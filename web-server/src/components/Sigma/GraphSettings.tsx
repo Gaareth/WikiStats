@@ -121,26 +121,24 @@ export default function GraphSettings(props: SettingsProps) {
                         <p class="text-secondary text-sm">
                             Graph contains no properties
                         </p>
-                    }
-                >
+                    }>
                     <div class="flex gap-2 justify-between">
                         <label for="size">Size by</label>
                         <select
                             id="size"
                             name="size"
                             class="select dark:!bg-dark_03 dark:!border-dark_04"
-                            onChange={onSizeByChange}
-                        >
+                            onChange={onSizeByChange}>
                             <For
                                 each={Object.entries(
                                     renderSettings().possible_size_options,
-                                )}
-                            >
+                                )}>
                                 {([k, v]) => (
                                     <option
                                         value={k}
-                                        selected={renderSettings().size_by == k}
-                                    >
+                                        selected={
+                                            renderSettings().size_by == k
+                                        }>
                                         {v}
                                     </option>
                                 )}

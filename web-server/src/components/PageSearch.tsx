@@ -10,7 +10,11 @@ import {
     Suspense,
 } from "solid-js";
 import { reinitializeFlowBiteTooltips } from "../utils";
-import { fetchPagesWikipediaAPI, fetchRandomPage, type Page } from "../wiki-api";
+import {
+    fetchPagesWikipediaAPI,
+    fetchRandomPage,
+    type Page,
+} from "../wiki-api";
 import { LoadingSpinner, Refresh } from "./ClientIcons/Icons";
 import FloatingLabelInput from "./FloatingLabelInput";
 import PageLinkPills from "./PageLinkPills";

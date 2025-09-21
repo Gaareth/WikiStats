@@ -98,10 +98,10 @@ def finish_dump(dump_date):
                 "--all-wikis",
             ]
             logger.info(f"> Running command: {cmd}")
-            # result = subprocess.run(cmd, capture_output=True, text=True)
-            # logger.info(f"Command output: {result.stdout}")
-            # if result.returncode != 0:
-            #     raise Exception(result.stderr)
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            logger.info(f"Command output: {result.stdout}")
+            if result.returncode != 0:
+                raise Exception(result.stderr)
         else:
             time.sleep(10)
         data["status"] = "DONE"

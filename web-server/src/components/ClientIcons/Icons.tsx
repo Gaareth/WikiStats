@@ -505,34 +505,56 @@ export function SvgSpinnersPulseRing(props: JSX.IntrinsicElements["svg"]) {
     );
 }
 
-
-
-export function SvgSpinnersPulse(props: JSX.IntrinsicElements['svg']) {
+export function SvgSpinnersPulse(props: JSX.IntrinsicElements["svg"]) {
     return (
         <>
             <span hidden>
-                Icon from SVG Spinners by Utkarsh Verma - https://github.com/n3r4zzurr0/svg-spinners/blob/main/LICENSE
+                Icon from SVG Spinners by Utkarsh Verma -
+                https://github.com/n3r4zzurr0/svg-spinners/blob/main/LICENSE
             </span>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" {...props}>
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                {...props}>
                 <circle cx="12" cy="12" r="0" fill="currentColor">
-                    <animate attributeName="r" calcMode="spline" dur="1.2s" keySplines=".52,.6,.25,.99" repeatCount="indefinite" values="0;11"/>
-                    <animate attributeName="opacity" calcMode="spline" dur="1.2s" keySplines=".52,.6,.25,.99" repeatCount="indefinite" values="1;0"/>
+                    <animate
+                        attributeName="r"
+                        calcMode="spline"
+                        dur="1.2s"
+                        keySplines=".52,.6,.25,.99"
+                        repeatCount="indefinite"
+                        values="0;11"
+                    />
+                    <animate
+                        attributeName="opacity"
+                        calcMode="spline"
+                        dur="1.2s"
+                        keySplines=".52,.6,.25,.99"
+                        repeatCount="indefinite"
+                        values="1;0"
+                    />
                 </circle>
             </svg>
         </>
-    )
+    );
 }
 
-
-export function IcRoundCheck(props: JSX.IntrinsicElements['svg']) {
+export function IcRoundCheck(props: JSX.IntrinsicElements["svg"]) {
     return (
         <>
             <span hidden>
-                Icon from Google Material Icons by Material Design Authors - https://github.com/material-icons/material-icons/blob/master/LICENSE
+                Icon from Google Material Icons by Material Design Authors -
+                https://github.com/material-icons/material-icons/blob/master/LICENSE
             </span>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" {...props}>
-                <path fill="currentColor" d="M9 16.17L5.53 12.7a.996.996 0 1 0-1.41 1.41l4.18 4.18c.39.39 1.02.39 1.41 0L20.29 7.71a.996.996 0 1 0-1.41-1.41z"/>
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                {...props}>
+                <path
+                    fill="currentColor"
+                    d="M9 16.17L5.53 12.7a.996.996 0 1 0-1.41 1.41l4.18 4.18c.39.39 1.02.39 1.41 0L20.29 7.71a.996.996 0 1 0-1.41-1.41z"
+                />
             </svg>
         </>
-    )
+    );
 }

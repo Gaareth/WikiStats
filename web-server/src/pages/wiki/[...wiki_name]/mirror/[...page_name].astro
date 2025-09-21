@@ -3,8 +3,8 @@ import Layout from "../../../../layouts/Layout.astro";
 //@ts-ignore
 import { parse } from "node-html-parser";
 import Alert from "../../../../components/Alert.astro";
-import rawStylesCSS from "../../../../styles/wiki.css?raw";
 import { get_latest_date } from "../../../../db/constants";
+import rawStylesCSS from "../../../../styles/wiki.css?raw";
 import { get_wiki_prefix } from "../../../../utils";
 export const prerender = false;
 
@@ -67,8 +67,7 @@ const latest_dump = await get_latest_date();
                             </span>
                             <button
                                 class="button bg-white dark-layer-2 py-1 text-dark_00 dark:text-neutral-100"
-                                id="scroll-btn"
-                            >
+                                id="scroll-btn">
                                 Scroll to it
                             </button>
                         </div>
@@ -80,24 +79,23 @@ const latest_dump = await get_latest_date();
                 links_found == 0 && (
                     <Alert type="error">
                         No Links found. It's possible that this link was removed
-                        since {latest_dump}, as the wikimedia dumps
-                        are not realtime synchronized.
+                        since {latest_dump}, as the wikimedia dumps are not
+                        realtime synchronized.
                     </Alert>
                 )
             }
         </div>
         <h1
-            class="text-xl sm:text-4xl flex flex-wrap gap-2 items-center break-all"
-        >
+            class="text-xl sm:text-4xl flex flex-wrap gap-2 items-center break-all">
             {page_name}
             <Alert type="warning">
-                This content is directly taken from <a href={wiki_url}
-                    >{wiki_url}</a
-                ></Alert
+                This content is directly taken from <a href={wiki_url}>
+                    {wiki_url}
+                </a></Alert
             >
         </h1>
         <div set:html={root.toString()} id="mirror" />
-    </main>
+    </div>
     <!-- <iframe src={`https://${wiki_name.slice(0, 2)}.wikipedia.org/wiki/${page_name}`} 
   height="1920" width="1080" 
   style="background-color: black;"

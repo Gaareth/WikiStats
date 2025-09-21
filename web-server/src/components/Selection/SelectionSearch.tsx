@@ -36,8 +36,7 @@ export default function SearchWithDropdown(props: Props) {
         <form
             action="/api/selection-search-redirect"
             method="get"
-            class="relative"
-        >
+            class="relative">
             <input
                 type="text"
                 placeholder="Select more"
@@ -71,13 +70,11 @@ export default function SearchWithDropdown(props: Props) {
                     class={clsx(
                         "absolute bg-white border [:not(.dark)]border-neutral-200 dark-layer-1 w-full z-20 " +
                             "min-h-10 max-h-[380px] overflow-y-scroll overflow-x-clip",
-                    )}
-                >
+                    )}>
                     {suggestions().map((item) => (
                         <a
                             href={item.url}
-                            class="px-2 hover:dark:bg-dark_02 w-full block"
-                        >
+                            class="px-2 hover:dark:bg-dark_02 w-full block">
                             {item.name}
                         </a>
                     ))}

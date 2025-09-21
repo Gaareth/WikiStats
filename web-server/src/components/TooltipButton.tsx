@@ -41,8 +41,7 @@ export const TooltipButton: Component<TooltipButtonProps> = (props) => {
             <div
                 id={"tooltip-" + componentID}
                 class="tooltip default-tooltip"
-                role="tooltip"
-            >
+                role="tooltip">
                 {local.tooltip}
                 <div class="tooltip-arrow" data-popper-arrow />
             </div>

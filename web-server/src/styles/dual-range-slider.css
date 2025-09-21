@@ -28,7 +28,7 @@
 
     input[type="range"]::-webkit-slider-thumb:hover {
         /* background: #f7f7f7; */
-        @apply dark:hover:bg-dark_02 dark:hover:border-dark_04 hover:bg-blue-100
+        @apply dark:hover:bg-dark_02 dark:hover:border-dark_04 hover:bg-blue-100;
     }
 
     input[type="range"]::-webkit-slider-thumb:active {

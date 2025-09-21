@@ -16,8 +16,7 @@ export const Chart = (props: Props) => {
                     {(_, index) => (
                         <button
                             onClick={() => setSelection(index)}
-                            class="button"
-                        >
+                            class="button">
                             {index()}
                         </button>
                     )}

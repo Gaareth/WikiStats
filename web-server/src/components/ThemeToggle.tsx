@@ -43,8 +43,7 @@ function Toggle(props: Props) {
             xmlns="http://www.w3.org/2000/svg"
             width="24"
             height="24"
-            viewBox="0 0 24 24"
-        >
+            viewBox="0 0 24 24">
             <title>Sun</title>
             <path
                 fill="currentColor"
@@ -58,8 +57,7 @@ function Toggle(props: Props) {
             xmlns="http://www.w3.org/2000/svg"
             width="24"
             height="24"
-            viewBox="0 0 24 24"
-        >
+            viewBox="0 0 24 24">
             <title>Moon</title>
             <path
                 fill="currentColor"
@@ -99,8 +97,7 @@ function Toggle(props: Props) {
                 )}
                 onClick={toggle}
                 aria-label={label()}
-                title="Toggle theme"
-            >
+                title="Toggle theme">
                 <span class={clsx("hidden max-[639px]:block dark:hidden")}>
                     Switch to dark mode
                 </span>

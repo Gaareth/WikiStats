@@ -63,8 +63,7 @@ let dead_root_pages = await NUM_DEAD_ROOT_PAGES_STAT.get(dump_date, wiki_name);
         // if the longest name excluding redirects and the longest including redirects are different show both options
         <CardTabs
             tabs={["Excluding redirects", "All"]}
-            className="w-fit col-span-full"
-        >
+            className="w-fit col-span-full">
             <Stat
                 title={`Longest name (${big_num_format(
                     longest_no_redirect_name.page_title.length,

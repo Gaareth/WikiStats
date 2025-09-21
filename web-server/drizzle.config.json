@@ -3,6 +3,6 @@
     "schema": "./src/db/schema.ts",
     "driver": "better-sqlite",
     "dbCredentials": {
-        "url":  "/run/media/gareth/7FD71CF32A89EF6A/dev/wiki/sqlite/20240301/database.sqlite"
+        "url": "/run/media/gareth/7FD71CF32A89EF6A/dev/wiki/sqlite/20240301/database.sqlite"
     }
-  }
+}

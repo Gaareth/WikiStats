@@ -74,8 +74,7 @@ function Links(props: Props) {
                                             "flex items-center gap-3",
                                             !props.incoming &&
                                                 "flex-row-reverse justify-end",
-                                        )}
-                                    >
+                                        )}>
                                         <a
                                             href={
                                                 link.pageTitle &&
@@ -88,8 +87,7 @@ function Links(props: Props) {
                                                 "break-all w-full sm:w-auto",
                                                 link.pageTitle == null &&
                                                     "text-red-400 hover:no-underline",
-                                            )}
-                                        >
+                                            )}>
                                             {link.pageTitle ??
                                                 "error resolving pageId: " +
                                                     link.pageLink}
@@ -115,8 +113,7 @@ function Links(props: Props) {
                             <button
                                 type="button"
                                 onClick={loadMore}
-                                class="button dark-layer-1 mt-2"
-                            >
+                                class="button dark-layer-1 mt-2">
                                 {paginationLoading() ? "loading" : "load"}{" "}
                                 more...
                             </button>

@@ -23,7 +23,6 @@ export default function PageLinkPills(props: {
     let incomingRef!: HTMLButtonElement;
     let outgoingRef!: HTMLButtonElement;
 
-
     const [num_links, { refetch: refetch_outgoing }] = createResource(
         async () => {
             // await sleep(1000);
@@ -84,22 +83,19 @@ export default function PageLinkPills(props: {
                 <ErrorBoundary
                     fallback={
                         <FallBack error_msg={times_linked.error.toString()} />
-                    }
-                >
+                    }>
                     <button
                         class="w-5 h-5 block -mb-0.5"
                         aria-labelledby={"tooltip-incoming-" + componentID}
                         data-tooltip-target={"tooltip-incoming-" + componentID}
                         ref={incomingRef}
-                        type="button"
-                    >
+                        type="button">
                         <IncomingLinks />
                     </button>
                     <div
                         id={"tooltip-incoming-" + componentID}
                         class="tooltip default-tooltip"
-                        role="tooltip"
-                    >
+                        role="tooltip">
                         Incoming Links
                         <div class="tooltip-arrow" data-popper-arrow />
                     </div>
@@ -111,23 +107,20 @@ export default function PageLinkPills(props: {
                 <ErrorBoundary
                     fallback={
                         <FallBack error_msg={num_links.error.toString()} />
-                    }
-                >
+                    }>
                     <Suspense>{big_num_format(num_links())}</Suspense>
                     <button
                         class="w-5 h-5 block -mb-0.5"
                         aria-labelledby={"tooltip-outgoing-" + componentID}
                         data-tooltip-target={"tooltip-outgoing-" + componentID}
                         ref={outgoingRef}
-                        type="button"
-                    >
+                        type="button">
                         <OutgoingLinks />
                     </button>
                     <div
                         id={"tooltip-outgoing-" + componentID}
                         class="tooltip default-tooltip"
-                        role="tooltip"
-                    >
+                        role="tooltip">
                         Outgoing Links
                         <div class="tooltip-arrow" data-popper-arrow />
                     </div>

@@ -30,7 +30,6 @@ export const GET: APIRoute = async ({ params, url }) => {
         });
     }
 
-
     const key = `${REDIS_PREFIX}:neighbours:${wiki_name}:${page_name}:${sort_param}:${limit}`;
     const cached_res = await redisClient.get(key);
 

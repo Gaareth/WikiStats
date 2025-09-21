@@ -80,7 +80,7 @@ export function Table<T extends Record<string, any>>(props: TableProps<T>) {
                                     "border text-left group dark-border-2 break-all",
                                     padding,
                                     col.isSortable && "cursor-pointer",
-                                    props.classNameHeader
+                                    props.classNameHeader,
                                 )}
                                 onClick={() =>
                                     col.isSortable && handleSort(col.key)
@@ -107,7 +107,12 @@ export function Table<T extends Record<string, any>>(props: TableProps<T>) {
                     {sortedData().map((row) => (
                         <tr>
                             {props.columns.map((col) => (
-                                <td class={cn("border dark-border-1", padding, props.classNameCell)}>
+                                <td
+                                    class={cn(
+                                        "border dark-border-1",
+                                        padding,
+                                        props.classNameCell,
+                                    )}>
                                     {col.render
                                         ? col.render(row[col.key])
                                         : row[col.key]}

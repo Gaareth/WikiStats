@@ -150,8 +150,7 @@ export default function SPGraph(props: SPProps) {
                             outgoing: "Outgoing Links",
                         },
                         size_by: SizeOption.outgoing,
-                    }}
-                >
+                    }}>
                     <GraphView
                         wiki_name={props.wiki_name}
                         showLayoutToggler={false}

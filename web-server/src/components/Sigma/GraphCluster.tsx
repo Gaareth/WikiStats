@@ -45,8 +45,7 @@ export default function GraphCluster({
             disabled={graphState().selectedClusterID === undefined}
             onClick={() => selectCluster(undefined)}
             class="button text-sm px-2 group relative dark-layer-2"
-            tooltip="Reset selection"
-        >
+            tooltip="Reset selection">
             <p class="hidden">
                 Attribution: pajamas:redo
                 https://api.iconify.design/pajamas:redo.svg
@@ -55,8 +54,7 @@ export default function GraphCluster({
                 xmlns="http://www.w3.org/2000/svg"
                 width="16"
                 height="16"
-                viewBox="0 0 16 16"
-            >
+                viewBox="0 0 16 16">
                 <path
                     fill="currentColor"
                     fill-rule="evenodd"
@@ -77,8 +75,7 @@ export default function GraphCluster({
                 class={`h-full flex flex-col gap-1 overflow-scroll  `}
                 style={`max-height: ${
                     isFullscreen() ? "calc(100vh - 200px);" : `${maxHeight}px`
-                }`}
-            >
+                }`}>
                 {Array.from(clusters())
                     .sort(([, c1], [, c2]) => c2.num_nodes - c1.num_nodes)
                     .map(([, cluster]) => (
@@ -88,14 +85,12 @@ export default function GraphCluster({
                         graphState().selectedClusterID == cluster.id &&
                         "!border-blue-500"
                     } hover:border-blue-300`}
-                            onClick={() => selectCluster(cluster)}
-                        >
+                            onClick={() => selectCluster(cluster)}>
                             <span>#{cluster.id}</span>
                             <span>{cluster.num_nodes}</span>
                             <div
                                 class={`rounded-full w-4 h-4`}
-                                style={`background-color:${cluster.color}`}
-                            ></div>
+                                style={`background-color:${cluster.color}`}></div>
                         </button>
                     ))}
             </div>

@@ -80,6 +80,20 @@ enum Commands {
     /// Generate BFS sample stats (quite expensive). Make sure the output json file was already used for the normal stats
     SampleStats(StatsArgs),
 
+    AddWikiSizes {
+        /// Output of the statistic json file
+        #[arg(short, long, value_name = "PATH")]
+        output_path: PathBuf,
+
+        /// Path containing dump dates sub dirs with the download and sqlite sub directories
+        #[arg(short, long, value_name = "PATH")]
+        base_path: PathBuf,
+
+        /// Specify which dump date to use (defaults to latest). Format: YYYYMMDD
+        #[arg(short, long)]
+        dump_date: Option<String>,
+    },
+
     // Get all DumpDates
     DumpDates {
         #[arg(short, long, value_parser, num_args = 1.., value_delimiter = ' ', required = true)]
@@ -318,6 +332,11 @@ async fn main() {
             }
         }
 
+        Commands::AddWikiSizes { output_path, base_path, dump_date } => {
+            println!("Adding wiki sizes to stats at {output_path:?} using db files from: {base_path:?} for dump date {dump_date:?}");
+            wiki_stats::stats::add_wiki_sizes(&output_path, &base_path, dump_date.clone()).await;
+        }
+
         Commands::SampleStats(args) => {
             let StatsArgs {
                 output_path,
@@ -488,7 +507,7 @@ async fn main() {
                 DebugCommands::FindSmallestWiki { tables } => {
                     // println!("{:?}", find_smallest_wikis(tables).await.unwrap());
                     println!("> Sorting all wiki for which the sum of  tables {tables:?} is the smallest");
-                    for wiki in find_smallest_wikis(tables).await.unwrap() {
+                    for wiki in find_smallest_wikis(None, tables).await.unwrap() {
                         println!("{wiki:?}");
                     }
                 }

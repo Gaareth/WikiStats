@@ -30,7 +30,7 @@ use crate::sqlite::title_id_conv::{get_random_page, load_rows_from_page, page_id
 use crate::sqlite::{join_db_wiki_path, title_id_conv, wiki};
 use crate::utils::{bar_color, default_bar, default_bar_unknown, ProgressBarBuilder};
 use crate::web::find_smallest_wikis;
-use crate::{AvgDepthHistogram, AvgDepthStat, DepthHistogram};
+use crate::{stats, AvgDepthHistogram, AvgDepthStat, DepthHistogram};
 use std::collections::HashMap;
 
 static DB_STATS: &str =
@@ -354,14 +354,14 @@ pub struct Stats {
     pub bfs_sample_stats: Option<StatRecord<BfsSample>>,
     pub bi_bfs_sample_stats: Option<StatRecord<BiBfsSample>>,
 
-    pub wiki_sizes: WikiSizes,
+    pub wiki_sizes: Option<WikiSizes>,
 }
 
 #[derive(Serialize, Deserialize, JsonSchema)]
 struct WikiSize {
     name: String,
-    compressed_total_size: u64,
-    compressed_selected_tables_size: u64,
+    compressed_total_size: Option<u64>,
+    compressed_selected_tables_size: Option<u64>,
     decompressed_size: Option<u64>,
     processed_size: Option<u64>,
 }
@@ -617,13 +617,6 @@ pub async fn create_stats(
     //
     // let bi_bfs_sample_stats = make_stat_record_async(wikis.clone(), async_bibfs_name_wrapper, global_ignore);
 
-    let wiki_sizes = get_wiki_sizes(
-        database_path.parent().unwrap(),
-        Some(dump_date.clone()),
-        &ALL_DB_TABLES,
-    )
-    .await;
-
     let time_taken: time::Duration = t1.elapsed();
 
     let stats = Stats {
@@ -657,7 +650,7 @@ pub async fn create_stats(
         // bi_bfs_sample_stats: Some(bi_bfs_sample_stats.await),
         bfs_sample_stats: None,
         bi_bfs_sample_stats: None,
-        wiki_sizes,
+        wiki_sizes: None,
     };
 
     save_stats(&stats, path);
@@ -665,6 +658,21 @@ pub async fn create_stats(
         "Done generating stats. Total time elapsed: {:?}",
         time_taken
     );
+}
+
+pub async fn add_wiki_sizes(output_path: impl AsRef<Path>, base_path: impl AsRef<Path>, dump_date: Option<String>) {
+    let output_path = output_path.as_ref();
+    let mut stats = load_stats(output_path);
+
+    let wiki_sizes = get_wiki_sizes(
+        base_path,
+        dump_date,
+        &ALL_DB_TABLES,
+    )
+    .await;
+
+    stats.wiki_sizes = Some(wiki_sizes);
+    save_stats(&stats, output_path);
 }
 
 async fn get_wiki_sizes(

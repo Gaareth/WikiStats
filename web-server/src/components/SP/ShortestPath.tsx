@@ -98,8 +98,7 @@ export default function ShortestPath(props: Props) {
                 start={props.start}
                 end={props.end}
                 wiki_name={props.wiki_name}
-                paths={paths()}
-            >
+                paths={paths()}>
                 <div class="border min-h-14 flex items-center relative dark:border-dark_05">
                     <div class="-z-10 top-0 w-full h-full absolute animate-pulse bg-slate-100 dark:bg-dark_01  "></div>
 
@@ -114,8 +113,7 @@ export default function ShortestPath(props: Props) {
                                         Loading...
                                     </p>
                                 </div>
-                            }
-                        >
+                            }>
                             <Match when={error()}>
                                 <div class="flex flex-wrap gap-1 error items-center justify-center">
                                     <span class="block w-8 mx-3">

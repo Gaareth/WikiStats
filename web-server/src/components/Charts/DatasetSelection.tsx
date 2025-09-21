@@ -5,7 +5,7 @@ import { cn } from "../../utils";
 import { BarChart } from "./BarChart";
 import { LineChart } from "./LineChart";
 
-export type DatasetType = { label: string; data: number[], labels: string[] } ;
+export type DatasetType = { label: string; data: number[]; labels: string[] };
 
 interface Props {
     title?: string;
@@ -50,7 +50,6 @@ export const DatasetSelection = (props: Props) => {
 
     const [chart, _] = createSignal(props.chartType == "bar" ? Bar : Line);
 
-
     let selectElement!: HTMLSelectElement;
 
     return (
@@ -66,8 +65,7 @@ export const DatasetSelection = (props: Props) => {
                             each={props.datasets.slice(
                                 0,
                                 props.numShow ?? DEFAULT_SHOWING,
-                            )}
-                        >
+                            )}>
                             {(_, index) => (
                                 <button
                                     role="radio"
@@ -77,9 +75,9 @@ export const DatasetSelection = (props: Props) => {
                                     }}
                                     class={cn(
                                         "button-select",
-                                        index() == selection() && "button-select-selected",
-                                    )}
-                                >
+                                        index() == selection() &&
+                                            "button-select-selected",
+                                    )}>
                                     {props.selectionLabels[index()]}
                                 </button>
                             )}
@@ -95,23 +93,20 @@ export const DatasetSelection = (props: Props) => {
                             onInput={(e) =>
                                 setSelection(Number(e.target.value))
                             }
-                            ref={selectElement}
-                        >
+                            ref={selectElement}>
                             <option value="none" selected disabled>
                                 more..
                             </option>
                             <For
                                 each={props.datasets.slice(
                                     props.numShow ?? DEFAULT_SHOWING,
-                                )}
-                            >
+                                )}>
                                 {(_, index) => (
                                     <option
                                         value={
                                             index() +
                                             (props.numShow ?? DEFAULT_SHOWING)
-                                        }
-                                    >
+                                        }>
                                         {
                                             props.selectionLabels[
                                                 index() +
