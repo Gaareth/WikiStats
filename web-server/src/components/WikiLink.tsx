@@ -39,7 +39,7 @@ const WikiLink = (props: Props) => {
                 href={`/wiki/${props.wiki_name}/${props.page_name}`}
                 class={cn(
                     lineClampClass,
-                    "break-words text-ellipsis overflow-hidden",
+                    "break-words text-ellipsis overflow-hidden text-center",
                     props.class_name,
                 )}
                 onClick={(e) => {

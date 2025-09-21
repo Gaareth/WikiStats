@@ -5,10 +5,9 @@ import Selection, { type SelectionProps } from "./Selection.astro";
 
 interface Props extends SelectionProps {
     currrent_dumpdate: string | undefined;
-    current_wikiname: string | undefined;
 }
 
-const { currrent_dumpdate, current_wikiname, ...rest } = Astro.props;
+const { currrent_dumpdate, ...rest } = Astro.props;
 const items = (await getCollection("stats")).map((c) => c.id).reverse();
 ---
 

@@ -20,6 +20,7 @@ bump_package_version() {
     return 1
   fi
 
+  # TODO: check if there are unpublished commits which changed a file in the package directory
   # Skip diff check if force is true
   if ! $force; then
     # Check if there are changes in the package directory

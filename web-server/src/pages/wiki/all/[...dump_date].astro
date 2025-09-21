@@ -1,6 +1,7 @@
 ---
 import { getCollection } from "astro:content";
 import Card from "../../../components/Card";
+import DumpDateSelection from "../../../components/Selection/DumpDateSelection.astro";
 import SelectionNavigation from "../../../components/Selection/SelectionNavigation.astro";
 import { Table } from "../../../components/Table";
 import { WikiSizesTable } from "../../../components/WikiSizesTable";
@@ -78,6 +79,11 @@ for (const key in site_matrix) {
         show_wiki_selection={false}
     />
 
+    <DumpDateSelection
+        currrent_dumpdate={dump_date}
+        classNameWrapper="block mb-5 lg:hidden"
+    />
+
     <div>
         <div class="flex flex-wrap justify-between items-baseline">
             <h1 class="text-3xl">Wikis</h1>
@@ -96,10 +102,7 @@ for (const key in site_matrix) {
             are probably the language wikis
         </p>
 
-        <div
-            class={cn(
-                `flex flex-col items-center gap-2 sidebar-table`,
-            )}>
+        <div class={cn(`flex flex-col items-center gap-2 sidebar-table`)}>
             <Table
                 classNameWrapper="!text-base w-full"
                 classNameCell="!px-3 !py-1.5"
