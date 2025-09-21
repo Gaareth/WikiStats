@@ -63,7 +63,7 @@ build_and_push() {
 }
 
 #build_and_push server sp-server
-#build_and_push server sp-server
+
 if bump_package_version server; then
   build_and_push server sp-server
 else

@@ -23,7 +23,7 @@ from env_vars import (
     SIMULATE,
     UPDATE_DONE_SH,
     TABLES,
-    env_path
+    env_path,
 )
 
 
@@ -40,7 +40,7 @@ app.conf.update(
     broker_transport_options={
         # "visibility_timeout": 7200,  # 2 hours (use if long tasks)
         "heartbeat": 30,  # keep connection alive
-        "consumer_timeout": 31536000000000
+        "consumer_timeout": 31536000000000,
     },
     task_acks_late=True,  # ACK only after task finishes
     task_reject_on_worker_lost=True,  # requeue if worker dies
@@ -50,18 +50,18 @@ app.conf.update(
 redis = redis.Redis(host="localhost", port=6379, db=0)
 
 
-import handlers # imports the signal handlers
+import handlers  # imports the signal handlers
 from utils import (
     TaskData,
     check_all_sqlite_files_are_ready,
+    deleted_old_dump_dates,
     set_task_status,
     all_tasks_done,
     build_server,
     file_lock,
     safe_set_env_vars,
+    get_latest_dump_date,
 )
-
-
 
 
 @app.task
@@ -98,10 +98,10 @@ def finish_dump(dump_date):
                 "--all-wikis",
             ]
             logger.info(f"> Running command: {cmd}")
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            logger.info(f"Command output: {result.stdout}")
-            if result.returncode != 0:
-                raise Exception(result.stderr)
+            # result = subprocess.run(cmd, capture_output=True, text=True)
+            # logger.info(f"Command output: {result.stdout}")
+            # if result.returncode != 0:
+            #     raise Exception(result.stderr)
         else:
             time.sleep(10)
         data["status"] = "DONE"
@@ -123,24 +123,32 @@ def finish_dump(dump_date):
     # redis.hset(REDIS_PREFIX + "wiki-tasks-status", mapping={dump_date: "DONE"})
 
     all_done = all_tasks_done()
-    # TODO: check if dump_date is the latest date and then delete all others
-    updated_wikis_dir = re.sub(r"(\d{8})", dump_date, DB_WIKIS_DIR)
 
     env_updates = {
         "IS_UPDATING": "false" if all_done else "true",
-        "DB_WIKIS_DIR": updated_wikis_dir,
     }
+
+    # check if dump_date is the latest date and then delete all others older than it if their stats file exists
+    latest_dump_date = get_latest_dump_date(WIKI_BASEPATH)
+    logger.info(
+        f"[!!!!] INFO: latest dump date is {latest_dump_date}. Current dump date is {dump_date}."
+    )
+    if latest_dump_date is None or int(dump_date) >= latest_dump_date:
+        logger.info(
+            f"[!!!!] INFO: {dump_date} is the latest dump date, cleaning up old dump dates"
+        )
+        updated_wikis_dir = re.sub(r"(\d{8})", dump_date, DB_WIKIS_DIR)
+        env_updates["DB_WIKIS_DIR"] = updated_wikis_dir
+        deleted_old_dump_dates(int(dump_date), WIKI_BASEPATH, STATS_OUTPUT_PATH)
 
     safe_set_env_vars(env_path, env_updates)
 
     time.sleep(2)
-    if not SIMULATE:
-        build_server()
+    # if not SIMULATE:
+    #     build_server()
 
     # return result.returncode
     return 200
-
-
 
 
 @app.task(bind=True)
@@ -187,7 +195,11 @@ def process_wiki(self, name, dump_date, supported_wikis: List[str]):
             ]
             logging.info(f"> Running command: {cmd}")
             result = subprocess.run(cmd, capture_output=True, text=True)
-            logging.info(result)
+            # logging.info(result)
+            if result.stdout:
+                logger.info(f"Command output: {result.stdout}")
+            if result.stderr:
+                logger.error(f"Command error output: {result.stderr}")
             if result.returncode != 0:
                 raise Exception(result.stderr)
         else:
@@ -224,5 +236,3 @@ def process_wiki(self, name, dump_date, supported_wikis: List[str]):
         finish_dump(dump_date)
 
     return 200
-
-

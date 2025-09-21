@@ -413,6 +413,7 @@ pub struct WebWikiSize {
 
 /// Returns wikis sorted by size (ASCENDING)
 pub async fn find_smallest_wikis(
+    dump_date: Option<String>,
     tables: &[impl AsRef<str>],
 ) -> Result<Vec<WebWikiSize>, reqwest::Error> {
     let tables: Vec<String> = tables
@@ -439,6 +440,13 @@ pub async fn find_smallest_wikis(
         .filter_map(|e| {
             e.value().attr("href").and_then(|link| {
                 if dump_date_regex.is_match(link) {
+                    let mut link = link.to_string();
+                    // link is by default the latest. If dump_date is given, replace it with it
+                    if let Some(ref dump_date) = dump_date {
+                        link = dump_date_regex
+                            .replace(&link, &dump_date.clone())
+                            .to_string();
+                    }
                     Some(link.to_string())
                 } else {
                     None
@@ -606,7 +614,7 @@ mod tests {
     #[ignore]
     async fn test_smallest_wiki() {
         let tables = ["page", "pagelinks", "linktarget"];
-        let res = find_smallest_wikis(&tables).await.unwrap();
+        let res = find_smallest_wikis(None, &tables).await.unwrap();
         dbg!(&res);
         assert!(!res.is_empty());
     }

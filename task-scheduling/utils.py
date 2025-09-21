@@ -1,4 +1,3 @@
-
 import json
 from typing import Literal, Optional, TypedDict
 from tasks import WIKI_TASKS_PREFIX, redis, REDIS_PREFIX, logger
@@ -10,6 +9,7 @@ from contextlib import contextmanager
 import dotenv
 from dotenv import load_dotenv
 from env_vars import REBUILD_SERVER_BIN
+import re
 
 
 class TaskData(TypedDict):
@@ -20,17 +20,18 @@ class TaskData(TypedDict):
     finishedAt: Optional[str]
     message: Optional[str]
 
+
 def set_task_status(data: TaskData):
     key = data["name"] + "_" + data["dumpDate"]
     redis.hset(WIKI_TASKS_PREFIX, mapping={key: json.dumps(data)})
 
+
 def all_tasks_done():
-    return all(
-        value == "DONE" for value in redis.hvals(REDIS_PREFIX + "wiki-tasks")
-    )
+    return all(value == "DONE" for value in redis.hvals(REDIS_PREFIX + "wiki-tasks"))
 
 
 def check_all_sqlite_files_are_ready(supported_wikis, DB_DIR, name, dump_date):
+    """Check if all expected sqlite files ($supported_wikis) are present and non-empty in the given directory."""
     wikis_done = []
     for file in os.listdir(DB_DIR):
         filename = os.fsdecode(file)
@@ -43,12 +44,49 @@ def check_all_sqlite_files_are_ready(supported_wikis, DB_DIR, name, dump_date):
     return set(supported_wikis).issubset(wikis_done)
 
 
+def get_latest_dump_date(DB_WIKIS_BASEPATH):
+    dump_dates: list[int] = []
+    dump_date_pattern = r"(\d{8})"
+    for file in os.listdir(DB_WIKIS_BASEPATH):
+        filename = os.fsdecode(file)
+        if os.path.isdir(os.path.join(DB_WIKIS_BASEPATH, filename)) and re.match(
+            dump_date_pattern, filename
+        ):
+            dump_dates.append(int(filename))
+
+    return max(dump_dates) if dump_dates else None
+
+
+def deleted_old_dump_dates(keep_date, DB_WIKIS_BASEPATH, STATS_OUTPUT_PATH):
+    """Delete dump date directories older than keep_date if their stats file exists"""
+    # Warning: If the new dump covers less wikis than before, this will result in less wikis in the end
+    # However, I will ignore this for now
+    dump_date_pattern = r"(\d{8})"
+    for file in os.listdir(DB_WIKIS_BASEPATH):
+        filename = os.fsdecode(file)
+        filepath = os.path.join(DB_WIKIS_BASEPATH, filename)
+        if os.path.isdir(filepath) and re.match(
+            dump_date_pattern, filename
+        ):
+            stats_exists = os.path.exists(
+                os.path.join(STATS_OUTPUT_PATH, f"{filename}.json")
+            )
+            if not stats_exists:
+                logger.warning(
+                    f"Stats file for dump date {filename} does not exist, skipping deletion."
+                )
+                continue
+            
+            date_int = int(filename)
+            if date_int < keep_date:
+                logger.info(f"Deleting old dump date directory: {filepath}")
+                subprocess.run(["rm", "-rf", filepath])
+
 
 def build_server():
     logger.info("> Rebuilding server")
     subprocess.run([REBUILD_SERVER_BIN], stdout=subprocess.DEVNULL)
     logger.info("Finished rebuilding server")
-
 
 
 @contextmanager

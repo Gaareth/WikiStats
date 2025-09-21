@@ -23,13 +23,11 @@ export default function PageLinkPills(props: {
     let incomingRef!: HTMLButtonElement;
     let outgoingRef!: HTMLButtonElement;
 
-    // TODO: hardcoded port oh no pls fix
-    const base = import.meta.env.SSR ? "http://localhost:4321" : "";
 
     const [num_links, { refetch: refetch_outgoing }] = createResource(
         async () => {
             // await sleep(1000);
-            const url = `${base}/api/${props.wiki_name}/${props.title.replaceAll(
+            const url = `/api/${props.wiki_name}/${props.title.replaceAll(
                 " ",
                 "_",
             )}/links?num=true`;
@@ -45,7 +43,7 @@ export default function PageLinkPills(props: {
 
     const [times_linked, { refetch: refetch_incoming }] = createResource(
         async () => {
-            const url = `${base}/api/${props.wiki_name}/${props.title.replaceAll(
+            const url = `/api/${props.wiki_name}/${props.title.replaceAll(
                 " ",
                 "_",
             )}/linked?num=true`;

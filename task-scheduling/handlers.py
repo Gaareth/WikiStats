@@ -4,7 +4,7 @@ import smtplib
 from email.mime.text import MIMEText
 import os
 from celery.utils.log import get_task_logger
-from utils import set_task_status
+# from utils import set_task_status
 
 from tasks import logger
 import traceback as tb

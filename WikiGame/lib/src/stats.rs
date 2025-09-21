@@ -409,6 +409,7 @@ pub async fn create_stats(
         record.insert(GLOBAL.to_string(), v);
     }
 
+    let dump_date = dump_date.into();
     let path = path.as_ref();
     let stats: Option<Stats> = try_load_stats(path);
 
@@ -616,7 +617,12 @@ pub async fn create_stats(
     //
     // let bi_bfs_sample_stats = make_stat_record_async(wikis.clone(), async_bibfs_name_wrapper, global_ignore);
 
-    let wiki_sizes = get_wiki_sizes(database_path.parent().unwrap(), &ALL_DB_TABLES).await;
+    let wiki_sizes = get_wiki_sizes(
+        database_path.parent().unwrap(),
+        Some(dump_date.clone()),
+        &ALL_DB_TABLES,
+    )
+    .await;
 
     let time_taken: time::Duration = t1.elapsed();
 
@@ -643,7 +649,7 @@ pub async fn create_stats(
         min_num_links,
 
         created_at: chrono::Utc::now().timestamp(),
-        dump_date: dump_date.into(),
+        dump_date,
         wikis,
         seconds_taken: time_taken.as_secs(),
 
@@ -661,8 +667,12 @@ pub async fn create_stats(
     );
 }
 
-async fn get_wiki_sizes(base_path: impl AsRef<Path>, tables: &[&str]) -> WikiSizes {
-    let web_wiki_sizes = find_smallest_wikis(tables)
+async fn get_wiki_sizes(
+    base_path: impl AsRef<Path>,
+    dump_date: Option<String>,
+    tables: &[&str],
+) -> WikiSizes {
+    let web_wiki_sizes = find_smallest_wikis(dump_date, tables)
         .await
         .expect("Failed finding smallest wikis");
 

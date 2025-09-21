@@ -186,7 +186,7 @@ const timeFormat: Intl.DateTimeFormatOptions = {
             <RunningTasks runningTasks={runningTasks} />
             {
                 queuedTasks.length > 0 && (
-                    <Collapsible>
+                    <Collapsible className="my-1">
                         <div slot="summary" class="w-full text-center">
                             {queuedTasks.length} Queued Tasks
                         </div>
