@@ -14,8 +14,7 @@ import Task, {
     type TaskType,
 } from "../components/SPC/DumpProgress/Task/Task.astro";
 import { TooltipButton } from "../components/TooltipButton";
-import { redisClient } from "../db/redis";
-import { getTasks, getLastChecked } from "../db/redis-utils";
+import { getLastChecked, getTasks } from "../db/redis-utils";
 
 const last_checked_date = await getLastChecked();
 let last_check_is_recent =
@@ -64,7 +63,6 @@ let dbStatus: DB_STATUS_TYPE;
 //     .map(([_, v]) => v)
 //     .some((v) => v === "RUNNING");
 const isUpdatingRn = tasks.some((t) => t.status === "RUNNING");
-
 
 if (isUpdatingRn) {
     dbStatus = "RUNNING";

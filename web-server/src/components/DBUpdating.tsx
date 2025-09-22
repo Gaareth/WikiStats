@@ -3,7 +3,7 @@ import { LoadingSpinner } from "./ClientIcons/Icons";
 
 const fetchStatus = async () => {
     const response = await fetch(`api/is-updating`);
-    const json = await response.json();    
+    const json = await response.json();
     return json.is_updating;
 };
 

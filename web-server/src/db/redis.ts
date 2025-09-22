@@ -28,5 +28,3 @@ export const REDIS_PREFIX = "WIKI:";
 
     await redisClient.connect();
 })();
-
-

@@ -6,15 +6,13 @@ import Header from "../components/Header.astro";
 
 import { getImage } from "astro:assets";
 import favicon from "../../public/favicon-dark.svg";
-import { InfoIcon, LoadingSpinner } from "../components/ClientIcons/Icons";
+import { InfoIcon } from "../components/ClientIcons/Icons";
+import DBUpdating from "../components/DBUpdating";
 import { get_latest_date } from "../db/constants";
-import { redisClient } from "../db/redis";
 import "../styles/borders.scss";
 import "../styles/dual-range-slider.css";
 import "../styles/global.css";
 import { formatDumpDate } from "../utils";
-import DBUpdating from "../components/DBUpdating";
-import type { object } from "astro:schema";
 
 interface Props {
     title: string;
@@ -28,7 +26,6 @@ const latest_dump = await get_latest_date();
 const latest_dump_date = latest_dump
     ? formatDumpDate(latest_dump) + " (UTC)"
     : "N/A";
-
 
 const appleTouchIcon = await getImage({
     src: favicon,
