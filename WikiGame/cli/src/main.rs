@@ -422,7 +422,7 @@ async fn main() {
                     let file_name = file_name.to_str()?;
 
                     if file_name.ends_with(".json") {
-                        let mut stats: Stats =
+                        let stats: Stats =
                             serde_json::from_str(&fs::read_to_string(entry.path()).unwrap_or_else(
                                 |_| panic!("Failed loading stats file: {file_name:?}"),
                             ))
