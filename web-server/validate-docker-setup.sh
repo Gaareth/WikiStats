@@ -14,7 +14,9 @@ cleanup() {
 }
 
 echo "> Starting container"
-docker compose --profile prod up -d --build
+docker compose --profile dev up -d --build
+docker compose build webserver
+docker compose up -d webserver
 
 if [ $? -ne 0 ]; then
     print_error "Docker build failed. Stopping script."

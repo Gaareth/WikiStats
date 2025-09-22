@@ -30,7 +30,7 @@ export async function getStaticPaths() {
             params.push({
                 params: { dump_date, wiki_name: wiki },
             });
-            
+
             if (dump_date === latest_date || latest_date == null) {
                 params.push({
                     params: { dump_date: "latest", wiki_name: wiki },

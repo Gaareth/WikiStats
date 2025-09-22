@@ -18,7 +18,9 @@ const { currrent_dumpdate, current_wikiname, collection_filter, ...rest } =
 const items = (await getCollection("stats"))
     .filter(
         (c) =>
-            (current_wikiname == null || c.data.wikis.includes(current_wikiname)) && (collection_filter == null || collection_filter(c)),
+            (current_wikiname == null ||
+                c.data.wikis.includes(current_wikiname)) &&
+            (collection_filter == null || collection_filter(c)),
     )
     .map((c) => c.id)
     .reverse();

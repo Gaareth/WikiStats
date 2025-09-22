@@ -21,8 +21,12 @@ export const REDIS_PREFIX = "WIKI:";
     });
 
     redisClient.on("error", (error) =>
-        console.error(`Error connecting to redis at ${redis_host}:${redis_port}: ${error}`),
+        console.error(
+            `Error connecting to redis at ${redis_host}:${redis_port}: ${error}`,
+        ),
     );
 
     await redisClient.connect();
 })();
+
+

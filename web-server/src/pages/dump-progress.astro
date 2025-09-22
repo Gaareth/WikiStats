@@ -15,28 +15,14 @@ import Task, {
 } from "../components/SPC/DumpProgress/Task/Task.astro";
 import { TooltipButton } from "../components/TooltipButton";
 import { redisClient } from "../db/redis";
+import { getTasks, getLastChecked } from "../db/redis-utils";
 
-let last_checked = await redisClient.get(
-    "CELERY-WIKI_wiki-tasks:last_checked_for_tasks",
-);
-let last_checked_date = last_checked
-    ? new Date(Number(last_checked) * 1000)
-    : null;
+const last_checked_date = await getLastChecked();
 let last_check_is_recent =
     last_checked_date != null &&
     new Date().getTime() - last_checked_date.getTime() < 24 * 60 * 60 * 1000; // 24 hours
 
-let keys = await redisClient.hGetAll("CELERY-WIKI_wiki-tasks");
-let tasks: TaskType[] = Object.entries(keys).map(([key, value]) => {
-    let { name, status, startedAt, finishedAt, ...rest } = JSON.parse(value);
-    return {
-        name,
-        status,
-        startedAt: new Date(startedAt),
-        finishedAt: finishedAt != null ? new Date(finishedAt) : undefined,
-        ...rest,
-    };
-});
+const tasks = await getTasks();
 
 // const tasksStatusi = await redisClient.hGetAll("CELERY-WIKI_wiki-tasks-status");
 
@@ -77,12 +63,8 @@ let dbStatus: DB_STATUS_TYPE;
 // const isUpdatingRn = Object.entries(tasksStatusi)
 //     .map(([_, v]) => v)
 //     .some((v) => v === "RUNNING");
-// const isUpdatingRn = tasks.some((t) => t.status === "RUNNING");
+const isUpdatingRn = tasks.some((t) => t.status === "RUNNING");
 
-const is_updating = await redisClient.get("CELERY-WIKI_wiki-tasks:is-updating");
-const isUpdatingRn: boolean =
-    is_updating == "true" || is_updating == "True" ||
-    (typeof is_updating == "boolean" && is_updating);
 
 if (isUpdatingRn) {
     dbStatus = "RUNNING";

@@ -7,7 +7,9 @@ import Pill from "./Pill";
 import { Table } from "./Table";
 
 export function WikiSizesTable(props: {
-    wikis_columns: NonNullable<z.infer<typeof statsSchema>["wiki_sizes"]>["sizes"];
+    wikis_columns: NonNullable<
+        z.infer<typeof statsSchema>["wiki_sizes"]
+    >["sizes"];
     supported_wikis: string[];
     dump_date?: string;
     dbname_to_siteinfo: Map<string, SiteInfo>;
