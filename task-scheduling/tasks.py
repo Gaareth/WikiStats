@@ -79,10 +79,10 @@ from task_enqueuer import check_for_tasks
 
 @app.on_after_configure.connect
 def setup_periodic_tasks(sender: Celery, **kwargs):
-    logger.info(f"Setting up periodic tasks with schedule {CRONTAB_SCHEDULE_STR}")
+    print(f"Setting up periodic tasks with schedule {CRONTAB_SCHEDULE_STR}")
     schedule = CRONTAB_SCHEDULE_STR.split()
     if len(schedule) != 5:
-        logger.error(
+        print(
             f"TASK_SCHEDULING_SCHEDULE is invalid, must have 5 parts but has {len(schedule)}: {CRONTAB_SCHEDULE_STR}"
         )
         exit(-1)
