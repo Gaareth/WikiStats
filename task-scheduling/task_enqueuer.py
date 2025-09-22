@@ -40,6 +40,8 @@ def check_for_tasks():
             .rstrip("]\n")
             .split(", ")
         ]
+        dumpdates_todo = [d for d in dumpdates_todo if len(d) == 8]
+        
 
         for dump_date in dumpdates_todo:
             if dump_date not in available_wikis_per_dump_date:
@@ -53,6 +55,9 @@ def check_for_tasks():
     latest_dump_date = max(available_wikis_per_dump_date.keys())
 
     for dump_date, available_wikis in available_wikis_per_dump_date.items():
+        if len(dump_date) != 8:
+            print(f"Skipping invalid dump date: {dump_date}")
+            continue
 
         # expected_wikis = wikis if latest_dump_date else only those that are available
         expected_wikis = (
