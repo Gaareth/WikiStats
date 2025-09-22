@@ -48,6 +48,9 @@ def check_for_tasks():
                 available_wikis_per_dump_date[dump_date] = []
             available_wikis_per_dump_date[dump_date].append(wiki)
 
+    now_utc_seconds = int(datetime.now(timezone.utc).timestamp())
+    redis.set(f"{WIKI_TASKS_PREFIX}:last_checked_for_tasks", now_utc_seconds)
+
     if not available_wikis_per_dump_date:
         print("No tasks to enqueue.")
         return
@@ -79,9 +82,6 @@ def check_for_tasks():
                 "message": None,
             })
             
-
-    now_utc_seconds = int(datetime.now(timezone.utc).timestamp())
-    redis.set(f"{WIKI_TASKS_PREFIX}:last_checked_for_tasks", now_utc_seconds)
 
 def simulate_check_for_tasks():
     from tasks import process_wiki  # TODO: put in shared
