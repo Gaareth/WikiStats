@@ -155,9 +155,7 @@ def finish_dump(dump_date):
     redis.set(f"{WIKI_TASKS_PREFIX}:{dump_date}", "DONE")
     # redis.hset(REDIS_PREFIX + "wiki-tasks-status", mapping={dump_date: "DONE"})
 
-    all_done = all_tasks_done()
-
-    redis.set(f"{WIKI_TASKS_PREFIX}:is-updating", not all_done)
+    # all_done = all_tasks_done()
 
     # check if dump_date is the latest date and then delete all others older than it if their stats file exists
     latest_dump_date = get_latest_dump_date(WIKI_BASEPATH)
@@ -169,14 +167,15 @@ def finish_dump(dump_date):
             f"[!!!!] INFO: {dump_date} is the latest dump date, cleaning up old dump dates"
         )
         updated_wikis_dir = re.sub(r"(\d{8})", dump_date, DB_WIKIS_DIR)
-        env_updates["DB_WIKIS_DIR"] = updated_wikis_dir
         deleted_old_dump_dates(int(dump_date), WIKI_BASEPATH, STATS_OUTPUT_PATH)
 
-    safe_set_env_vars(env_path, env_updates)
+        safe_set_env_vars(env_path, {
+            "DB_WIKIS_DIR": updated_wikis_dir,
+        })
 
     time.sleep(2)
-    # if not SIMULATE:
-    #     build_server()
+    if not SIMULATE:
+        build_server()
 
     # return result.returncode
     return 200
@@ -189,15 +188,6 @@ def process_wiki(self, name, dump_date, supported_wikis: List[str]):
     DB_DIR = os.path.join(WIKI_BASEPATH, dump_date, "sqlite")
     os.makedirs(DB_DIR, exist_ok=True)
 
-    # logger.info(DB_DIR)
-
-    is_updating = redis.get(f"{WIKI_TASKS_PREFIX}:is-updating")
-    if is_updating == False and not SIMULATE:
-        try:
-            redis.set(f"{WIKI_TASKS_PREFIX}:is-updating", True)
-            build_server()
-        except Exception as e:
-            logger.error(f"Failed building server {e} ")
 
     # status per dumpdate, as finish_dump also works per dumpdate
     # redis.hset(REDIS_PREFIX + "wiki-tasks-status", mapping={dump_date: "RUNNING"})
