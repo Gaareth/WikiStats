@@ -25,7 +25,7 @@ from env_vars import (
     UPDATE_DONE_SH,
     TABLES,
     env_path,
-    CRONTAB_SCHEDULE,
+    CRONTAB_SCHEDULE_STR,
 )
 
 
@@ -79,14 +79,21 @@ from task_enqueuer import check_for_tasks
 
 @app.on_after_configure.connect
 def setup_periodic_tasks(sender: Celery, **kwargs):
-    logger.info(f"Setting up periodic tasks with schedule {CRONTAB_SCHEDULE}")
+    logger.info(f"Setting up periodic tasks with schedule {CRONTAB_SCHEDULE_STR}")
+    schedule = CRONTAB_SCHEDULE_STR.split()
+    if len(schedule) != 5:
+        logger.error(
+            f"TASK_SCHEDULING_SCHEDULE is invalid, must have 5 parts but has {len(schedule)}: {CRONTAB_SCHEDULE_STR}"
+        )
+        exit(-1)
+    minute, hour, day_of_month, month, day_of_week = schedule
     sender.add_periodic_task(
         crontab(
-            minute=CRONTAB_SCHEDULE[0],
-            hour=CRONTAB_SCHEDULE[1],
-            day_of_week=CRONTAB_SCHEDULE[2],
-            day_of_month=CRONTAB_SCHEDULE[3],
-            month_of_year=CRONTAB_SCHEDULE[4],
+            minute=minute,
+            hour=hour,
+            day_of_month=day_of_month,
+            month_of_year=month,
+            day_of_week=day_of_week,
         ),
         task_enqueuer.s(),
     )

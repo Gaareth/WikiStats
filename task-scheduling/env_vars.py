@@ -43,8 +43,8 @@ if os.getenv("TASK_SCHEDULING_SIMULATE") is None:
     exit(-1)
 
 
-CRONTAB_SCHEDULE = os.getenv("TASK_SCHEDULING_SCHEDULE")
-if CRONTAB_SCHEDULE is None:
+CRONTAB_SCHEDULE_STR = os.getenv("TASK_SCHEDULING_SCHEDULE")
+if CRONTAB_SCHEDULE_STR is None:
     print("TASK_SCHEDULING_SCHEDULE env var can't be None")
     exit(-1)
 
