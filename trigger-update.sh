@@ -24,7 +24,7 @@ fi
 
 echo "> Building new Docker image"
 docker compose build webserver
-docker compose --profile prod up
+docker compose --profile prod up -d
 # docker compose --profile prod up --build
 
 if [ $? -ne 0 ]; then
