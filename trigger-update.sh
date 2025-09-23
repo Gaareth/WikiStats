@@ -89,3 +89,6 @@ else
     print_error "URL did not return 200 OK or any 300. Status code: $status_code"
     exit 1
 fi
+
+# user-supplied
+./after-update.sh
