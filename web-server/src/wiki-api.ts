@@ -1,5 +1,6 @@
+import { get } from "http";
 import type { Pages } from "./pages/api/[wiki_name]/pages";
-import { WIKIPEDIA_REST_API_HEADERS } from "./utils";
+import { get_wiki_prefix, WIKIPEDIA_REST_API_HEADERS } from "./utils";
 
 export type SiteInfo = {
     url: string;
@@ -103,7 +104,7 @@ export const fetchPagesWikipediaAPI = async (
     prefix: string,
 ): Promise<Page[]> => {
     // await sleep(5000);
-    const lang_prefix = wiki_name.substring(0, 2);
+    const lang_prefix = get_wiki_prefix(wiki_name);
     const base_url = `https://${lang_prefix}.wikipedia.org/w/api.php`;
     const num_results = 10;
 
@@ -136,7 +137,7 @@ export const fetchPagesWikipediaAPI = async (
 };
 
 export const fetchRandomPage = async (wiki_name: string) => {
-    const lang_prefix = wiki_name.substring(0, 2);
+    const lang_prefix = get_wiki_prefix(wiki_name);
 
     const resp = await fetch(
         `https://${lang_prefix}.wikipedia.org/api/rest_v1/page/random/title`,

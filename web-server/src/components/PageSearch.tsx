@@ -9,7 +9,7 @@ import {
     Show,
     Suspense,
 } from "solid-js";
-import { reinitializeFlowBiteTooltips } from "../utils";
+import { get_wiki_prefix, reinitializeFlowBiteTooltips } from "../utils";
 import {
     fetchPagesWikipediaAPI,
     fetchRandomPage,
@@ -129,7 +129,7 @@ export function PageSearch(props: Props) {
                     fallback={
                         <p class="error text-sm">
                             Failed fetching random page from https://
-                            {props.wiki_name?.substring(0, 2)}
+                            {get_wiki_prefix(props.wiki_name!)}
                             .wikipedia.org/api/rest_v1/page/random/title
                         </p>
                     }>
