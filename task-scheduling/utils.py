@@ -84,9 +84,11 @@ def deleted_old_dump_dates(keep_date, DB_WIKIS_BASEPATH, STATS_OUTPUT_PATH):
 
 
 def build_server():
-    logger.info("> Rebuilding server")
+    logger.info("> Rebuilding server")    
+    redis.set(f"{REDIS_PREFIX}:is-rebuilding", "true")
     subprocess.run([REBUILD_SERVER_BIN], stdout=subprocess.DEVNULL)
     logger.info("Finished rebuilding server")
+    redis.set(f"{REDIS_PREFIX}:is-rebuilding", "false")
 
 
 @contextmanager

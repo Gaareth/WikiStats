@@ -1,5 +1,6 @@
 #!/bin/bash
 source .env
+redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" SET is-rebuilding true
 
 # Ensure logs directory exists with user permissions
 mkdir -p ./logs
@@ -92,3 +93,4 @@ fi
 
 # user-supplied
 ./after-update.sh
+redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" SET is-rebuilding false

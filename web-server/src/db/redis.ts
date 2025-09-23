@@ -2,6 +2,8 @@ import redis, { type RedisClientType } from "redis";
 
 export let redisClient: RedisClientType;
 export const REDIS_PREFIX = "WIKI:";
+export const CELERY_REDIS_PREFIX = "CELERY-WIKI_";
+export const WIKI_TASKS_PREFIX = `${CELERY_REDIS_PREFIX}wiki-tasks`;
 
 (async () => {
     const redis_host = process.env.REDIS_HOST || "localhost";
