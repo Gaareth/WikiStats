@@ -11,7 +11,7 @@ use parse_mediawiki_sql::field_types::PageId;
 use rusqlite::{Connection, Transaction};
 
 use crate::sqlite::title_id_conv::load_wiki_pages;
-use crate::stats::select_link_count_groupby;
+use crate::stats::queries::select_link_count_groupby;
 use crate::utils::{default_bar, ProgressBarBuilder};
 use crate::{sqlite, DBCache};
 

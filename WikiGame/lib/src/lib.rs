@@ -1,11 +1,15 @@
 #![feature(test)]
 // #![feature(async_closure)]
 
-use chrono::{DateTime, FixedOffset, NaiveDate, ParseResult, Utc};
+use std::path::{Path, PathBuf};
+
+use chrono::{DateTime, NaiveDate, ParseResult, Utc};
 use fxhash::FxHashMap;
 use parse_mediawiki_sql::field_types::PageId;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+
+use crate::sqlite::join_db_wiki_path;
 
 pub mod sqlite;
 
@@ -17,6 +21,34 @@ pub mod stats;
 pub mod utils;
 pub mod validate;
 pub mod web;
+
+
+
+#[derive(Clone)]
+pub struct WikiIdent {
+    pub wiki_name: String,
+    pub db_path: PathBuf,
+}
+
+impl WikiIdent {
+    pub fn new<S: Into<String>>(wiki_name: S, db_path: PathBuf) -> Self {
+        Self {
+            wiki_name: wiki_name.into(),
+            db_path,
+        }
+    }
+}
+
+pub fn create_wiki_idents(db_path: &Path, wikis: Vec<String>) -> Vec<WikiIdent> {
+    wikis
+        .into_iter()
+        .map(|wiki_name| WikiIdent {
+            db_path: join_db_wiki_path(db_path, &wiki_name),
+            wiki_name,
+        })
+        .collect()
+}
+
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct AvgDepthStat {

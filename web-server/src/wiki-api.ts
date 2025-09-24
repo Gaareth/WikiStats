@@ -1,4 +1,3 @@
-import { get } from "http";
 import type { Pages } from "./pages/api/[wiki_name]/pages";
 import { get_wiki_prefix, WIKIPEDIA_REST_API_HEADERS } from "./utils";
 

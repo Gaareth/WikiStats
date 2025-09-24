@@ -8,8 +8,9 @@ import fcntl
 from contextlib import contextmanager
 import dotenv
 from dotenv import load_dotenv
-from env_vars import REBUILD_SERVER_BIN
+from env_vars import REBUILD_SERVER_BIN, STATS_OUTPUT_PATH
 import re
+from typing import Callable
 
 
 class TaskData(TypedDict):
@@ -29,6 +30,28 @@ def set_task_status(data: TaskData):
 def all_tasks_done():
     return all(value == "DONE" for value in redis.hvals(REDIS_PREFIX + "wiki-tasks"))
 
+
+def get_dump_dates_without_wiki_sizes():
+    def does_not_contain_wiki_sizes(filepath):
+        try:
+            with open(filepath, "r") as f:
+                data = json.load(f)
+            return "wiki_sizes" not in data
+        except Exception:
+            return False
+
+    return get_done_dump_dates(does_not_contain_wiki_sizes)
+
+def get_done_dump_dates(filter: (Callable[[str], bool])):
+    wikis_done_total: list[str] = []
+    stats_file_pattern = r"(\d{8}).json"
+    
+    for file in os.listdir(STATS_OUTPUT_PATH):
+        filename = os.fsdecode(file)
+        file_path = os.path.join(STATS_OUTPUT_PATH, filename)
+        if re.match(stats_file_pattern, filename) and filter(file_path):
+            wikis_done_total.append(filename.split(".json")[0])
+    return wikis_done_total
 
 def check_all_sqlite_files_are_ready(supported_wikis, DB_DIR, name, dump_date):
     """Check if all expected sqlite files ($supported_wikis) are present and non-empty in the given directory."""

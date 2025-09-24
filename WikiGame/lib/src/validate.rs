@@ -2,19 +2,14 @@ use std::collections::HashSet;
 use std::path::Path;
 
 use chrono::{DateTime, Utc};
-use futures::stream::{self, StreamExt};
-use itertools::rev;
 use log::{debug, info, warn};
 use parse_mediawiki_sql::field_types::{PageId, PageTitle};
-use parse_mediawiki_sql::schemas::Page;
 use parse_mediawiki_sql::utils::{memory_map, Mmap};
 use rusqlite::Connection;
-use serde::de::DeserializeOwned;
-use serde::Deserialize;
 
 use crate::{parse_dump_date, web};
 use crate::sqlite::load::{load_linktarget_map, load_sql_part_map};
-use crate::sqlite::page_links::{get_incoming_links_of_id, get_links_of_id};
+use crate::sqlite::page_links::{get_incoming_links_of_id};
 use crate::web::{get_added_diff_to_current, get_latest_revision_id_before_date};
 
 async fn compare_links(

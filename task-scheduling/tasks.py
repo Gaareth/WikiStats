@@ -67,6 +67,7 @@ from utils import (
     TaskData,
     check_all_sqlite_files_are_ready,
     deleted_old_dump_dates,
+    get_dump_dates_without_wiki_sizes,
     set_task_status,
     all_tasks_done,
     build_server,
@@ -100,8 +101,65 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
 
 
 @app.task
+def add_sample_stats(dump_date: str):
+    logger.info(f"Running add_sample_stats for dump date {dump_date}")
+    output_file = os.path.join(STATS_OUTPUT_PATH, f"{dump_date}.json")
+    db_path = os.path.join(WIKI_BASEPATH, dump_date, "sqlite")
+
+    sample_size = "200"
+    num_threads = "10"
+
+    cmd = [
+        WIKI_CLI_BINARY,
+        "sample-stats",
+        "-o",
+        output_file,
+        "--db-path",
+        db_path,
+        "--sample-size",
+        sample_size,
+        "--threads",
+        num_threads
+    ]
+    logger.info(f"> Running command: {cmd}")
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    logger.info(f"Command output: {result.stdout}")
+    if result.returncode != 0:
+        raise Exception(result.stderr)
+
+
+@app.task
+def add_wiki_sizes(dump_date: str):
+    logger.info(f"Running add_wiki_sizes for dump date {dump_date}")
+    output_file = os.path.join(STATS_OUTPUT_PATH, f"{dump_date}.json")
+
+    cmd = [
+        WIKI_CLI_BINARY,
+        "add-wiki-sizes",
+        "-o",
+        output_file,
+        "-b",
+        WIKI_BASEPATH,
+        "-d",
+        dump_date,
+    ]
+    logger.info(f"> Running command: {cmd}")
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    logger.info(f"Command output: {result.stdout}")
+    if result.returncode != 0:
+        raise Exception(result.stderr)
+
+@app.task
 def task_enqueuer():
     check_for_tasks()
+    
+    # only add wiki sizes for the latest dump date that doesn't have them, as it takes about 8mins and does a lot of requests
+    # this can be changed in future
+    dump_dates = get_dump_dates_without_wiki_sizes()
+    latest_dump_date = sorted(dump_dates)[-1] 
+    add_wiki_sizes.delay(latest_dump_date)
+
+    
 
 
 @app.task

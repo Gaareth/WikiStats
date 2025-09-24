@@ -1,5 +1,4 @@
 use parse_mediawiki_sql::field_types::PageType;
-use parse_mediawiki_sql::field_types::PageType::{File, Page, Subcat};
 use rusqlite::Connection;
 
 pub fn pagetype_to_string(s: PageType) -> String {

@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use colored::Colorize;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
 pub struct ProgressBarBuilder {

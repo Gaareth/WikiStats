@@ -1,4 +1,3 @@
-use std::fmt::Display;
 use std::fs::File;
 use std::hash::Hash;
 use std::io::Write;
@@ -6,7 +5,6 @@ use std::path::Path;
 
 use fxhash::FxHashSet;
 use indicatif::MultiProgress;
-use itertools::Itertools;
 use parse_mediawiki_sql::{FromSqlTuple, iterate_sql_insertions};
 use parse_mediawiki_sql::utils::Mmap;
 use rusqlite::{Connection, Row};

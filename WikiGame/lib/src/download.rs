@@ -1,22 +1,19 @@
 use std::cmp::min;
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsStr;
-use std::fmt::{format, Debug, Display};
-use std::hash::Hash;
-use std::io::{BufReader, Error};
+use std::fmt::{Debug, Display};
+use std::io::{Error};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::time::{Duration, Instant};
 use std::{fs, io};
 
-use chrono::{Datelike, Days, Months, NaiveDate, Utc};
+use chrono::{Datelike, Days, Months, Utc};
 use colored::Colorize;
-use flate2::bufread;
 use futures::future::join_all;
 use futures::StreamExt;
 use indicatif::MultiProgress;
 use log::{debug, error, info, warn};
-use reqwest::StatusCode;
 use scraper::{Html, Selector};
 use tokio::fs::{File, OpenOptions};
 use tokio::io::AsyncWriteExt;

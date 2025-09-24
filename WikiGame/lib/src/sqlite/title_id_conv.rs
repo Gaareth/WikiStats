@@ -4,11 +4,10 @@ use std::path::Path;
 use fxhash::{FxHashMap, FxHashSet};
 use parse_mediawiki_sql::field_types::{PageId, PageTitle};
 use parse_mediawiki_sql::iterate_sql_insertions;
-use parse_mediawiki_sql::schemas::{Page, PageLink};
+use parse_mediawiki_sql::schemas::{Page};
 use parse_mediawiki_sql::utils::Mmap;
 use rusqlite::Connection;
 
-use crate::sqlite::db_wiki_path;
 
 pub fn page_id_to_title(id: &PageId, conn: &Connection) -> Option<PageTitle> {
     // let conn = Connection::open(DB_PAGE).unwrap();

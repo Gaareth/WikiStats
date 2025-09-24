@@ -2,7 +2,7 @@ extern crate test;
 
 use std::time::Instant;
 
-use fxhash::{FxHashMap, FxHashSet};
+use fxhash::{FxHashSet};
 use indicatif::ProgressIterator;
 use parse_mediawiki_sql::field_types::{PageId, PageTitle};
 use parse_mediawiki_sql::iterate_sql_insertions;
@@ -10,13 +10,14 @@ use parse_mediawiki_sql::schemas::PageLink;
 use parse_mediawiki_sql::utils::memory_map;
 use rusqlite::Connection;
 
-use crate::calc::{bfs, build_path, MAX_SIZE};
+use crate::calc::bfs::{bfs, build_path};
+use crate::calc::MAX_SIZE;
 use crate::sqlite;
 use crate::sqlite::{db_sp_wiki_path, db_wiki_path};
 use crate::sqlite::load::load_sql_part_map;
 use crate::sqlite::page_links::{get_links_of_id, load_link_to_map_db_limit};
 use crate::sqlite::paths::build_sp;
-use crate::stats::select_link_count_groupby;
+use crate::stats::queries::select_link_count_groupby;
 use crate::utils::default_bar;
 
 // slow

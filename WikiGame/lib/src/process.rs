@@ -25,7 +25,6 @@ use crate::sqlite::load::load_linktarget_map;
 use crate::sqlite::title_id_conv::TitleIdMap;
 use crate::sqlite::to_sqlite::{LinkTargetTitleMap, ToSqlite};
 use crate::sqlite::{join_db_wiki_path, page_links, title_id_conv};
-use crate::validate::post_validation;
 
 // 1_591_804_203 20240401 pagelinks
 // 785_164_001 20240301 pagelinks
