@@ -19,11 +19,12 @@ pub async fn add_wiki_sizes(
     output_path: impl AsRef<Path>,
     base_path: impl AsRef<Path>,
     dump_date: Option<String>,
+    web_wiki_sizes: bool,
 ) {
     let output_path = output_path.as_ref();
     let mut stats = load_stats(output_path);
 
-    let wiki_sizes = get_wiki_sizes(base_path, dump_date, &ALL_DB_TABLES).await;
+    let wiki_sizes = get_wiki_sizes(base_path, dump_date, &ALL_DB_TABLES, web_wiki_sizes).await;
 
     stats.wiki_sizes = Some(wiki_sizes);
     save_stats(&stats, output_path);

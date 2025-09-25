@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 import subprocess
 import argparse
+import requests
+from bs4 import BeautifulSoup
 
 
 from tasks import (
@@ -9,12 +11,23 @@ from tasks import (
     SUPPORTED_WIKIS,
     WIKI_TASKS_PREFIX,
     redis,
-    set_task_status
+    set_task_status,
 )
+
+
+def check_latest_dump_date_is_fully_complete():
+    response = requests.get("https://dumps.wikimedia.org/backup-index.html")
+    soup = BeautifulSoup(response.text, "html.parser")
+    lis = soup.select("li > span")
+    for li in lis:
+        if not "done" in li["class"]:
+            return False
+    return True
 
 
 def check_for_tasks():
     from tasks import process_wiki  # TODO: put in shared
+
     desired_wikis = SUPPORTED_WIKIS.split(", ")
     available_wikis_per_dump_date = {}
 
@@ -42,7 +55,6 @@ def check_for_tasks():
             .split(", ")
         ]
         dumpdates_todo = [d for d in dumpdates_todo if len(d) == 8]
-        
 
         for dump_date in dumpdates_todo:
             if dump_date not in available_wikis_per_dump_date:
@@ -74,18 +86,21 @@ def check_for_tasks():
 
         for wiki in available_wikis:
             process_wiki.delay(wiki, dump_date, expected_wikis)
-            set_task_status({
-                "name": wiki,
-                "dumpDate": dump_date,
-                "status": "QUEUED",
-                "startedAt": None,
-                "finishedAt": None,
-                "message": None,
-            })
-            
+            set_task_status(
+                {
+                    "name": wiki,
+                    "dumpDate": dump_date,
+                    "status": "QUEUED",
+                    "startedAt": None,
+                    "finishedAt": None,
+                    "message": None,
+                }
+            )
+
 
 def simulate_check_for_tasks():
     from tasks import process_wiki  # TODO: put in shared
+
     wikis = SUPPORTED_WIKIS.split(", ")
     for wiki in wikis:
         for dump_date in [
@@ -97,21 +112,28 @@ def simulate_check_for_tasks():
         ]:
             print(f"> Enqueuing: [{wiki}] {dump_date}")
             process_wiki.delay(wiki, dump_date, wikis)
-            set_task_status({
-                "name": wiki,
-                "dumpDate": dump_date,
-                "status": "QUEUED",
-                "startedAt": None,
-                "finishedAt": None,
-                "message": None,
-            })
+            set_task_status(
+                {
+                    "name": wiki,
+                    "dumpDate": dump_date,
+                    "status": "QUEUED",
+                    "startedAt": None,
+                    "finishedAt": None,
+                    "message": None,
+                }
+            )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Task Enqueuer")
-    parser.add_argument("--dummy", action="store_true", help="Enqueue dummy tasks instead of real ones")
+    parser.add_argument(
+        "--dummy", action="store_true", help="Enqueue dummy tasks instead of real ones"
+    )
     args = parser.parse_args()
     dummy = args.dummy
+
+    check_latest_dump_date_is_fully_complete()
+    quit()
 
     if dummy:
         print("Enqueuing dummy tasks")

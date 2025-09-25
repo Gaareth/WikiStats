@@ -63,9 +63,9 @@ pub enum Commands {
         #[command(flatten)]
         sample_args: SampleOptions,
 
-        /// Add sizes of the online table sizes and the downloaded sqlite files to the stats json file. For more control use add-wiki-sizes
+        /// Add sizes of the online table sizes
         #[arg(long, default_value_t = false, help_heading = "WikiSizes Options")]
-        add_wiki_sizes: bool,
+        add_web_wiki_sizes: bool,
 
         #[command(subcommand)]
         subcommands: Option<StatsCommands>,
@@ -115,7 +115,7 @@ pub enum StatsCommands {
     },
 
     /// Add sizes of the online table sizes and the downloaded sqlite files to the stats json file
-    AddWikiSizes {
+    AddWebWikiSizes {
         #[command(flatten)]
         args: WikiSizesArgs,
 

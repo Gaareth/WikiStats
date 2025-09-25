@@ -43,7 +43,9 @@ redis_port = os.getenv("REDIS_PORT", "6379")
 redis_db = os.getenv("REDIS_DB", "0")
 
 app = Celery(
-    "tasks", broker=f"amqp://guest:guest@{broker_host}:{broker_port}//", backend=f"redis://{redis_host}:{redis_port}/{redis_db}"
+    "tasks",
+    broker=f"amqp://guest:guest@{broker_host}:{broker_port}//",
+    backend=f"redis://{redis_host}:{redis_port}/{redis_db}",
 )
 
 app.conf.result_backend_transport_options = {"global_keyprefix": REDIS_PREFIX}
@@ -75,7 +77,7 @@ from utils import (
     safe_set_env_vars,
     get_latest_dump_date,
 )
-from task_enqueuer import check_for_tasks
+from task_enqueuer import check_for_tasks, check_latest_dump_date_is_fully_complete
 
 
 @app.on_after_configure.connect
@@ -102,6 +104,16 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
 
 @app.task
 def add_sample_stats(dump_date: str):
+    data: TaskData = {
+        "status": "RUNNING",
+        "startedAt": datetime.now(timezone.utc).isoformat(),
+        "dumpDate": dump_date,
+        "name": "ADD SAMPLE STATS",
+        "finishedAt": None,
+        "message": None,
+    }
+    set_task_status(data)
+
     logger.info(f"Running add_sample_stats for dump date {dump_date}")
     output_file = os.path.join(STATS_OUTPUT_PATH, f"{dump_date}.json")
     db_path = os.path.join(WIKI_BASEPATH, dump_date, "sqlite")
@@ -120,24 +132,40 @@ def add_sample_stats(dump_date: str):
         "--sample-size",
         sample_size,
         "--threads",
-        num_threads
+        num_threads,
     ]
     logger.info(f"> Running command: {cmd}")
     result = subprocess.run(cmd, capture_output=True, text=True)
     logger.info(f"Command output: {result.stdout}")
     if result.returncode != 0:
+        data["status"] = "FAILED"
+        data["message"] = result.stderr
+        set_task_status(data)
         raise Exception(result.stderr)
 
+    data["status"] = "DONE"
+    data["finishedAt"] = datetime.now(timezone.utc).isoformat()
+    set_task_status(data)
 
 @app.task
-def add_wiki_sizes(dump_date: str):
-    logger.info(f"Running add_wiki_sizes for dump date {dump_date}")
+def add_web_wiki_sizes(dump_date: str):
+    data: TaskData = {
+        "status": "RUNNING",
+        "startedAt": datetime.now(timezone.utc).isoformat(),
+        "dumpDate": dump_date,
+        "name": "ADD WEB WIKI SIZES",
+        "finishedAt": None,
+        "message": None,
+    }
+    set_task_status(data)
+
+    logger.info(f"Running add_web_wiki_sizes for dump date {dump_date}")
     output_file = os.path.join(STATS_OUTPUT_PATH, f"{dump_date}.json")
 
     cmd = [
         WIKI_CLI_BINARY,
         "stats",
-        "add-wiki-sizes",
+        "add-web-wiki-sizes",
         "-o",
         output_file,
         "--base-path",
@@ -149,19 +177,39 @@ def add_wiki_sizes(dump_date: str):
     result = subprocess.run(cmd, capture_output=True, text=True)
     logger.info(f"Command output: {result.stdout}")
     if result.returncode != 0:
+        data["status"] = "FAILED"
+        data["message"] = result.stderr
+        set_task_status(data)
         raise Exception(result.stderr)
+
+    data["status"] = "DONE"
+    data["finishedAt"] = datetime.now(timezone.utc).isoformat()
+    set_task_status(data)
 
 @app.task
 def task_enqueuer():
+    data: TaskData = {
+        "name": "TASK CHECKER",
+        "status": "RUNNING",
+        "startedAt": datetime.now(timezone.utc).isoformat(),
+        "dumpDate": None,
+        "finishedAt": None,
+        "message": None,
+    }
+    set_task_status(data)
+
     check_for_tasks()
-    
+
     # only add wiki sizes for the latest dump date that doesn't have them, as it takes about 8mins and does a lot of requests
     # this can be changed in future
     dump_dates = get_dump_dates_without_wiki_sizes()
-    latest_dump_date = sorted(dump_dates)[-1] 
-    add_wiki_sizes.delay(latest_dump_date)
+    latest_dump_date = sorted(dump_dates)[-1]
+    if check_latest_dump_date_is_fully_complete():
+        add_wiki_sizes.delay(latest_dump_date)
 
-    
+    data["status"] = "DONE"
+    data["finishedAt"] = datetime.now(timezone.utc).isoformat()
+    set_task_status(data)
 
 
 @app.task
@@ -236,9 +284,12 @@ def finish_dump(dump_date):
         updated_wikis_dir = re.sub(r"(\d{8})", dump_date, DB_WIKIS_DIR)
         deleted_old_dump_dates(int(dump_date), WIKI_BASEPATH, STATS_OUTPUT_PATH)
 
-        safe_set_env_vars(env_path, {
-            "DB_WIKIS_DIR": updated_wikis_dir,
-        })
+        safe_set_env_vars(
+            env_path,
+            {
+                "DB_WIKIS_DIR": updated_wikis_dir,
+            },
+        )
 
     time.sleep(2)
     if not SIMULATE:
@@ -254,7 +305,6 @@ def process_wiki(self, name, dump_date, supported_wikis: List[str]):
     # different from DB_WIKIS_DIR as that is for the current dumpdate
     DB_DIR = os.path.join(WIKI_BASEPATH, dump_date, "sqlite")
     os.makedirs(DB_DIR, exist_ok=True)
-
 
     # status per dumpdate, as finish_dump also works per dumpdate
     # redis.hset(REDIS_PREFIX + "wiki-tasks-status", mapping={dump_date: "RUNNING"})

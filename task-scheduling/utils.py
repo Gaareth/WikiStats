@@ -16,14 +16,15 @@ from typing import Callable
 class TaskData(TypedDict):
     status: Literal["RUNNING", "DONE", "FAILED", "QUEUED"]
     startedAt: Optional[str]
-    dumpDate: str
+    dumpDate: Optional[str]
     name: str
     finishedAt: Optional[str]
     message: Optional[str]
 
 
 def set_task_status(data: TaskData):
-    key = data["name"] + "_" + data["dumpDate"]
+    dump_date = data["dumpDate"] if data["dumpDate"] is not None else ""
+    key = data["name"] + "_" + dump_date
     redis.hset(WIKI_TASKS_PREFIX, mapping={key: json.dumps(data)})
 
 

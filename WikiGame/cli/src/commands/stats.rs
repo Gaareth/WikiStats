@@ -56,7 +56,7 @@ async fn handle_add_sample_stats(args: StatsArgs, sample_args: SampleOptions) {
 async fn handle_generate_stats(
     args: StatsArgs,
     add_sample: bool,
-    add_wiki_sizes: bool,
+    add_web_wiki_sizes: bool,
     sample_args: SampleOptions,
 ) {
     let StatsArgs {
@@ -84,9 +84,13 @@ async fn handle_generate_stats(
             print_error_and_exit(format!("Failed validating wiki sqlite files: {e}"))
         });
 
-    let base_path = db_path.clone().parent().unwrap_or_else(|| {
-        print_error_and_exit("Failed extracting base path from db path");
-    }).to_path_buf();
+    let base_path = db_path
+        .clone()
+        .parent()
+        .unwrap_or_else(|| {
+            print_error_and_exit("Failed extracting base path from db path");
+        })
+        .to_path_buf();
 
     let dump_date = base_path
         .file_name()
@@ -124,20 +128,25 @@ async fn handle_generate_stats(
         .await;
     }
 
-    if add_wiki_sizes {
+    if add_web_wiki_sizes {
         println!("Assuming basepath (from path): {base_path:?}");
-
-        println!("Adding wiki sizes to stats at {output_path:?} using db files from: {base_path:?} for dump date {dump_date:?}");
-        wiki_stats::stats::add_wiki_sizes(&output_path, &base_path, Some(dump_date.to_string()))
-            .await;
+        println!("Adding web wiki sizes to stats at {output_path:?} using db files from: {base_path:?} for dump date {dump_date:?}");
     }
+
+    wiki_stats::stats::add_wiki_sizes(
+        &output_path,
+        &base_path,
+        Some(dump_date.to_string()),
+        add_web_wiki_sizes,
+    )
+    .await;
 }
 
 pub async fn handle_stats(command: Commands) {
     if let Commands::Stats {
         args,
         add_sample,
-        add_wiki_sizes,
+        add_web_wiki_sizes,
         sample_args,
         subcommands,
     } = command
@@ -147,18 +156,23 @@ pub async fn handle_stats(command: Commands) {
                 handle_add_sample_stats(args, sample_args).await;
             }
 
-            Some(StatsCommands::AddWikiSizes { args, output_path }) => {
+            Some(StatsCommands::AddWebWikiSizes { args, output_path }) => {
                 let WikiSizesArgs {
                     base_path,
                     dump_date,
                 } = args;
-                println!("Adding wiki sizes to stats at {output_path:?} using db files from: {base_path:?} for dump date {dump_date:?}");
-                wiki_stats::stats::add_wiki_sizes(&output_path, &base_path, dump_date.clone())
-                    .await;
+                println!("Adding web wiki sizes to stats at {output_path:?} using db files from: {base_path:?} for dump date {dump_date:?}");
+                wiki_stats::stats::add_wiki_sizes(
+                    &output_path,
+                    &base_path,
+                    dump_date.clone(),
+                    true,
+                )
+                .await;
             }
 
             None => {
-                handle_generate_stats(args, add_sample, add_wiki_sizes, sample_args).await;
+                handle_generate_stats(args, add_sample, add_web_wiki_sizes, sample_args).await;
             }
         }
     } else {

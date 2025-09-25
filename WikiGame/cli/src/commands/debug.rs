@@ -2,7 +2,7 @@ use std::{
     collections::HashSet,
     fs::{self, File},
     os::unix::fs::MetadataExt,
-    path::Path,
+    path::Path, process::exit,
 };
 
 use log::error;
@@ -52,8 +52,12 @@ pub async fn handle_debug_commands(subcommands: DebugCommands) {
                 .collect();
             let valid = validate::post_validation(&path, dump_date, prefix, &random_pages).await;
             dbg!(&valid);
-
-            // dbg!(find_smallest_wikis(&["pagelinks", "page", "linktarget"]).await.unwrap());
+            if !valid {
+                error!("Validation failed!");
+                exit(-1);
+            } else {
+                println!("Validation successful");
+            }
         }
         DebugCommands::FindSmallestWiki { tables } => {
             // println!("{:?}", find_smallest_wikis(tables).await.unwrap());
@@ -66,6 +70,7 @@ pub async fn handle_debug_commands(subcommands: DebugCommands) {
             let file = File::create("stats-schema.json").expect("Failed creating file");
             let schema = schema_for!(stats::Stats);
             serde_json::to_writer_pretty(file, &schema).expect("Failed writing schema to file");
+            println!("Wrote json schema to stats-schema.json");
         }
 
         DebugCommands::ValidateWikis { db_path, json_path } => {
