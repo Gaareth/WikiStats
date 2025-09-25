@@ -99,4 +99,4 @@ fi
 
 # user-supplied
 ./after-update.sh
-redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" SET CELERY-WIKI_:is-rebuilding true
+redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" SET CELERY-WIKI_:is-rebuilding false
