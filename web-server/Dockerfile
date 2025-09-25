@@ -1,5 +1,5 @@
 # versions newer than 21 have issues with better-sqlite3
-FROM node:21-alpine AS base 
+FROM node:24-alpine AS base 
 WORKDIR /app
 
 # By copying only the package.json and package-lock.json here, we ensure that the following `-deps` steps are independent of the source code.

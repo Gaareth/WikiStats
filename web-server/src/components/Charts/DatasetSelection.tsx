@@ -31,7 +31,10 @@ export const DatasetSelection = (props: Props) => {
     const Bar = () => (
         <BarChart
             labels={props.datasets[selection()][0].labels}
-            datasets={props.datasets[selection()].map(({ label, data }) => ({ label, data }))}
+            datasets={props.datasets[selection()].map(({ label, data }) => ({
+                label,
+                data,
+            }))}
             client:load
             height={350}
             chartOptions={{ ...props.chartOptionsAll, ...opt() }}

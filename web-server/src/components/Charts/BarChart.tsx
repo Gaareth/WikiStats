@@ -5,7 +5,6 @@ import {
     LogarithmicScale,
     Title,
     Tooltip,
-    type ChartData,
     type ChartOptions,
 } from "chart.js";
 import { Bar } from "solid-chartjs";
@@ -40,8 +39,7 @@ export const BarChart = (props: Props) => {
     const chartData = () => ({
         labels: local.labels,
         datasets: local.datasets,
-    })
-
+    });
 
     console.log("Chart Data:", chartData());
 
@@ -59,7 +57,6 @@ export const BarChart = (props: Props) => {
         ...rest.chartOptions,
     });
 
-    
     // there is weird "flickering"? on mobile ios? devices, otherwise
     // It looks like the chart overflows and then shrinks to the correct size
     // this fixes it
