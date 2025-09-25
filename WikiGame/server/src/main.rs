@@ -1,7 +1,6 @@
 use std::collections::HashMap;
-use std::fs::{File, OpenOptions};
-use std::path::{Path, PathBuf};
-use std::sync::{Mutex, RwLock};
+use std::fs::{OpenOptions};
+use std::path::{PathBuf};
 
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
@@ -9,12 +8,11 @@ use axum::response::{IntoResponse, Response};
 use axum::{routing::get, Json, Router};
 use axum_streams::*;
 use clap::{ArgAction, Parser, crate_version};
-use dirs::home_dir;
 use dotenv::dotenv;
 use futures::{pin_mut, Stream, StreamExt};
 use lazy_static::lazy_static;
 use log::info;
-use parse_mediawiki_sql::field_types::{PageId, PageTitle};
+use parse_mediawiki_sql::field_types::{PageTitle};
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -23,11 +21,11 @@ use simplelog::{
 };
 use std::process::exit;
 
-use wiki_stats::calc::{bfs_bidirectional, bfs_stream};
-use wiki_stats::sqlite::page_links::{get_cache, load_link_to_map_db_limit};
+use wiki_stats::calc::bfs::{bfs_bidirectional, bfs_stream};
+use wiki_stats::sqlite::page_links::{get_cache};
 use wiki_stats::sqlite::{db_wiki_path, get_all_database_files, join_db_wiki_path};
-use wiki_stats::stats::select_link_count_groupby;
 use wiki_stats::{sqlite, DBCache};
+
 
 // TODO: remove redirects?
 
