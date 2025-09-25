@@ -97,6 +97,11 @@ else
     exit 1
 fi
 
+cd task-scheduling
+source .venv/bin/activate
+pip install -r requirements.txt
+cd ..
+
 # user-supplied
 ./after-update.sh
 redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" SET CELERY-WIKI_:is-rebuilding false
