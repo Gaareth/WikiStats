@@ -9,7 +9,7 @@ import sitemap from "@astrojs/sitemap";
 // https://astro.build/config
 export default defineConfig({
     integrations: [solidJs(), tailwind(), icon(), sitemap()],
-    output: "hybrid",
+    output: "static",
     adapter: node({
         mode: "standalone",
     }),

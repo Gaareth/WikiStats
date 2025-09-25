@@ -32,10 +32,18 @@ export const BarChart = (props: Props) => {
     });
     const [local, rest] = splitProps(props, ["labels", "datasets", "title"]);
 
-    const chartData = (): ChartData => ({
+    // const chartData = (): ChartData => ({
+    //     labels: local.labels,
+    //     datasets: local.datasets,
+    // });
+
+    const chartData = () => ({
         labels: local.labels,
         datasets: local.datasets,
-    });
+    })
+
+
+    console.log("Chart Data:", chartData());
 
     const plugins = () => ({
         title: {
@@ -48,9 +56,10 @@ export const BarChart = (props: Props) => {
         responsive: true,
         maintainAspectRatio: false,
         plugins: plugins(),
-        ...props.chartOptions,
+        ...rest.chartOptions,
     });
 
+    
     // there is weird "flickering"? on mobile ios? devices, otherwise
     // It looks like the chart overflows and then shrinks to the correct size
     // this fixes it
@@ -63,7 +72,7 @@ export const BarChart = (props: Props) => {
     });
 
     return (
-        <div class="relative" style={`min-height: ${props.height}px`}>
+        <div class="relative" style={`min-height: ${rest.height}px`}>
             <div class={cn(loaded() && "hidden")}>
                 <span class="block w-12 absolute left-0 right-0 top-0 bottom-0 m-auto h-fit">
                     <LoadingSpinner />
