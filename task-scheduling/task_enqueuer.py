@@ -12,6 +12,7 @@ from tasks import (
     WIKI_TASKS_PREFIX,
     redis,
     set_task_status,
+    task_enqueuer,
 )
 
 
@@ -138,4 +139,4 @@ if __name__ == "__main__":
         simulate_check_for_tasks()
         # process_wiki.delay("jawiki", "20250901", ["dewiki", "jawiki"])
     else:
-        check_for_tasks()
+        task_enqueuer.delay()
