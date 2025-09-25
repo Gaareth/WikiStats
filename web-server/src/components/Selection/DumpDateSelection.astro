@@ -36,7 +36,8 @@ const items = (await getCollection("stats"))
         slot="global"
         href={"latest"}
         class={clsx(
-            currrent_dumpdate == "latest" ? "font-bold" : "font-normal", "sm:order-1"
+            currrent_dumpdate == "latest" ? "font-bold" : "font-normal",
+            "sm:order-1",
         )}>
         LATEST
     </a>
