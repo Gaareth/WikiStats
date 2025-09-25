@@ -12,6 +12,10 @@ export interface TaskType {
     startedAt?: Date;
     finishedAt?: Date;
     message?: string;
+    dumpDate?: string;
+}
+
+export interface TaskTypeWithDumpDate extends TaskType {
     dumpDate: string;
 }
 

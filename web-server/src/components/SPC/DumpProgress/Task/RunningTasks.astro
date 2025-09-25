@@ -24,7 +24,7 @@ let now = new Date();
                         <LoadingSpinner />
                     </span>
                     <span>{t.name}</span>
-                    <span>[{t.dumpDate}]</span>
+                    {t.dumpDate != null && <span>[{t.dumpDate}]</span>}
                 </div>
                 <span class="flex items-center gap-1 text-base text-secondary ml-auto">
                     running for

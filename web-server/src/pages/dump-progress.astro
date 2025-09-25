@@ -12,6 +12,7 @@ import FinishedTasks from "../components/SPC/DumpProgress/Task/FinishedTasks.ast
 import RunningTasks from "../components/SPC/DumpProgress/Task/RunningTasks.astro";
 import Task, {
     type TaskType,
+    type TaskTypeWithDumpDate,
 } from "../components/SPC/DumpProgress/Task/Task.astro";
 import { TooltipButton } from "../components/TooltipButton";
 import { getLastChecked, getTasks } from "../db/redis-utils";
@@ -34,7 +35,11 @@ const sortTasks = (a: TaskType, b: TaskType) => {
         return 1;
     }
 
-    if (a.dumpDate !== b.dumpDate) {
+    // the one with dumpDate null comes first
+    if (a.dumpDate == null && b.dumpDate != null) return -1;
+    if (a.dumpDate != null && b.dumpDate == null) return 1;
+
+    if (a.dumpDate != null && b.dumpDate != null && a.dumpDate !== b.dumpDate) {
         return a.dumpDate > b.dumpDate ? -1 : 1; // most recent first
     }
 
@@ -50,8 +55,11 @@ let numQueued = tasks.filter((t) => t.status == "QUEUED").length;
 
 let queuedTasks = tasks.filter((t) => t.status == "QUEUED").sort(sortTasks);
 let runningTasks = tasks.filter((t) => t.status == "RUNNING").sort(sortTasks);
-let finishedTasks = tasks
-    .filter((t) => t.status != "RUNNING" && t.status != "QUEUED")
+let finishedTasks: TaskTypeWithDumpDate[] = tasks
+    .filter(
+        (t): t is TaskTypeWithDumpDate =>
+            t.status != "RUNNING" && t.status != "QUEUED" && t.dumpDate != null,
+    )
     .sort(sortTasks);
 
 let now = new Date();

@@ -1,24 +1,25 @@
 ---
 import Collapsible from "../../../Collapsible.astro";
-import Task, { type TaskType } from "./Task.astro";
+import Task, { type TaskTypeWithDumpDate } from "./Task.astro";
 import { TaskStatusIndicator } from "./TaskStatusIndicator";
 import TaskTime from "./TaskTime.astro";
 
 interface Props {
-    finishedTasks: TaskType[];
+    finishedTasks: TaskTypeWithDumpDate[];
 }
 const { finishedTasks } = Astro.props;
 
-let tasksByDumpDate: Record<string, TaskType[]> = finishedTasks.reduce(
-    (acc, task) => {
-        if (!acc[task.dumpDate]) {
-            acc[task.dumpDate] = [];
-        }
-        acc[task.dumpDate].push(task);
-        return acc;
-    },
-    {} as Record<string, TaskType[]>,
-);
+let tasksByDumpDate: Record<string, TaskTypeWithDumpDate[]> =
+    finishedTasks.reduce(
+        (acc, task) => {
+            if (!acc[task.dumpDate]) {
+                acc[task.dumpDate] = [];
+            }
+            acc[task.dumpDate].push(task);
+            return acc;
+        },
+        {} as Record<string, TaskTypeWithDumpDate[]>,
+    );
 ---
 
 {finishedTasks.length > 0 && <p class="mt-2">Finished</p>}
