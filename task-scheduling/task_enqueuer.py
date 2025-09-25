@@ -132,8 +132,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     dummy = args.dummy
 
-    check_latest_dump_date_is_fully_complete()
-    quit()
 
     if dummy:
         print("Enqueuing dummy tasks")
