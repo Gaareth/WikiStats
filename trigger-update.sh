@@ -24,11 +24,17 @@ fi
 
 echo "> Building new Docker image"
 docker compose build webserver
+
+if [ $? -ne 0 ]; then
+    print_error "Docker build failed. Stopping script."
+    exit 1
+fi
+
 docker compose --profile prod up -d
 # docker compose --profile prod up --build
 
 if [ $? -ne 0 ]; then
-    print_error "Docker build failed. Stopping script."
+    print_error "Docker compose up failed. Stopping script."
     exit 1
 fi
 
