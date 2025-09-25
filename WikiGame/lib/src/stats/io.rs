@@ -31,7 +31,7 @@ pub async fn add_wiki_sizes(
 
 /// Calculates bfs stats and adds or overwrites stats to/of existing json file
 pub async fn add_sample_bfs_stats(
-    path: impl AsRef<Path>,
+    output_path: impl AsRef<Path>,
     db_path: impl Into<PathBuf>,
     wikis: Vec<String>,
     sample_size: usize,
@@ -41,7 +41,7 @@ pub async fn add_sample_bfs_stats(
 ) {
     let database_path = db_path.into();
     let wiki_idents: Vec<WikiIdent> = create_wiki_idents(&database_path, wikis);
-    let path: &Path = path.as_ref();
+    let path: &Path = output_path.as_ref();
 
     let mut stats = load_stats(path);
 

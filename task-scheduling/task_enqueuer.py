@@ -21,6 +21,7 @@ def check_for_tasks():
     for wiki in desired_wikis:
         args = [
             WIKI_CLI_BINARY,
+            "tasks",
             "get-tasks",
             "--stats-path",
             STATS_OUTPUT_PATH,

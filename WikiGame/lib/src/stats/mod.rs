@@ -31,8 +31,11 @@ mod io;
 pub mod queries;
 mod samples;
 pub mod stats;
-pub use stats::Stats;
 mod utils;
+
+
+pub use stats::Stats;
+pub use io::{add_wiki_sizes, add_sample_bfs_stats, add_sample_bibfs_stats};
 
 pub async fn create_stats(
     path: impl AsRef<Path>,

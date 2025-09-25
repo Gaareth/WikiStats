@@ -111,7 +111,8 @@ def add_sample_stats(dump_date: str):
 
     cmd = [
         WIKI_CLI_BINARY,
-        "sample-stats",
+        "stats",
+        "add-sample-stats",
         "-o",
         output_file,
         "--db-path",
@@ -135,12 +136,13 @@ def add_wiki_sizes(dump_date: str):
 
     cmd = [
         WIKI_CLI_BINARY,
+        "stats",
         "add-wiki-sizes",
         "-o",
         output_file,
-        "-b",
+        "--base-path",
         WIKI_BASEPATH,
-        "-d",
+        "--dump-date",
         dump_date,
     ]
     logger.info(f"> Running command: {cmd}")
@@ -191,7 +193,7 @@ def finish_dump(dump_date):
                 "stats",
                 "-o",
                 output_file,
-                "-d",
+                "--db-path",
                 db_path,
                 "--all-wikis",
             ]
