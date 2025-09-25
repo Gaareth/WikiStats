@@ -205,7 +205,7 @@ def task_enqueuer():
     dump_dates = get_dump_dates_without_wiki_sizes()
     latest_dump_date = sorted(dump_dates)[-1]
     if check_latest_dump_date_is_fully_complete():
-        add_wiki_sizes.delay(latest_dump_date)
+        add_web_wiki_sizes.delay(latest_dump_date)
 
     data["status"] = "DONE"
     data["finishedAt"] = datetime.now(timezone.utc).isoformat()

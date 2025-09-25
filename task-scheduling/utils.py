@@ -37,7 +37,7 @@ def get_dump_dates_without_wiki_sizes():
         try:
             with open(filepath, "r") as f:
                 data = json.load(f)
-            return "wiki_sizes" not in data
+            return "wiki_sizes" not in data or data["wiki_sizes"] is None
         except Exception:
             return False
 
