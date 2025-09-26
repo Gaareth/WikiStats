@@ -1,5 +1,6 @@
 import clsx, { type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { fetchSiteMatrix, type SiteInfo } from "./wiki-api";
 
 export const WIKI_TYPES = [
     "wiki",
@@ -18,9 +19,45 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function wiki_link(title: string, lang: string) {
-    const lang_prefix = get_wiki_prefix(lang);
-    return `https://${lang_prefix}.wikipedia.org/wiki/${title}`;
+    const base_url = DBNAME_TO_SITEINFO.get(lang)?.url;
+    if (base_url == null) {
+        throw new Error("Invalid wiki name '" + lang + "'. No siteinfo found.");
+    }
+    return `${base_url}/wiki/${title}`;
 }
+
+export const DBNAME_TO_SITEINFO = await (async () => {
+    console.log("AAAAAA");
+
+    const dbname_to_siteinfo = new Map<string, SiteInfo>();
+    const site_matrix = await fetchSiteMatrix();
+    for (const key in site_matrix) {
+        if (!isNaN(Number(key))) {
+            const data = site_matrix[key];
+            for (const site of data.site) {
+                dbname_to_siteinfo.set(site.dbname, {
+                    url: site.url,
+                    dbname: site.dbname,
+                    code: data.code,
+                    sitename: site.sitename,
+                    name: data.name,
+                    localname: data.localname,
+                });
+            }
+        } else if (key === "specials") {
+            for (const special_key in site_matrix.specials) {
+                const site = site_matrix.specials[special_key];
+                dbname_to_siteinfo.set(site.dbname, {
+                    url: site.url,
+                    dbname: site.dbname,
+                    code: site.code,
+                    sitename: site.sitename,
+                });
+            }
+        }
+    }
+    return dbname_to_siteinfo;
+})();
 
 export function get_wiki_prefix(lang: string) {
     for (const type of WIKI_TYPES) {

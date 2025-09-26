@@ -1,7 +1,7 @@
 import type { z } from "astro/zod";
 import { createEffect, createSignal, For } from "solid-js";
 import type statsSchema from "../content/stats-schema";
-import { cn, formatBytesIntl, WIKI_TYPES } from "../utils";
+import { cn, DBNAME_TO_SITEINFO, formatBytesIntl, WIKI_TYPES } from "../utils";
 import type { SiteInfo } from "../wiki-api";
 import Pill from "./Pill";
 import { Table } from "./Table";
@@ -12,7 +12,6 @@ export function WikiSizesTable(props: {
     >["sizes"];
     supported_wikis: string[];
     dump_date?: string;
-    dbname_to_siteinfo: Map<string, SiteInfo>;
 }) {
     const [selection, setSelection] = createSignal(["wiki"]);
     const [data, setData] = createSignal(props.wikis_columns);
@@ -31,12 +30,15 @@ export function WikiSizesTable(props: {
 
     const renderWikiLink = (item: string) => {
         const url = `https://dumps.wikimedia.org/${item}/${props.dump_date != null ? props.dump_date + "/" : ""}`;
-        const siteinfo = props.dbname_to_siteinfo.get(item);
+        const siteinfo = DBNAME_TO_SITEINFO.get(item);
         return (
             <div class="flex flex-wrap items-center gap-1 sm:gap-2">
                 {siteinfo != null && (
                     <div class="flex flex-wrap gap-1">
-                        <a href={siteinfo.url} target="_blank" rel="noopener noreferrer">
+                        <a
+                            href={siteinfo.url}
+                            target="_blank"
+                            rel="noopener noreferrer">
                             <Pill>{siteinfo?.name ?? siteinfo?.sitename}</Pill>
                         </a>
                         {siteinfo.localname != null &&

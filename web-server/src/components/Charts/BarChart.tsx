@@ -5,6 +5,7 @@ import {
     LogarithmicScale,
     Title,
     Tooltip,
+    type ChartData,
     type ChartOptions,
 } from "chart.js";
 import { Bar } from "solid-chartjs";
@@ -31,17 +32,10 @@ export const BarChart = (props: Props) => {
     });
     const [local, rest] = splitProps(props, ["labels", "datasets", "title"]);
 
-    // const chartData = (): ChartData => ({
-    //     labels: local.labels,
-    //     datasets: local.datasets,
-    // });
-
-    const chartData = () => ({
+    const chartData = (): ChartData => ({
         labels: local.labels,
         datasets: local.datasets,
     });
-
-    console.log("Chart Data:", chartData());
 
     const plugins = () => ({
         title: {
