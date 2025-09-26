@@ -7,7 +7,8 @@ import {
     Suspense,
     Switch,
 } from "solid-js";
-import { get_wiki_prefix, WIKIPEDIA_REST_API_HEADERS } from "../../utils";
+import { WIKIPEDIA_REST_API_HEADERS } from "../../constants";
+import { get_wiki_prefix } from "../../utils";
 import {
     StartIcon,
     TargetHitIcon,

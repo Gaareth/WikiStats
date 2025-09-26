@@ -1,5 +1,6 @@
+import { WIKIPEDIA_REST_API_HEADERS } from "./constants";
 import type { Pages } from "./pages/api/[wiki_name]/pages";
-import { get_wiki_prefix, WIKIPEDIA_REST_API_HEADERS } from "./utils";
+import { get_wiki_prefix } from "./utils";
 
 export type SiteInfo = {
     url: string;

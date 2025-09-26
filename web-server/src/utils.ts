@@ -1,18 +1,7 @@
 import clsx, { type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { WIKI_TYPES } from "./constants";
 import { fetchSiteMatrix, type SiteInfo } from "./wiki-api";
-
-export const WIKI_TYPES = [
-    "wiki",
-    "wiktionary",
-    "wikinews",
-    "wikisource",
-    "wikiquote",
-    "wikivoyage",
-    "wikibooks",
-    "wikiversity",
-    "wikimedia",
-];
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -168,10 +157,6 @@ export function clamp(value: number, min: number, max: number) {
 //   }
 //   return path;
 // }
-
-export const WIKIPEDIA_REST_API_HEADERS = new Headers({
-    "Api-User-Agent": import.meta.env.WIKIPEDIA_REST_API_USER_AGENT,
-});
 
 const ranges = [
     { divider: 1e18, suffix: "E" },
