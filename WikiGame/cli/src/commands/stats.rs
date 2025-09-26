@@ -142,21 +142,14 @@ async fn handle_generate_stats(
     .await;
 }
 
-pub async fn handle_stats(command: Commands) {
-    if let Commands::Stats {
-        args,
-        add_sample,
-        add_web_wiki_sizes,
-        sample_args,
-        subcommands,
-    } = command
-    {
+pub async fn handle_stats(subcommands: StatsCommands) {
+
         match subcommands {
-            Some(StatsCommands::AddSampleStats { args, sample_args }) => {
+            StatsCommands::AddSampleStats { args, sample_args } => {
                 handle_add_sample_stats(args, sample_args).await;
             }
 
-            Some(StatsCommands::AddWebWikiSizes { args, output_path }) => {
+            StatsCommands::AddWebWikiSizes { args, output_path } => {
                 let WikiSizesArgs {
                     base_path,
                     dump_date,
@@ -171,11 +164,9 @@ pub async fn handle_stats(command: Commands) {
                 .await;
             }
 
-            None => {
+            StatsCommands::Generate { args, add_sample, sample_args, add_web_wiki_sizes } => {
                 handle_generate_stats(args, add_sample, add_web_wiki_sizes, sample_args).await;
             }
         }
-    } else {
-        unreachable!("This function should only be called with the Stats command");
-    }
+     
 }

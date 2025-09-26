@@ -203,9 +203,10 @@ def task_enqueuer():
     # only add wiki sizes for the latest dump date that doesn't have them, as it takes about 8mins and does a lot of requests
     # this can be changed in future
     dump_dates = get_dump_dates_without_wiki_sizes()
-    latest_dump_date = sorted(dump_dates)[-1]
-    if check_latest_dump_date_is_fully_complete():
-        add_web_wiki_sizes.delay(latest_dump_date)
+    if len(dump_dates) > 0:
+        latest_dump_date = sorted(dump_dates)[-1]
+        if check_latest_dump_date_is_fully_complete():
+            add_web_wiki_sizes.delay(latest_dump_date)
 
     data["status"] = "DONE"
     data["finishedAt"] = datetime.now(timezone.utc).isoformat()
@@ -239,6 +240,7 @@ def finish_dump(dump_date):
             cmd = [
                 WIKI_CLI_BINARY,
                 "stats",
+                "generate"
                 "-o",
                 output_file,
                 "--db-path",

@@ -53,22 +53,8 @@ pub enum Commands {
 
     /// Generate statistics about the dumps to a json file
     Stats {
-        #[command(flatten)]
-        args: StatsArgs,
-
-        /// Add bfs sample stats (quite expensive)
-        #[arg(long, default_value_t = false, help_heading = "Sample Options")]
-        add_sample: bool,
-
-        #[command(flatten)]
-        sample_args: SampleOptions,
-
-        /// Add sizes of the online table sizes
-        #[arg(long, default_value_t = false, help_heading = "WikiSizes Options")]
-        add_web_wiki_sizes: bool,
-
         #[command(subcommand)]
-        subcommands: Option<StatsCommands>,
+        subcommands: StatsCommands,
     },
 
     /// Various task related commands
@@ -105,6 +91,24 @@ pub enum TasksCommands {
 
 #[derive(Subcommand, Debug)]
 pub enum StatsCommands {
+
+    /// Generate default stats
+    Generate {
+        #[command(flatten)]
+        args: StatsArgs,
+
+        /// Add bfs sample stats (quite expensive)
+        #[arg(long, default_value_t = false, help_heading = "Sample Options")]
+        add_sample: bool,
+
+        #[command(flatten)]
+        sample_args: SampleOptions,
+
+        /// Add sizes of the online tables
+        #[arg(long, default_value_t = false, help_heading = "WikiSizes Options")]
+        add_web_wiki_sizes: bool,
+    },
+
     /// Generate BFS sample stats (quite expensive). Make sure the output json file was already used for the normal stats
     AddSampleStats {
         #[command(flatten)]
