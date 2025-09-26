@@ -161,6 +161,7 @@ def add_sample_stats(dump_date: str):
     data["status"] = "DONE"
     data["finishedAt"] = datetime.now(timezone.utc).isoformat()
     set_task_status(data)
+    build_server()
 
 @app.task
 def add_web_wiki_sizes(dump_date: str):
@@ -201,6 +202,7 @@ def add_web_wiki_sizes(dump_date: str):
     data["status"] = "DONE"
     data["finishedAt"] = datetime.now(timezone.utc).isoformat()
     set_task_status(data)
+    build_server()
 
 @app.task
 def enqueuing_task():
@@ -227,7 +229,6 @@ def enqueuing_task():
     data["status"] = "DONE"
     data["finishedAt"] = datetime.now(timezone.utc).isoformat()
     set_task_status(data)
-
 
 @app.task
 def finish_dump(dump_date):
