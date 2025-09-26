@@ -43,7 +43,7 @@ def get_dump_dates_without_wiki_sizes():
 
     return get_done_dump_dates(does_not_contain_wiki_sizes)
 
-def get_done_dump_dates(filter: (Callable[[str], bool])):
+def get_done_dump_dates(filter: (Callable[[str], bool]) = lambda x: True):
     wikis_done_total: list[str] = []
     stats_file_pattern = r"(\d{8}).json"
     

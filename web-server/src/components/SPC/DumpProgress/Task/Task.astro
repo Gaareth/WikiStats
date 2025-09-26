@@ -34,7 +34,7 @@ const uuid = createUniqueId();
             <div
                 class={clsx(
                     "task dark-layer-1",
-                    t.message != null && "grid-rows-3 lg:grid-rows-2",
+                    t.message != null && "grid-rows-2",
                     className,
                 )}>
                 <div class="flex items-center gap-2">
@@ -81,6 +81,6 @@ const uuid = createUniqueId();
 
 <style>
     .task {
-        @apply grid grid-cols-2  grid-rows-2 lg:grid-rows-1 items-center gap-2 border rounded px-2 py-1 justify-between;
+        @apply flex lg:grid grid-rows-1                 items-center gap-2 border rounded px-2 py-1 justify-between;
     }
 </style>

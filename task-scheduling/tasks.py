@@ -84,6 +84,7 @@ from utils import (
     TaskData,
     check_all_sqlite_files_are_ready,
     deleted_old_dump_dates,
+    get_done_dump_dates,
     get_dump_dates_without_wiki_sizes,
     set_task_status,
     all_tasks_done,
@@ -220,15 +221,20 @@ def enqueuing_task():
 
     # only add wiki sizes for the latest dump date that doesn't have them, as it takes about 8mins and does a lot of requests
     # this can be changed in future
-    dump_dates = get_dump_dates_without_wiki_sizes()
-    if len(dump_dates) > 0:
-        latest_dump_date = sorted(dump_dates)[-1]
-        if check_latest_dump_date_is_fully_complete():
-            add_web_wiki_sizes.delay(latest_dump_date)
+    # also the sqlite and download dir will likely be deleted 
+    todo_dump_dates = get_dump_dates_without_wiki_sizes()
+    done_dump_dates = get_done_dump_dates()
+
+
+    if len(done_dump_dates) > 0:
+        latest_done_dump_date = sorted(done_dump_dates)[-1]
+        if latest_done_dump_date in todo_dump_dates and check_latest_dump_date_is_fully_complete():
+            add_web_wiki_sizes.delay(latest_done_dump_date)
 
     data["status"] = "DONE"
     data["finishedAt"] = datetime.now(timezone.utc).isoformat()
     set_task_status(data)
+
 
 @app.task
 def finish_dump(dump_date):
