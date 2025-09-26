@@ -1,16 +1,12 @@
 import clsx, { type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { WIKI_TYPES } from "./constants";
-import { fetchSiteMatrix, type SiteInfo } from "./wiki-api";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
-export function wiki_link(
-    title: string,
-    lang: string,
-) {
+export function wiki_link(title: string, lang: string) {
     // const base_url = siteinfo_map.get(lang)?.url;
     // if (base_url == null) {
     //     throw new Error("Invalid wiki name '" + lang + "'. No siteinfo found.");
@@ -20,9 +16,6 @@ export function wiki_link(
     const lang_prefix = get_wiki_prefix(lang);
     return `https://${lang_prefix}.wikipedia.org/wiki/${title}`;
 }
-
-
-
 
 export function get_wiki_prefix(lang: string) {
     for (const type of WIKI_TYPES) {
