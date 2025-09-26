@@ -34,7 +34,7 @@ const uuid = createUniqueId();
             <div
                 class={clsx(
                     "task dark-layer-1",
-                    t.message != null && "grid-rows-2",
+                    t.message != null && "lg:grid-rows-2",
                     className,
                 )}>
                 <div class="flex items-center gap-2">
@@ -60,7 +60,7 @@ const uuid = createUniqueId();
                 {t.message != null && (
                     <>
                         <span
-                            class="text-sm text-red-500 dark:text-red-400 text-ellipsis line-clamp-2"
+                            class="text-sm text-red-500 dark:text-red-400 text-ellipsis line-clamp-2 col-span-full"
                             data-tooltip-target={uuid + "tooltip-msg" + i}
                             aria-describedby={uuid + "tooltip-msg" + i}>
                             {t.message}
@@ -81,6 +81,6 @@ const uuid = createUniqueId();
 
 <style>
     .task {
-        @apply flex lg:grid grid-rows-1                 items-center gap-2 border rounded px-2 py-1 justify-between;
+        @apply flex flex-wrap lg:grid grid-cols-2 grid-rows-1                 items-center gap-2 border rounded px-2 py-1 justify-between;
     }
 </style>
