@@ -30,13 +30,15 @@ export function WikiSizesTable(props: {
     });
 
     const renderWikiLink = (item: string) => {
-        const url = `https://dumps.wikimedia.org/${props.dump_date != null ? props.dump_date + "/" : ""}${item}`;
+        const url = `https://dumps.wikimedia.org/${item}/${props.dump_date != null ? props.dump_date + "/" : ""}`;
         const siteinfo = props.dbname_to_siteinfo.get(item);
         return (
             <div class="flex flex-wrap items-center gap-1 sm:gap-2">
                 {siteinfo != null && (
                     <div class="flex flex-wrap gap-1">
-                        <Pill>{siteinfo?.name ?? siteinfo?.sitename}</Pill>
+                        <a href={siteinfo.url} target="_blank" rel="noopener noreferrer">
+                            <Pill>{siteinfo?.name ?? siteinfo?.sitename}</Pill>
+                        </a>
                         {siteinfo.localname != null &&
                             siteinfo.localname != siteinfo.name && (
                                 <Pill>{siteinfo?.localname}</Pill>
