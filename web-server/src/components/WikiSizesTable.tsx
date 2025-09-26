@@ -2,7 +2,8 @@ import type { z } from "astro/zod";
 import { createEffect, createSignal, For } from "solid-js";
 import { WIKI_TYPES } from "../constants";
 import type statsSchema from "../content/stats-schema";
-import { cn, DBNAME_TO_SITEINFO, formatBytesIntl } from "../utils";
+import { cn, formatBytesIntl } from "../utils";
+import type { SiteInfo } from "../wiki-api";
 import Pill from "./Pill";
 import { Table } from "./Table";
 
@@ -12,6 +13,7 @@ export function WikiSizesTable(props: {
     >["sizes"];
     supported_wikis: string[];
     dump_date?: string;
+    siteinfo: Map<string, SiteInfo>;
 }) {
     const [selection, setSelection] = createSignal(["wiki"]);
     const [data, setData] = createSignal(props.wikis_columns);
@@ -30,7 +32,7 @@ export function WikiSizesTable(props: {
 
     const renderWikiLink = (item: string) => {
         const url = `https://dumps.wikimedia.org/${item}/${props.dump_date != null ? props.dump_date + "/" : ""}`;
-        const siteinfo = DBNAME_TO_SITEINFO.get(item);
+        const siteinfo = props.siteinfo.get(item);
         return (
             <div class="flex flex-wrap items-center gap-1 sm:gap-2">
                 {siteinfo != null && (

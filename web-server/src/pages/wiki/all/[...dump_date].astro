@@ -8,6 +8,7 @@ import { WikiSizesTable } from "../../../components/WikiSizesTable";
 import { get_stat } from "../../../db/constants";
 import Layout from "../../../layouts/Layout.astro";
 import { cn } from "../../../utils";
+import { DBNAME_TO_SITEINFO } from "../../../utils-server";
 
 // TODO: add wiki-sizes task that runs when all dumps are downloaded/processed
 
@@ -146,6 +147,7 @@ const wikis_columns = all_wiki_sizes?.sizes;
                         {wikis_columns}
                         {dump_date}
                         client:load
+                        siteinfo={DBNAME_TO_SITEINFO}
                     />
                 </div>
             </div>
