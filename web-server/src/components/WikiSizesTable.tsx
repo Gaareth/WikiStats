@@ -2,7 +2,6 @@ import type { z } from "astro/zod";
 import { createEffect, createSignal, For } from "solid-js";
 import type statsSchema from "../content/stats-schema";
 import { cn, DBNAME_TO_SITEINFO, formatBytesIntl, WIKI_TYPES } from "../utils";
-import type { SiteInfo } from "../wiki-api";
 import Pill from "./Pill";
 import { Table } from "./Table";
 

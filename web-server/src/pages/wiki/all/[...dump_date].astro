@@ -8,7 +8,6 @@ import { WikiSizesTable } from "../../../components/WikiSizesTable";
 import { get_stat } from "../../../db/constants";
 import Layout from "../../../layouts/Layout.astro";
 import { cn } from "../../../utils";
-import { type SiteInfo, fetchSiteMatrix } from "../../../wiki-api";
 
 // TODO: add wiki-sizes task that runs when all dumps are downloaded/processed
 
@@ -46,8 +45,6 @@ const all_wiki_sizes = entry!.wiki_sizes;
 const supported_wikis = entry!.wikis;
 
 const wikis_columns = all_wiki_sizes?.sizes;
-
-
 ---
 
 <Layout title="WikiStats - All Wikis">
