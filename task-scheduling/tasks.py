@@ -61,6 +61,21 @@ app.conf.update(
 )
 
 
+from celery.signals import after_setup_logger, after_setup_task_logger
+
+LOG_FORMAT = "%(levelname)s [%(name)s] %(message)s"
+
+@after_setup_logger.connect
+def setup_root_logger(logger, *args, **kwargs):
+    for handler in logger.handlers:
+        handler.setFormatter(logging.Formatter(LOG_FORMAT))
+
+@after_setup_task_logger.connect
+def setup_task_logger(logger, *args, **kwargs):
+    for handler in logger.handlers:
+        handler.setFormatter(logging.Formatter(LOG_FORMAT))
+
+
 redis = redis.Redis(host=redis_host, port=redis_port, db=redis_db)
 
 
