@@ -161,6 +161,7 @@ def add_web_wiki_sizes(dump_date: str):
 
     logger.info(f"Running add_web_wiki_sizes for dump date {dump_date}")
     output_file = os.path.join(STATS_OUTPUT_PATH, f"{dump_date}.json")
+    sqlite_and_downloads_parent_path = os.path.join(WIKI_BASEPATH, dump_date)
 
     cmd = [
         WIKI_CLI_BINARY,
@@ -169,7 +170,7 @@ def add_web_wiki_sizes(dump_date: str):
         "-o",
         output_file,
         "--base-path",
-        WIKI_BASEPATH,
+        sqlite_and_downloads_parent_path,
         "--dump-date",
         dump_date,
     ]
