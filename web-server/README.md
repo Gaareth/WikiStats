@@ -13,7 +13,8 @@ Live: [wiki-stats.gaareth.com](wiki-stats.gaareth.com)
 
 ## TODO
 
-- proper tooltip ui
+- switch to after npm alternative
+
 - num links histogram
 - search for links on mirror endpoint
 - PageLinks pagination, table, sorting, searching

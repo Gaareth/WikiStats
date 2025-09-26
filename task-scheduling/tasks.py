@@ -98,7 +98,7 @@ def setup_periodic_tasks(sender: Celery, **kwargs):
             month_of_year=month,
             day_of_week=day_of_week,
         ),
-        task_enqueuer.s(),
+        enqueuing_task.s(),
     )
 
 
@@ -187,7 +187,7 @@ def add_web_wiki_sizes(dump_date: str):
     set_task_status(data)
 
 @app.task
-def task_enqueuer():
+def enqueuing_task():
     data: TaskData = {
         "name": "TASK CHECKER",
         "status": "RUNNING",
