@@ -263,7 +263,7 @@ def finish_dump(dump_date):
             cmd = [
                 WIKI_CLI_BINARY,
                 "stats",
-                "generate"
+                "generate",
                 "-o",
                 output_file,
                 "--db-path",
