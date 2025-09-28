@@ -10,9 +10,10 @@ use log::{debug, info, trace};
 use num_format::Locale::{el, ta};
 use regex::Regex;
 use reqwest::{Request, Response};
+use schemars::JsonSchema;
 use scraper::{Html, Selector};
 use serde::de::DeserializeOwned;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use thiserror::Error;
 
@@ -404,7 +405,7 @@ async fn parse_file_sizes(body: &str) -> Vec<(String, u64)> {
 //  ("punjabiwikimedia", 1818)
 // ("pihwiki", 41000),
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct WebWikiSize {
     pub name: String,
     pub total_size: Option<u64>,

@@ -10,7 +10,7 @@ use crate::{
         queries::count_from,
         samples::{BfsSample, BiBfsSample},
     },
-    web::find_smallest_wikis,
+    web::WebWikiSize,
     WikiIdent,
 };
 
@@ -51,21 +51,26 @@ pub struct Stats {
     pub bfs_sample_stats: Option<StatRecord<BfsSample>>,
     pub bi_bfs_sample_stats: Option<StatRecord<BiBfsSample>>,
 
-    pub wiki_sizes: Option<WikiSizes>,
+    pub web_wiki_sizes: Option<WebWikiSizes>,
+    pub local_wiki_sizes: Option<WikiSizes>,
 }
 
 #[derive(Serialize, Deserialize, JsonSchema)]
 pub struct WikiSize {
     name: String,
-    compressed_total_size: Option<u64>,
-    compressed_selected_tables_size: Option<u64>,
-    decompressed_size: Option<u64>,
+    download_size: Option<u64>,
     processed_size: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, JsonSchema)]
 pub struct WikiSizes {
     pub sizes: Vec<WikiSize>,
+    pub tables: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, JsonSchema)]
+pub struct WebWikiSizes {
+    pub sizes: Vec<WebWikiSize>,
     pub tables: Vec<String>,
 }
 
@@ -96,24 +101,7 @@ pub fn num_links_stat(wiki: WikiIdent) -> u64 {
     count_from("WikiLink", &wiki.db_path, "")
 }
 
-pub async fn get_wiki_sizes(
-    base_path: impl AsRef<Path>,
-    dump_date: Option<String>,
-    tables: &[&str],
-    web_wiki_sizes: bool,
-) -> WikiSizes {
-    let web_wiki_sizes = if web_wiki_sizes {
-        Some(
-            find_smallest_wikis(dump_date, tables)
-                .await
-                .unwrap_or_else(|e| {
-                    panic!("Failed fetching wiki sizes from web: {e}");
-                }),
-        )
-    } else {
-        None
-    };
-
+pub async fn get_local_wiki_sizes(base_path: impl AsRef<Path>, tables: &[&str]) -> WikiSizes {
     let download_path = base_path.as_ref().join("downloads");
     let decompressed_sizes: Vec<(String, u64)> = fs::read_dir(&download_path)
         .expect("Failed reading wiki download dir")
@@ -155,29 +143,14 @@ pub async fn get_wiki_sizes(
         })
         .collect();
 
-    let sizes = if let Some(web_wiki_sizes) = web_wiki_sizes {
-        web_wiki_sizes
-            .into_iter()
-            .map(|ws| WikiSize {
-                name: ws.name.clone(),
-                compressed_total_size: ws.total_size,
-                compressed_selected_tables_size: ws.selected_tables_size,
-                decompressed_size: decompressed_size_map.get(&ws.name).cloned(),
-                processed_size: processed_sizes.get(&ws.name).cloned(),
-            })
-            .collect()
-    } else {
-        decompressed_size_map
-            .iter()
-            .map(|(name, size)| WikiSize {
-                name: name.clone(),
-                compressed_total_size: None,
-                compressed_selected_tables_size: None,
-                decompressed_size: Some(*size),
-                processed_size: processed_sizes.get(name).cloned(),
-            })
-            .collect()
-    };
+    let sizes = decompressed_size_map
+        .iter()
+        .map(|(name, size)| WikiSize {
+            name: name.clone(),
+            download_size: Some(*size),
+            processed_size: processed_sizes.get(name).cloned(),
+        })
+        .collect();
 
     let wiki_sizes = WikiSizes {
         sizes,

@@ -8,25 +8,31 @@ use log::info;
 use crate::{
     download::ALL_DB_TABLES,
     stats::{
+        create_wiki_idents,
         samples::{sample_bfs_stats, sample_bidirectional_bfs_stats},
-        stats::{get_wiki_sizes, Stats},
+        stats::{Stats, WebWikiSizes},
         utils::{global_ignore, make_stat_record_async, make_stat_record_seq},
-        WikiIdent, create_wiki_idents
-    },
+        WikiIdent,
+    }, web::find_smallest_wikis,
 };
 
-pub async fn add_wiki_sizes(
+pub async fn add_web_wiki_sizes(
     output_path: impl AsRef<Path>,
-    base_path: impl AsRef<Path>,
     dump_date: Option<String>,
-    web_wiki_sizes: bool,
 ) {
     let output_path = output_path.as_ref();
     let mut stats = load_stats(output_path);
 
-    let wiki_sizes = get_wiki_sizes(base_path, dump_date, &ALL_DB_TABLES, web_wiki_sizes).await;
+    let web_wiki_sizes = find_smallest_wikis(dump_date, &ALL_DB_TABLES)
+        .await
+        .unwrap_or_else(|e| {
+            panic!("Failed fetching wiki sizes from web: {e}");
+        });
 
-    stats.wiki_sizes = Some(wiki_sizes);
+    stats.web_wiki_sizes = Some(WebWikiSizes {
+        sizes: web_wiki_sizes,
+        tables: ALL_DB_TABLES.iter().map(|s| s.to_string()).collect(),
+    });
     save_stats(&stats, output_path);
 }
 

@@ -8,7 +8,7 @@ import fcntl
 from contextlib import contextmanager
 import dotenv
 from dotenv import load_dotenv
-from env_vars import REBUILD_SERVER_BIN, STATS_OUTPUT_PATH
+from env_vars import REBUILD_SERVER_BIN, STATS_OUTPUT_PATH, WIKI_BASEPATH
 import re
 from typing import Callable
 
@@ -32,16 +32,34 @@ def all_tasks_done():
     return all(value == "DONE" for value in redis.hvals(REDIS_PREFIX + "wiki-tasks"))
 
 
-def get_dump_dates_without_wiki_sizes():
-    def does_not_contain_wiki_sizes(filepath):
+def get_dump_dates_without_web_wiki_sizes():
+    def does_not_contain_web_wiki_sizes(filepath):
         try:
             with open(filepath, "r") as f:
                 data = json.load(f)
-            return "wiki_sizes" not in data or data["wiki_sizes"] is None
+            return "web_wiki_sizes" not in data or data["web_wiki_sizes"] is None
         except Exception:
             return False
 
-    return get_done_dump_dates(does_not_contain_wiki_sizes)
+    return get_done_dump_dates(does_not_contain_web_wiki_sizes)
+
+def get_dump_dates_without_samples_stats():
+    def does_not_contain_samples_stats(filepath):
+        try:
+            with open(filepath, "r") as f:
+                data = json.load(f)
+            return "bfs_sample_stats" not in data or data["bfs_sample_stats"] is None
+        except Exception:
+            return False
+        
+    def has_sqlite_files(filepath):
+        _, filename = os.path.split(filepath)
+        dumpdate = filename.split(".json")[0]
+        db_dir = os.path.join(WIKI_BASEPATH, dumpdate, "sqlite")
+        return os.path.isdir(db_dir) and len(os.listdir(db_dir)) > 0
+
+    return get_done_dump_dates(lambda fp: does_not_contain_samples_stats(fp) and has_sqlite_files(fp))
+
 
 def get_done_dump_dates(filter: (Callable[[str], bool]) = lambda x: True):
     wikis_done_total: list[str] = []

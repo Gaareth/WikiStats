@@ -12,8 +12,10 @@ use tokio::{
     time::{self, Instant},
 };
 
-use crate::stats::stats::Page;
+use crate::download::ALL_DB_TABLES;
+use crate::stats::stats::{get_local_wiki_sizes, Page};
 use crate::{
+    create_wiki_idents,
     sqlite::title_id_conv::page_id_to_title,
     stats::{
         io::{save_stats, try_load_stats},
@@ -24,7 +26,7 @@ use crate::{
         stats::{num_links_stat, num_pages_stat, num_redirects_stat, LinkCount, StatRecord},
         utils::{make_stat_record, max_min_value_record, GLOBAL},
     },
-    WikiIdent, create_wiki_idents,
+    WikiIdent,
 };
 
 mod io;
@@ -33,9 +35,8 @@ mod samples;
 pub mod stats;
 mod utils;
 
-
+pub use io::{add_sample_bfs_stats, add_sample_bibfs_stats, add_web_wiki_sizes};
 pub use stats::Stats;
-pub use io::{add_wiki_sizes, add_sample_bfs_stats, add_sample_bibfs_stats};
 
 pub async fn create_stats(
     path: impl AsRef<Path>,
@@ -50,7 +51,14 @@ pub async fn create_stats(
 
     let dump_date = dump_date.into();
     let path = path.as_ref();
+    let database_path = database_path.into();
     let existing_stats: Option<Stats> = try_load_stats(path);
+
+    let base_path = database_path
+        .clone()
+        .parent()
+        .expect("Failed extracting base path from db path")
+        .to_path_buf();
 
     // Extract needed fields from stats before moving it
     let num_pages_prev = existing_stats.as_ref().map(|s| s.num_pages.clone());
@@ -71,7 +79,6 @@ pub async fn create_stats(
         .as_ref()
         .map(|s| s.num_linked_redirects.clone());
 
-    let database_path = database_path.into();
     let wiki_idents: Vec<WikiIdent> = create_wiki_idents(&database_path, wikis.clone());
 
     let pages_stat_future = make_stat_record(
@@ -271,6 +278,8 @@ pub async fn create_stats(
         existing_wikis.into_iter().collect()
     };
 
+    let local_wiki_sizes = Some(get_local_wiki_sizes(&base_path, &ALL_DB_TABLES).await);
+
     let time_taken: time::Duration = t1.elapsed();
 
     let stats = Stats {
@@ -308,7 +317,8 @@ pub async fn create_stats(
         bi_bfs_sample_stats: existing_stats
             .as_ref()
             .and_then(|s| s.bi_bfs_sample_stats.clone()),
-        wiki_sizes: existing_stats.and_then(|s| s.wiki_sizes),
+        web_wiki_sizes: existing_stats.and_then(|s| s.web_wiki_sizes),
+        local_wiki_sizes,
     };
 
     save_stats(&stats, path);

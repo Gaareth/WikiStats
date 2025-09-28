@@ -8,7 +8,9 @@
         "build": "dotenv -e ../.env -- astro check && dotenv -e ../.env -- astro build",
         "preview": "dotenv -e ../.env -- astro preview",
         "astro": "dotenv -e ../.env --  astro",
-        "gen-schema": "json-refs resolve stats-schema.json | json-schema-to-zod | prettier --parser typescript > src/content/stats-schema.ts"
+        "gen-schema:rust": "cd ../WikiGame && cargo run --bin cli debug gen-stats-json-schema && mv stats-schema.json ../web-server/",
+        "gen-schema:ts": "cd ../web-server && npx json-refs resolve stats-schema.json | npx json-schema-to-zod | npx prettier --parser typescript > src/content/stats-schema.ts",
+        "gen-schema": "npm run gen-schema:rust && npm run gen-schema:ts"
     },
     "dependencies": {
         "@astrojs/check": "^0.9.4",
@@ -36,7 +38,6 @@
         "graphology-layout-noverlap": "^0.4.2",
         "graphology-types": "^0.24.7",
         "iwanthue": "^2.0.0",
-        "json-schema-to-zod": "^2.4.1",
         "node-html-parser": "^6.1.13",
         "pretty-ms": "^9.0.0",
         "redis": "^4.7.0",
@@ -59,8 +60,10 @@
         "astro-icon": "^1.1.0",
         "dotenv-cli": "^10.0.0",
         "drizzle-kit": "^0.31.4",
+        "json-refs": "^3.0.15",
+        "json-schema-to-zod": "^2.6.1",
         "postcss-import": "^16.1.0",
-        "prettier": "^3.2.5",
+        "prettier": "^3.6.2",
         "prettier-plugin-astro": "^0.14.0",
         "prettier-plugin-astro-organize-imports": "^0.4.8",
         "prettier-plugin-organize-imports": "^4.3.0",

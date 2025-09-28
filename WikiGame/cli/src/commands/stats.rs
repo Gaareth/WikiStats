@@ -131,42 +131,32 @@ async fn handle_generate_stats(
     if add_web_wiki_sizes {
         println!("Assuming basepath (from path): {base_path:?}");
         println!("Adding web wiki sizes to stats at {output_path:?} using db files from: {base_path:?} for dump date {dump_date:?}");
+        wiki_stats::stats::add_web_wiki_sizes(&output_path, Some(dump_date.to_string())).await;
     }
-
-    wiki_stats::stats::add_wiki_sizes(
-        &output_path,
-        &base_path,
-        Some(dump_date.to_string()),
-        add_web_wiki_sizes,
-    )
-    .await;
 }
 
 pub async fn handle_stats(subcommands: StatsCommands) {
-
-        match subcommands {
-            StatsCommands::AddSampleStats { args, sample_args } => {
-                handle_add_sample_stats(args, sample_args).await;
-            }
-
-            StatsCommands::AddWebWikiSizes { args, output_path } => {
-                let WikiSizesArgs {
-                    base_path,
-                    dump_date,
-                } = args;
-                println!("Adding web wiki sizes to stats at {output_path:?} using db files from: {base_path:?} for dump date {dump_date:?}");
-                wiki_stats::stats::add_wiki_sizes(
-                    &output_path,
-                    &base_path,
-                    dump_date.clone(),
-                    true,
-                )
-                .await;
-            }
-
-            StatsCommands::Generate { args, add_sample, sample_args, add_web_wiki_sizes } => {
-                handle_generate_stats(args, add_sample, add_web_wiki_sizes, sample_args).await;
-            }
+    match subcommands {
+        StatsCommands::AddSampleStats { args, sample_args } => {
+            handle_add_sample_stats(args, sample_args).await;
         }
-     
+
+        StatsCommands::AddWebWikiSizes { args, output_path } => {
+            let WikiSizesArgs {
+                base_path,
+                dump_date,
+            } = args;
+            println!("Adding web wiki sizes to stats at {output_path:?} using db files from: {base_path:?} for dump date {dump_date:?}");
+            wiki_stats::stats::add_web_wiki_sizes(&output_path, dump_date).await;
+        }
+
+        StatsCommands::Generate {
+            args,
+            add_sample,
+            sample_args,
+            add_web_wiki_sizes,
+        } => {
+            handle_generate_stats(args, add_sample, add_web_wiki_sizes, sample_args).await;
+        }
+    }
 }

@@ -48,6 +48,10 @@ if CRONTAB_SCHEDULE_STR is None:
     print("TASK_SCHEDULING_SCHEDULE env var can't be None")
     exit(-1)
 
+ADD_SAMPLE_STATS_START_HOUR = int(os.getenv("ADD_SAMPLE_STATS_START_HOUR", "3"))
+ADD_SAMPLE_STATS_END_HOUR = int(os.getenv("ADD_SAMPLE_STATS_END_HOUR", "4"))
+
+
 UPDATE_DONE_SH = "../update-done.sh"
 
 TABLES = ["pagelinks", "page", "linktarget"]

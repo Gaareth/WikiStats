@@ -15,6 +15,8 @@ from celery.utils.log import get_task_logger
 from celery.schedules import crontab
 
 from env_vars import (
+    ADD_SAMPLE_STATS_END_HOUR,
+    ADD_SAMPLE_STATS_START_HOUR,
     WIKI_CLI_BINARY,
     WIKI_BASEPATH,
     STATS_OUTPUT_PATH,
@@ -85,7 +87,8 @@ from utils import (
     check_all_sqlite_files_are_ready,
     deleted_old_dump_dates,
     get_done_dump_dates,
-    get_dump_dates_without_wiki_sizes,
+    get_dump_dates_without_samples_stats,
+    get_dump_dates_without_web_wiki_sizes,
     set_task_status,
     all_tasks_done,
     build_server,
@@ -164,6 +167,16 @@ def add_sample_stats(dump_date: str):
     set_task_status(data)
     build_server()
 
+
+def is_within_sample_stats_window():
+    if ADD_SAMPLE_STATS_START_HOUR is None or ADD_SAMPLE_STATS_END_HOUR is None:
+        return False
+
+    now = datetime.now()
+    start = now.replace(hour=ADD_SAMPLE_STATS_START_HOUR, minute=0, second=0, microsecond=0)
+    end = now.replace(hour=ADD_SAMPLE_STATS_END_HOUR, minute=0, second=0, microsecond=0)
+    return start <= now < end
+
 @app.task
 def add_web_wiki_sizes(dump_date: str):
     data: TaskData = {
@@ -222,7 +235,7 @@ def enqueuing_task():
     # only add wiki sizes for the latest dump date that doesn't have them, as it takes about 8mins and does a lot of requests
     # this can be changed in future
     # also the sqlite and download dir will likely be deleted 
-    todo_dump_dates = get_dump_dates_without_wiki_sizes()
+    todo_dump_dates = get_dump_dates_without_web_wiki_sizes()
     done_dump_dates = get_done_dump_dates()
 
 
@@ -230,6 +243,11 @@ def enqueuing_task():
         latest_done_dump_date = sorted(done_dump_dates)[-1]
         if latest_done_dump_date in todo_dump_dates and check_latest_dump_date_is_fully_complete():
             add_web_wiki_sizes.delay(latest_done_dump_date)
+
+    if is_within_sample_stats_window():
+        todo_dump_dates = get_dump_dates_without_samples_stats()
+        for todo_dump_date in todo_dump_dates:
+            add_sample_stats.delay(todo_dump_date)
 
     data["status"] = "DONE"
     data["finishedAt"] = datetime.now(timezone.utc).isoformat()
@@ -247,14 +265,16 @@ def finish_dump(dump_date):
 
     logger.info("Running statistic generation task")
     name = "STATISTIC GENERATION"
-    data = {
+    data: TaskData = {
         "status": "RUNNING",
         "startedAt": datetime.now(timezone.utc).isoformat(),
         "dumpDate": dump_date,
         "name": name,
+        "finishedAt": None,
+        "message": None,
     }
-    key = name + "_" + dump_date
-    redis.hset(WIKI_TASKS_PREFIX, mapping={key: json.dumps(data)})
+    set_task_status(data)
+
 
     try:
         if not SIMULATE:
@@ -281,10 +301,11 @@ def finish_dump(dump_date):
 
     except Exception as e:
         data["status"] = "FAILED"
+        set_task_status(data)
         return -1
 
     data["finishedAt"] = datetime.now(timezone.utc).isoformat()
-    redis.hset(WIKI_TASKS_PREFIX, mapping={key: json.dumps(data)})
+    set_task_status(data)
 
     # new_name = STATS_OUTPUT_PATH.split(".json")[0] + "-" + str(datetime.now(timezone.utc).timestamp()) + ".json"
     # subprocess.run(["cp", STATS_OUTPUT_PATH, new_name])
