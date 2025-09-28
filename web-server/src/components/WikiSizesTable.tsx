@@ -1,5 +1,5 @@
 import type { z } from "astro/zod";
-import { createEffect, createSignal, For } from "solid-js";
+import { createEffect, createSignal, For, Show } from "solid-js";
 import { WIKI_TYPES } from "../constants";
 import type statsSchema from "../content/stats-schema";
 import { cn, formatBytesIntl } from "../utils";
@@ -8,23 +8,35 @@ import Pill from "./Pill";
 import { Table } from "./Table";
 
 export function WikiSizesTable(props: {
-    wikis_columns: NonNullable<
-        z.infer<typeof statsSchema>["wiki_sizes"]
+    web_wikis_columns: NonNullable<
+        z.infer<typeof statsSchema>["web_wiki_sizes"]
+    >["sizes"];
+    local_wikis_columns?: NonNullable<
+        z.infer<typeof statsSchema>["local_wiki_sizes"]
     >["sizes"];
     supported_wikis: string[];
     dump_date?: string;
     siteinfo: Map<string, SiteInfo>;
 }) {
     const [selection, setSelection] = createSignal(["wiki"]);
-    const [data, setData] = createSignal(props.wikis_columns);
-
-    const supported = () =>
-        data().filter((entry) => props.supported_wikis.includes(entry.name));
+    const [webSizes, setWebSizes] = createSignal(props.web_wikis_columns);
+    const [localSizes, setLocalSizes] = createSignal(
+        props.local_wikis_columns?.map((entry) => {
+            const webSize = props.web_wikis_columns.find(
+                (e) => e.name === entry.name,
+            );
+            return {
+                ...entry,
+                total_size: webSize?.total_size,
+                selected_tables_size: webSize?.selected_tables_size,
+            };
+        }),
+    );
 
     // filter data based on selection
     createEffect(() => {
-        setData(
-            props.wikis_columns.filter((entry) =>
+        setWebSizes(
+            props.web_wikis_columns.filter((entry) =>
                 selection().some((type) => entry.name.endsWith(type)),
             ),
         );
@@ -111,43 +123,54 @@ export function WikiSizesTable(props: {
             </div>
 
             <div>
-                <p>Supported Wikis ({supported().length})</p>
-                <Table
-                    data={supported()}
-                    columns={[
-                        {
-                            key: "name",
-                            label: "Wiki",
-                            isSortable: true,
-                            render: renderWikiLink,
-                        },
-                        {
-                            key: "compressed_total_size",
-                            label: "Total",
-                            render: formatBytesIntl,
-                            isSortable: true,
-                        },
-                        {
-                            key: "compressed_selected_tables_size",
-                            label: "Relevant",
-                            render: formatBytesIntl,
-                            isSortable: true,
-                        },
-                        {
-                            key: "decompressed_size",
-                            label: "Decompressed",
-                            render: formatBytesIntl,
-                            isSortable: true,
-                        },
-                        {
-                            key: "processed_size",
-                            label: "Processed",
-                            render: formatBytesIntl,
-                            isSortable: true,
-                        },
-                    ]}
-                    sortConfig={{ key: "processed_size", direction: "desc" }}
-                />
+                <Show
+                    when={localSizes()}
+                    fallback={<p>No data about downloaded wikis</p>}>
+                    {(sizes) => (
+                        <>
+                            <p>Downloaded Wikis ({sizes.length})</p>
+                            <Table
+                                data={sizes()}
+                                columns={[
+                                    {
+                                        key: "name",
+                                        label: "Wiki",
+                                        isSortable: true,
+                                        render: renderWikiLink,
+                                    },
+                                    {
+                                        key: "total_size",
+                                        label: "Total",
+                                        render: formatBytesIntl,
+                                        isSortable: true,
+                                    },
+                                    {
+                                        key: "selected_tables_size",
+                                        label: "Relevant",
+                                        render: formatBytesIntl,
+                                        isSortable: true,
+                                    },
+                                    {
+                                        key: "download_size",
+                                        label: "Decompressed",
+                                        render: formatBytesIntl,
+                                        isSortable: true,
+                                    },
+                                    {
+                                        key: "processed_size",
+                                        label: "Processed",
+                                        render: formatBytesIntl,
+                                        isSortable: true,
+                                    },
+                                ]}
+                                sortConfig={{
+                                    key: "processed_size",
+                                    direction: "desc",
+                                }}
+                            />
+                        </>
+                    )}
+                </Show>
             </div>
 
             <div>
@@ -156,10 +179,10 @@ export function WikiSizesTable(props: {
                     <span class="text-secondary">
                         {selection() != WIKI_TYPES ? "*" : ""}
                     </span>{" "}
-                    Wikis ({data().length})
+                    Wikis ({webSizes().length})
                 </p>
                 <Table
-                    data={data()}
+                    data={webSizes()}
                     columns={[
                         {
                             key: "name",
@@ -168,20 +191,20 @@ export function WikiSizesTable(props: {
                             render: renderWikiLink,
                         },
                         {
-                            key: "compressed_total_size",
+                            key: "total_size",
                             label: "Total",
                             render: formatBytesIntl,
                             isSortable: true,
                         },
                         {
-                            key: "compressed_selected_tables_size",
+                            key: "selected_tables_size",
                             label: "Relevant",
                             render: formatBytesIntl,
                             isSortable: true,
                         },
                     ]}
                     sortConfig={{
-                        key: "compressed_selected_tables_size",
+                        key: "selected_tables_size",
                         direction: "desc",
                     }}
                 />

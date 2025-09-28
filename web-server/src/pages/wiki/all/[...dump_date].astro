@@ -19,7 +19,7 @@ export async function getStaticPaths() {
 
     for (const entry of entries) {
         const data = entry.data;
-        if (!data.wiki_sizes) continue;
+        if (!data.web_wiki_sizes) continue;
         params.push({
             params: { dump_date: data.dump_date },
         });
@@ -42,10 +42,11 @@ export async function getStaticPaths() {
 const { dump_date } = Astro.params;
 
 const entry = await get_stat(dump_date || "latest");
-const all_wiki_sizes = entry!.wiki_sizes;
+const web_wiki_sizes = entry!.web_wiki_sizes;
+const local_wiki_sizes = entry!.local_wiki_sizes;
 const supported_wikis = entry!.wikis;
 
-const wikis_columns = all_wiki_sizes?.sizes;
+const wikis_columns = web_wiki_sizes?.sizes;
 ---
 
 <Layout title="WikiStats - All Wikis">
@@ -53,17 +54,17 @@ const wikis_columns = all_wiki_sizes?.sizes;
         dump_date={dump_date ?? "latest"}
         slot="left-sidebar"
         show_wiki_selection={false}
-        dump_date_filter={(entry) => entry.data.wiki_sizes != null}
+        dump_date_filter={(entry) => entry.data.web_wiki_sizes != null}
     />
 
     <DumpDateSelection
         currrent_dumpdate={dump_date}
         classNameWrapper="block mb-5 lg:hidden"
-        collection_filter={(entry) => entry.data.wiki_sizes != null}
+        collection_filter={(entry) => entry.data.web_wiki_sizes != null}
     />
 
     {
-        all_wiki_sizes == null && (
+        web_wiki_sizes == null && (
             <Card className="text-center p-2">
                 <p>No wiki sizes data available for this dump date (yet)</p>
                 <p class="text-secondary">
@@ -75,12 +76,12 @@ const wikis_columns = all_wiki_sizes?.sizes;
     }
 
     {
-        all_wiki_sizes != null && wikis_columns != null && (
+        web_wiki_sizes != null && wikis_columns != null && (
             <div>
                 <div class="flex flex-wrap justify-between items-baseline">
                     <h1 class="text-3xl">Wikis</h1>
                     <p>
-                        Available ({all_wiki_sizes.sizes.length}) | Supported (
+                        Available ({web_wiki_sizes.sizes.length}) | Supported (
                         {supported_wikis.length})
                     </p>
                 </div>
@@ -123,7 +124,7 @@ const wikis_columns = all_wiki_sizes?.sizes;
                             },
                             {
                                 size: "Relevant",
-                                desc: `Downloaded sql.gz files (compressed). These are currently the tables: [${all_wiki_sizes.tables.join(", ")}]`,
+                                desc: `Downloaded sql.gz files (compressed). These are currently the tables: [${web_wiki_sizes.tables.join(", ")}]`,
                             },
                             {
                                 size: "Decompressed",
@@ -144,7 +145,8 @@ const wikis_columns = all_wiki_sizes?.sizes;
                 <div class="mt-14">
                     <WikiSizesTable
                         {supported_wikis}
-                        {wikis_columns}
+                        web_wikis_columns={web_wiki_sizes.sizes}
+                        local_wikis_columns={local_wiki_sizes?.sizes}
                         {dump_date}
                         client:load
                         siteinfo={DBNAME_TO_SITEINFO}
