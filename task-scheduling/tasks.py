@@ -230,24 +230,30 @@ def enqueuing_task():
     }
     set_task_status(data)
 
-    check_for_tasks()
+    try:
+        check_for_tasks()
 
-    # only add wiki sizes for the latest dump date that doesn't have them, as it takes about 8mins and does a lot of requests
-    # this can be changed in future
-    # also the sqlite and download dir will likely be deleted 
-    todo_dump_dates = get_dump_dates_without_web_wiki_sizes()
-    done_dump_dates = get_done_dump_dates()
+        # only add wiki sizes for the latest dump date that doesn't have them, as it takes about 8mins and does a lot of requests
+        # this can be changed in future
+        # also the sqlite and download dir will likely be deleted 
+        todo_dump_dates = get_dump_dates_without_web_wiki_sizes()
+        done_dump_dates = get_done_dump_dates()
 
 
-    if len(done_dump_dates) > 0:
-        latest_done_dump_date = sorted(done_dump_dates)[-1]
-        if latest_done_dump_date in todo_dump_dates and check_latest_dump_date_is_fully_complete():
-            add_web_wiki_sizes.delay(latest_done_dump_date)
+        if len(done_dump_dates) > 0:
+            latest_done_dump_date = sorted(done_dump_dates)[-1]
+            if latest_done_dump_date in todo_dump_dates and check_latest_dump_date_is_fully_complete():
+                add_web_wiki_sizes.delay(latest_done_dump_date)
 
-    if is_within_sample_stats_window():
-        todo_dump_dates = get_dump_dates_without_samples_stats()
-        for todo_dump_date in todo_dump_dates:
-            add_sample_stats.delay(todo_dump_date)
+        if is_within_sample_stats_window():
+            todo_dump_dates = get_dump_dates_without_samples_stats()
+            for todo_dump_date in todo_dump_dates:
+                add_sample_stats.delay(todo_dump_date)
+    except Exception as e:
+        data["status"] = "FAILED"
+        data["message"] = f"Task failed"
+        set_task_status(data)
+        raise e
 
     data["status"] = "DONE"
     data["finishedAt"] = datetime.now(timezone.utc).isoformat()

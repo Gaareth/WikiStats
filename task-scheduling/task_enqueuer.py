@@ -47,6 +47,11 @@ def check_for_tasks():
             capture_output=True,
             text=True,
         )
+
+        if result.returncode != 0:
+            print(f"Error checking for tasks for {wiki}: {result.stderr}")
+            raise Exception(f"Error checking for tasks for {wiki}: {result.stderr}")
+
         print(f"Output for {wiki}: {result.stdout}")
         dumpdates_todo = [
             d.strip('"').strip()
