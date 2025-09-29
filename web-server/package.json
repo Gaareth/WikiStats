@@ -9,7 +9,7 @@
         "preview": "dotenv -e ../.env -- astro preview",
         "astro": "npm run gen-schema && dotenv -e ../.env --  astro",
         "gen-schema:rust": "cd ../WikiGame && cargo run --bin cli debug gen-stats-json-schema && mv stats-schema.json ../web-server/",
-        "gen-schema:ts": "cd ../web-server && npx json-refs resolve stats-schema.json | npx json-schema-to-zod | npx prettier --parser typescript > src/content/stats-schema.ts",
+        "gen-schema:ts": "cd ../web-server && npx json-refs resolve stats-schema.json | npx json-schema-to-zod | npx prettier --parser typescript > src/schemas/stats-schema.ts",
         "gen-schema": "npm run gen-schema:rust && npm run gen-schema:ts"
     },
     "dependencies": {

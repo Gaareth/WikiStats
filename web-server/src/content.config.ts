@@ -1,6 +1,6 @@
+import { glob } from "astro/loaders";
 import { defineCollection, getCollection } from "astro:content";
 import statsSchema from "./schemas/stats-schema";
-import { glob } from "astro/loaders";
 
 const statsCollection = defineCollection({
     loader: glob({ pattern: "**/*.json", base: "./data/stats" }),

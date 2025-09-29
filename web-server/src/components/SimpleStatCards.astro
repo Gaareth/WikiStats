@@ -10,10 +10,10 @@ import {
 } from "../db/constants";
 
 import { getCollection } from "astro:content";
+import { getEarlierEntry } from "../content.config";
 import { big_num_format } from "../utils";
 import CardTabs from "./CardTabs.astro";
 import Stat from "./Stat";
-import { getEarlierEntry } from "../content.config";
 
 interface Props {
     wiki_name?: string;
