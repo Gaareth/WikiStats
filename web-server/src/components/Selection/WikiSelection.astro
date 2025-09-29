@@ -2,6 +2,8 @@
 import clsx from "clsx";
 import { get_supported_wikis } from "../../db/constants";
 import Selection, { type SelectionProps } from "./Selection.astro";
+import { TooltipButton } from "../TooltipButton";
+import { InfoIcon } from "../ClientIcons/Icons";
 
 interface Props extends SelectionProps {
     currrent_wikiname?: string | undefined;
@@ -31,6 +33,16 @@ const wikis = await get_supported_wikis(dump_date || "latest");
         ["/wiki", item, noscript ? "noscript" : "", dir]
             .filter(Boolean)
             .join("/")}>
+    <div slot="legend" class="inline-block">
+        <TooltipButton client:load tooltip="Available wikipedias for the selected dump date">
+            <span class="inline-flex items-center gap-1 font-bold">
+                <span class="inline-block w-4">
+                    <InfoIcon />
+                </span>
+            </span>
+        </TooltipButton>
+    </div>
+
     {
         global_possible && (
             <a

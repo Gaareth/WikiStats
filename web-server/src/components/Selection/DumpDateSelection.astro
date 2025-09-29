@@ -1,7 +1,10 @@
 ---
 import { getCollection, type InferEntrySchema } from "astro:content";
 import clsx from "clsx";
+import { parseDumpDate } from "../../utils";
+import { InfoIcon, MaterialSymbolsArrowDownwardRounded, MaterialSymbolsConstructionRounded } from "../ClientIcons/Icons";
 import Selection, { type SelectionProps } from "./Selection.astro";
+import { TooltipButton } from "../TooltipButton";
 
 interface Props extends SelectionProps {
     currrent_dumpdate?: string;
@@ -23,7 +26,26 @@ const items = (await getCollection("stats"))
             (collection_filter == null || collection_filter(c)),
     )
     .map((c) => c.id)
-    .reverse();
+    .sort(
+        (id1, id2) =>
+            parseDumpDate(id2).getTime() - parseDumpDate(id1).getTime(),
+    );
+
+function get_previous_dump_date() {
+    if (currrent_dumpdate == null) return "";
+    if (currrent_dumpdate === "latest") return items[1] ?? "";
+    const index = items.indexOf(currrent_dumpdate);
+    if (index === -1 || index === items.length - 1) return "";
+    return items[index + 1];
+}
+
+function get_next_dump_date() {
+    if (currrent_dumpdate == null) return "";
+    if (currrent_dumpdate === "latest") return "";
+    const index = items.indexOf(currrent_dumpdate);
+    if (index === -1 || index === 0) return "";
+    return items[index - 1];
+}
 ---
 
 <Selection
@@ -32,12 +54,44 @@ const items = (await getCollection("stats"))
     what="Dump dates"
     {...rest}
     get_url={(item) => item}>
+    <div slot="legend" class="inline-block">
+        <TooltipButton
+            client:load
+            tooltip="Available wikipedia dump dates for the selected wiki">
+            <span
+                class="inline-flex items-center gap-1 font-bold ">
+                <span class="inline-block w-4">
+                    <InfoIcon />
+                </span>
+            </span>
+        </TooltipButton>
+    </div>
+
+    <div slot="before" class="flex justify-around mb-2 text-sm">
+        <a href={get_previous_dump_date()} class="flex items-center gap-1">
+            <span class="block w-5 rotate-90">
+                <MaterialSymbolsArrowDownwardRounded
+                    aria-label="right-pointing arrow"
+                />
+            </span>
+            Prev
+        </a>
+
+        <a href={get_next_dump_date()} class="flex items-center gap-1">
+            Next
+            <span class="block w-5 -rotate-90">
+                <MaterialSymbolsArrowDownwardRounded
+                    aria-label="right-pointing arrow"
+                />
+            </span>
+        </a>
+    </div>
     <a
         slot="global"
         href={"latest"}
         class={clsx(
             currrent_dumpdate == "latest" ? "font-bold" : "font-normal",
-            "sm:order-1",
+            "sm:-order-1",
         )}>
         LATEST
     </a>

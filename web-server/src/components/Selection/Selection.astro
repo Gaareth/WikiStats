@@ -35,12 +35,15 @@ const {
     class={clsx(
         "dark:bg-dark_01 dark:border-dark_05 border flex gap-2 justify-between px-4 pb-2.5",
         currrent_item === undefined && "bg-slate-50",
-        "flex flex-col-reverse sm:flex-row",
+        "flex flex-col sm:flex-row",
         classNameWrapper,
     )}>
     <legend class={cn("text-base text-secondary", classNameLegend)}>
         All {what} ({items.length})
+        <slot name="legend"/>
     </legend>
+
+    <slot name="before"/>
 
     <div
         class={clsx("grid gap-4 sm:flex flex-wrap sm:gap-2", className)}

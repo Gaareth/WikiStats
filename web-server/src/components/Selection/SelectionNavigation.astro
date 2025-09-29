@@ -55,14 +55,14 @@ const {
                 <DumpDateSelection
                     currrent_dumpdate={dump_date}
                     current_wikiname={wiki_name}
-                    classNameWrapper="bg-transparent p-0 m-0 -mt-3 py-2 pb-4 !flex-col-reverse"
+                    classNameWrapper="bg-transparent p-0 m-0 -mt-3 py-2 pb-4 !flex-col"
                     classNameLegend={cn(
                         "!text-lg",
                         show_wiki_selection && "bg-white dark:bg-dark_01",
                     )}
                     className="!flex !flex-col !text-start text-base"
                     vertical={true}
-                    max_shown={10}
+                    max_shown={9}
                     collection_filter={dump_date_filter}
                 />
             )
