@@ -1,7 +1,7 @@
 import type { z } from "astro/zod";
 import { createEffect, createSignal, For, Show } from "solid-js";
 import { WIKI_TYPES } from "../constants";
-import type statsSchema from "../content/stats-schema";
+import type statsSchema from "../schemas/stats-schema";
 import { cn, formatBytesIntl } from "../utils";
 import type { SiteInfo } from "../wiki-api";
 import Pill from "./Pill";
