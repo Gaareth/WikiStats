@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import { createSignal, createUniqueId, onMount, Show } from "solid-js";
 import clickOutside from "../click-outside";
+import { cn } from "../../utils";
 
 declare module "solid-js" {
     namespace JSX {
@@ -13,6 +14,7 @@ declare module "solid-js" {
 
 interface Props {
     items: { name: string; url: string }[];
+    selected?: string;
 }
 
 export default function SearchWithDropdown(props: Props) {
@@ -74,7 +76,7 @@ export default function SearchWithDropdown(props: Props) {
                     {suggestions().map((item) => (
                         <a
                             href={item.url}
-                            class="px-2 hover:dark:bg-dark_02 w-full block">
+                            class={cn("px-2 hover:dark:bg-dark_02 w-full block", item.name === props.selected && "font-bold")}>
                             {item.name}
                         </a>
                     ))}

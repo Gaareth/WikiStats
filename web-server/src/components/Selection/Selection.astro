@@ -67,7 +67,8 @@ const {
                 <div class="col-span-2">
                     {/* <span class="text-secondary">...</span> */}
                     <SelectionSearch
-                        items={items.map((item) => ({
+                        selected={currrent_item}
+                        items={items.slice(max_shown).map((item) => ({
                             name: item,
                             url: get_url(item),
                         }))}
