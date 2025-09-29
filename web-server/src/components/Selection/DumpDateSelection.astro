@@ -2,9 +2,12 @@
 import { getCollection, type InferEntrySchema } from "astro:content";
 import clsx from "clsx";
 import { parseDumpDate } from "../../utils";
-import { InfoIcon, MaterialSymbolsArrowDownwardRounded, MaterialSymbolsConstructionRounded } from "../ClientIcons/Icons";
-import Selection, { type SelectionProps } from "./Selection.astro";
+import {
+    InfoIcon,
+    MaterialSymbolsArrowDownwardRounded,
+} from "../ClientIcons/Icons";
 import { TooltipButton } from "../TooltipButton";
+import Selection, { type SelectionProps } from "./Selection.astro";
 
 interface Props extends SelectionProps {
     currrent_dumpdate?: string;
@@ -58,8 +61,7 @@ function get_next_dump_date() {
         <TooltipButton
             client:load
             tooltip="Available wikipedia dump dates for the selected wiki">
-            <span
-                class="inline-flex items-center gap-1 font-bold ">
+            <span class="inline-flex items-center gap-1 font-bold">
                 <span class="inline-block w-4">
                     <InfoIcon />
                 </span>

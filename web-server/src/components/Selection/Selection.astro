@@ -40,10 +40,10 @@ const {
     )}>
     <legend class={cn("text-base text-secondary", classNameLegend)}>
         All {what} ({items.length})
-        <slot name="legend"/>
+        <slot name="legend" />
     </legend>
 
-    <slot name="before"/>
+    <slot name="before" />
 
     <div
         class={clsx("grid gap-4 sm:flex flex-wrap sm:gap-2", className)}
