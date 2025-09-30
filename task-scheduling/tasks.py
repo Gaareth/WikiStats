@@ -152,6 +152,7 @@ def add_sample_stats(dump_date: str):
         sample_size,
         "--threads",
         num_threads,
+        "--all-wikis"
     ]
     logger.info(f"> Running command: {cmd}")
     result = subprocess.run(cmd, capture_output=True, text=True)
