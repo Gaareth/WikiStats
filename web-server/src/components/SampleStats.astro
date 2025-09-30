@@ -40,7 +40,9 @@ const sum_hist = (start?: number, end?: number) => {
 
 interface Props {
     wiki_name: string;
-    sample_stats: NonNullable<z.infer<typeof statsSchema>["bfs_sample_stats"]>[string];
+    sample_stats: NonNullable<
+        z.infer<typeof statsSchema>["bfs_sample_stats"]
+    >[string];
 }
 
 const { wiki_name, sample_stats } = Astro.props;

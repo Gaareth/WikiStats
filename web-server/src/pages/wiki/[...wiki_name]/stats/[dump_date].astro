@@ -135,12 +135,14 @@ let bfs_sample_stats = (await getEntry("stats", dump_date))?.data
         </section>
 
         {
-            wiki_name !== undefined && bfs_sample_stats && bfs_sample_stats[wiki_name] != null && (
-                <SampleStats
-                    wiki_name={wiki_name}
-                    sample_stats={bfs_sample_stats[wiki_name]}
-                />
-            )
+            wiki_name !== undefined &&
+                bfs_sample_stats &&
+                bfs_sample_stats[wiki_name] != null && (
+                    <SampleStats
+                        wiki_name={wiki_name}
+                        sample_stats={bfs_sample_stats[wiki_name]}
+                    />
+                )
         }
 
         <DumpDateSelection
