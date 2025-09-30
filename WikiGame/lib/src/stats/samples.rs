@@ -194,13 +194,7 @@ pub fn sample_bfs_stats(
         });
     });
 
-    // dbg!(&depth_histograms);
-
     let avg_depth_histogram = average_histograms(&depth_histograms);
-
-    let path = "/home/gareth/dev/WikiStats/igraph/hist/depth_histogram_bfs.json";
-    let json = serde_json::to_string_pretty(&depth_histograms).unwrap();
-    fs::write(&path, json).expect(&format!("Failed writing stats to file {}", path));
 
     let time_taken = t1.elapsed();
     info!(
