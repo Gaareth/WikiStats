@@ -11,7 +11,7 @@ const find_depth_for_percentage = (
     hist: { [k: string]: number },
     desired_percentage: number,
 ) => {
-    let accumulator = 0;
+    let accumulator = 0.0;
     for (const [depth, percentage] of Object.entries(hist).sort(
         (a, b) => Number(a[0]) - Number(b[0]),
     )) {
