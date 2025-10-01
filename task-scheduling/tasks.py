@@ -174,8 +174,8 @@ def is_within_sample_stats_window():
         return False
 
     now = datetime.now()
-    start = now.replace(hour=ADD_SAMPLE_STATS_START_HOUR, minute=0, second=0, microsecond=0)
-    end = now.replace(hour=ADD_SAMPLE_STATS_END_HOUR, minute=0, second=0, microsecond=0)
+    start = now.replace(hour=int(ADD_SAMPLE_STATS_START_HOUR), minute=0, second=0, microsecond=0)
+    end = now.replace(hour=int(ADD_SAMPLE_STATS_END_HOUR), minute=0, second=0, microsecond=0)
     return start <= now < end
 
 @app.task
