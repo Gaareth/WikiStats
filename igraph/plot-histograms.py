@@ -21,8 +21,7 @@ def run_sample_stats_for_sizes(size):
     """Run cargo sample-stats for multiple sample sizes"""
     # Configuration
 
-    # Change to WikiGame directory
-    os.chdir("/home/gareth/dev/WikiStats/WikiGame")
+    os.chdir("/home/gareth/dev/WikiStats/wiki-stats-rs")
 
     print(f"Running sample-stats for sample size: {size}")
     cmd = [

@@ -25,7 +25,7 @@ services:
     profiles: ["prod"]
   sp-server:
     build:
-      context: ./WikiGame
+      context: ./wiki-stats-rs
       dockerfile: Dockerfile
     container_name: wiki-stats-sp-server-${ENV}
     ports:
