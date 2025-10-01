@@ -100,8 +100,8 @@ const MyChart = ({
                 </button>
             </div>
             <p class="text-base text-secondary">
-                Percentage of pages reachable by clicking a link x times (length of
-                shortest paths)
+                Percentage of pages reachable by clicking a link x times (length
+                of shortest paths)
             </p>
             <div>
                 <Bar
