@@ -3,26 +3,30 @@ import type { z } from "astro/zod";
 import type statsSchema from "../schemas/stats-schema";
 import { big_num_format, wiki_link } from "../utils";
 import Alert from "./Alert.astro";
+import { MaterialSymbolsArrowCoolDownRounded } from "./ClientIcons/Icons";
 import MinMaxCard from "./MinMaxCard.astro";
 import PathHistogram from "./PathHistogram";
 
-const find_depth_for_percentage = (p: number, total: number) => {
+const find_depth_for_percentage = (
+    hist: { [k: string]: number },
+    desired_percentage: number,
+) => {
     let d: number | undefined = undefined;
     let actual_p = Object.entries(hist)
         .sort((a, b) => Number(a[0]) - Number(b[0]))
-        .reduce((acc, [depth, num]) => {
+        .reduce((acc, [depth, percentage]) => {
             if (d === undefined) {
-                acc += Number(num);
+                acc += Number(percentage);
             }
 
-            if (acc >= p * total && d === undefined) {
+            if (acc >= desired_percentage && d === undefined) {
                 d = Number(depth);
                 return acc;
             }
             return acc;
         }, 0);
 
-    return [d, (actual_p / total) * 100];
+    return [d, actual_p * 100];
 };
 
 const sum_hist = (start?: number, end?: number) => {
@@ -56,12 +60,15 @@ const visited_avg = sample_stats["visit_stat"]["avg"];
 const visited_max = sample_stats["visit_stat"]["max"];
 
 const hist = sample_stats["avg_depth_histogram"];
+const depth_histogram = Object.fromEntries(
+    Object.entries(hist).map(([key, value]) => [key, value.avg_occurences]),
+);
 const sum = Object.entries(hist).reduce(
     (acc, [_, entry]) => acc + Number(entry.avg_occurences),
     0,
 );
 
-const percent_90_max = find_depth_for_percentage(0.9, sum);
+const percent_90_max = find_depth_for_percentage(depth_histogram, 0.9);
 ---
 
 <section>
@@ -79,32 +86,57 @@ const percent_90_max = find_depth_for_percentage(0.9, sum);
             starting from {sample_stats["sample_size"]} random pages.
         </p>
         <p>
-            Histogramm data was calculated by summing the reached pages of {
+            Histogramm data was calculated by adding the reached pages of {
                 sample_stats["sample_size"]
-            } samples and then averaged
+            } samples dividing by the amount of all pages and then averaged.
         </p>
+        <p>Seconds taken: {sample_stats.seconds_taken}</p>
     </div>
 
     <div class="flex flex-col gap-2 my-2">
         <MinMaxCard title="Deepest Page">
             <div slot="min">
-                {deepest_min[1]}
-                <a
-                    href={wiki_link(deepest_min[0], wiki_name)}
-                    class="text-base">
-                    ({deepest_min[0]})
-                </a>
+                {big_num_format(deepest_min[1])}
+                <div class="flex items-center gap-1 flex-wrap">
+                    <a
+                        href={wiki_link(deepest_min[0][0], wiki_name)}
+                        class="text-base">
+                        ({deepest_min[0][0]})
+                    </a>
+                    <span class="-rotate-90 block mx-1 w-5">
+                        <MaterialSymbolsArrowCoolDownRounded
+                            aria-label="dotted arrow pointing right"
+                        />
+                    </span>
+                    <a
+                        href={wiki_link(deepest_min[0][1], wiki_name)}
+                        class="text-base">
+                        ({deepest_min[0][1]})
+                    </a>
+                </div>
             </div>
             <div slot="avg">
                 {deepest_avg.toFixed(2)}
             </div>
             <div slot="max">
                 {big_num_format(deepest_max[1])}
-                <a
-                    href={wiki_link(deepest_max[0], wiki_name)}
-                    class="text-base">
-                    ({deepest_max[0]})
-                </a>
+                <div class="flex items-center gap-1 flex-wrap">
+                    <a
+                        href={wiki_link(deepest_max[0][0], wiki_name)}
+                        class="text-base">
+                        ({deepest_max[0][0]})
+                    </a>
+                    <span class="-rotate-90 block mx-1 w-5">
+                        <MaterialSymbolsArrowCoolDownRounded
+                            aria-label="dotted arrow pointing right"
+                        />
+                    </span>
+                    <a
+                        href={wiki_link(deepest_max[0][1], wiki_name)}
+                        class="text-base">
+                        ({deepest_max[0][1]})
+                    </a>
+                </div>
             </div>
         </MinMaxCard>
 
@@ -138,14 +170,7 @@ const percent_90_max = find_depth_for_percentage(0.9, sum);
                 </Alert>
             </noscript>
 
-            <PathHistogram
-                client:load
-                depth_histogram={Object.fromEntries(
-                    Object.entries(sample_stats["avg_depth_histogram"]).map(
-                        ([key, value]) => [key, value.avg_occurences],
-                    ),
-                )}
-            />
+            <PathHistogram client:load depth_histogram={depth_histogram} />
 
             <div>
                 {percent_90_max[1]?.toPrecision(3)}% of all articles are
