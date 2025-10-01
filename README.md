@@ -1,4 +1,4 @@
-# WikiStats
+# WikiStats [![wakatime](https://wakatime.com/badge/user/58cbdf08-bbb1-4720-96b5-3e6c96e7f148/project/fe252dde-c610-43d7-ab13-cda697080d5a.svg)](https://wakatime.com/badge/user/58cbdf08-bbb1-4720-96b5-3e6c96e7f148/project/fe252dde-c610-43d7-ab13-cda697080d5a)
 Wikipedia statistics and shortest path finder
 
 
