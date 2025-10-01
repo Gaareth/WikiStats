@@ -99,7 +99,7 @@ fi
 
 cd task-scheduling
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.txt 1>/dev/null
 cd ..
 
 # user-supplied
