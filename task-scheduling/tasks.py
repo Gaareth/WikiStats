@@ -219,6 +219,43 @@ def add_web_wiki_sizes(dump_date: str):
     set_task_status(data)
     build_server()
 
+
+def enqueue_web_sizes():
+    # only add wiki sizes for the latest dump date that doesn't have them, as it takes about 8mins and does a lot of requests
+    # this can be changed in future
+    # also the sqlite and download dir will likely be deleted 
+    todo_dump_dates = get_dump_dates_without_web_wiki_sizes()
+    done_dump_dates = get_done_dump_dates()
+
+    if len(done_dump_dates) > 0:
+        latest_done_dump_date = sorted(done_dump_dates)[-1]
+        if latest_done_dump_date in todo_dump_dates and check_latest_dump_date_is_fully_complete():
+            add_web_wiki_sizes.delay(latest_done_dump_date)
+            data: TaskData = {
+                "status": "QUEUED",
+                "startedAt": datetime.now(timezone.utc).isoformat(),
+                "dumpDate": latest_done_dump_date,
+                "name": "ADD WEB WIKI SIZES",
+                "finishedAt": None,
+                "message": None,
+            }
+            set_task_status(data)
+
+def enqueue_sample_stats():
+    if is_within_sample_stats_window():
+        todo_dump_dates = get_dump_dates_without_samples_stats()
+        for todo_dump_date in todo_dump_dates:
+            add_sample_stats.delay(todo_dump_date)
+            data: TaskData = {
+                "status": "QUEUED",
+                "startedAt": datetime.now(timezone.utc).isoformat(),
+                "dumpDate": todo_dump_date,
+                "name": "ADD SAMPLE STATS",
+                "finishedAt": None,
+                "message": None,
+            }
+            set_task_status(data)
+
 @app.task
 def enqueuing_task():
     data: TaskData = {
@@ -233,23 +270,8 @@ def enqueuing_task():
 
     try:
         check_for_tasks()
-
-        # only add wiki sizes for the latest dump date that doesn't have them, as it takes about 8mins and does a lot of requests
-        # this can be changed in future
-        # also the sqlite and download dir will likely be deleted 
-        todo_dump_dates = get_dump_dates_without_web_wiki_sizes()
-        done_dump_dates = get_done_dump_dates()
-
-
-        if len(done_dump_dates) > 0:
-            latest_done_dump_date = sorted(done_dump_dates)[-1]
-            if latest_done_dump_date in todo_dump_dates and check_latest_dump_date_is_fully_complete():
-                add_web_wiki_sizes.delay(latest_done_dump_date)
-
-        if is_within_sample_stats_window():
-            todo_dump_dates = get_dump_dates_without_samples_stats()
-            for todo_dump_date in todo_dump_dates:
-                add_sample_stats.delay(todo_dump_date)
+        enqueue_web_sizes()
+        enqueue_sample_stats()
     except Exception as e:
         data["status"] = "FAILED"
         data["message"] = f"Task failed"
