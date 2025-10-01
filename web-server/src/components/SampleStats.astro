@@ -11,22 +11,15 @@ const find_depth_for_percentage = (
     hist: { [k: string]: number },
     desired_percentage: number,
 ) => {
-    let d: number | undefined = undefined;
-    let actual_p = Object.entries(hist)
-        .sort((a, b) => Number(a[0]) - Number(b[0]))
-        .reduce((acc, [depth, percentage]) => {
-            if (d === undefined) {
-                acc += Number(percentage);
-            }
-
-            if (acc >= desired_percentage && d === undefined) {
-                d = Number(depth);
-                return acc;
-            }
-            return acc;
-        }, 0);
-
-    return [d, actual_p * 100];
+    let accumulator = 0;
+    for (const [depth, percentage] of Object.entries(hist).sort(
+        (a, b) => Number(a[0]) - Number(b[0]),
+    )) {
+        accumulator += percentage;
+        if (accumulator >= desired_percentage) {
+            return [Number(depth), accumulator * 100];
+        }
+    }
 };
 
 const sum_hist = (start?: number, end?: number) => {
@@ -172,13 +165,14 @@ const percent_90_max = find_depth_for_percentage(depth_histogram, 0.9);
 
             <PathHistogram client:load depth_histogram={depth_histogram} />
 
-            <div>
-                {percent_90_max[1]?.toPrecision(3)}% of all articles are
-                reachable by clicking {percent_90_max[0]} or less links.
-            </div>
-            <div>
-                Total reachable pages: {big_num_format(Number(Math.ceil(sum)))}
-            </div>
+            {
+                percent_90_max && (
+                    <div>
+                        {percent_90_max[1]?.toPrecision(3)}% of all articles are
+                        reachable by clicking {percent_90_max[0]} or less links.
+                    </div>
+                )
+            }
         </div>
     </div>
 </section>
