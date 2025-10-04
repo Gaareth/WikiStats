@@ -63,7 +63,7 @@ const MyChart = ({
             labels,
             datasets: [
                 {
-                    label: "% Pages reachable",
+                    label: "% All Pages",
                     data: data_points,
                 },
             ],
@@ -100,7 +100,7 @@ const MyChart = ({
                 </button>
             </div>
             <p class="text-base text-secondary">
-                Percentage of pages reachable by clicking a link x times (length
+                Percentage of all pages by clicking a link x times (length
                 of shortest paths)
             </p>
             <div>

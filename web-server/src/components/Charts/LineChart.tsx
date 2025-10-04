@@ -46,9 +46,9 @@ export const LineChart = (props: Props) => {
         plugins: plugins,
     };
     // fix the rest inclusion
-    return (
+    return <>
         <div>
             <Line data={chartData} options={chartOptions} />
         </div>
-    );
+    </>;
 };

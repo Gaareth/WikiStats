@@ -3,37 +3,56 @@ import type { z } from "astro/zod";
 import type statsSchema from "../schemas/stats-schema";
 import { big_num_format, wiki_link } from "../utils";
 import Alert from "./Alert.astro";
+import { LineChart } from "./Charts/LineChart";
 import { MaterialSymbolsArrowCoolDownRounded } from "./ClientIcons/Icons";
 import MinMaxCard from "./MinMaxCard.astro";
 import PathHistogram from "./PathHistogram";
 
-const find_depth_for_percentage = (
-    hist: { [k: string]: number },
-    desired_percentage: number,
-) => {
-    let accumulator = 0.0;
-    for (const [depth, percentage] of Object.entries(hist).sort(
-        (a, b) => Number(a[0]) - Number(b[0]),
-    )) {
-        accumulator += percentage;
-        if (accumulator >= desired_percentage) {
-            return [Number(depth), accumulator * 100];
+function make_cum(depth_histogram: { [k: string]: number }) {
+    const cum: { [k: string]: number } = {};
+    let accumulator = 0;
+
+    const sortedKeys = Object.keys(depth_histogram)
+        .map(Number)
+        .sort((a, b) => a - b);
+
+    for (const depth of sortedKeys) {
+        accumulator += depth_histogram[depth];
+        cum[depth] = accumulator;
+    }
+
+    return cum;
+}
+
+function find_depth_for_percentage(
+    cumm_histogram: { [k: string]: number },
+    targe_percentage: number,
+):
+    | {
+          depth: number;
+          percentage: number;
+      }
+    | undefined {
+    if (targe_percentage <= 0 || targe_percentage > 1) {
+        throw new Error(
+            "Percentage must be between 0 and 1 (e.g., 0.9 for 90%)",
+        );
+    }
+
+    const sortedDepths = Object.keys(cumm_histogram)
+        .map(Number)
+        .sort((a, b) => a - b);
+
+    for (const depth of sortedDepths) {
+        const cumm_p = cumm_histogram[depth];
+        if (cumm_p >= targe_percentage) {
+            return { depth, percentage: cumm_p };
         }
     }
-};
 
-const sum_hist = (start?: number, end?: number) => {
-    let s = 0;
-    for (
-        let index = start ?? 1;
-        index <= (end ?? Object.entries(hist).length);
-        index++
-    ) {
-        const element = hist[index];
-        s += Number(element);
-    }
-    return (s / sum) * 100;
-};
+    // Fallback (should not happen if data is valid)
+    return undefined;
+}
 
 interface Props {
     wiki_name: string;
@@ -56,12 +75,13 @@ const hist = sample_stats["avg_depth_histogram"];
 const depth_histogram = Object.fromEntries(
     Object.entries(hist).map(([key, value]) => [key, value.avg_occurences]),
 );
-const sum = Object.entries(hist).reduce(
-    (acc, [_, entry]) => acc + Number(entry.avg_occurences),
-    0,
-);
 
-const percent_90_max = find_depth_for_percentage(depth_histogram, 0.9);
+const cum_histogram = make_cum(depth_histogram);
+const sortedDepths = Object.keys(cum_histogram)
+    .map(Number)
+    .sort((a, b) => a - b);
+
+const percent_90_max = find_depth_for_percentage(cum_histogram, 0.9);
 ---
 
 <section>
@@ -135,7 +155,7 @@ const percent_90_max = find_depth_for_percentage(depth_histogram, 0.9);
 
         <MinMaxCard title="Visited Pages">
             <div slot="min">
-                {visited_min[1]}
+                {big_num_format(visited_min[1])}
                 <a
                     href={wiki_link(visited_min[0], wiki_name)}
                     class="text-base">
@@ -165,11 +185,28 @@ const percent_90_max = find_depth_for_percentage(depth_histogram, 0.9);
 
             <PathHistogram client:load depth_histogram={depth_histogram} />
 
+            <h3 class="text-2xl mt-10">Cumulative Depth Histogram</h3>
+            <p class="text-base text-secondary">
+                Visualizes how depth values accumulate across the dataset
+            </p>
+            <LineChart
+                title="Cumulative Depth"
+                labels={sortedDepths.map((n) => String(n))}
+                datasets={[
+                    {
+                        label: "Cumulative Depth",
+                        data: sortedDepths.map((n) => cum_histogram[n]),
+                    },
+                ]}
+                client:load
+            />
+
             {
                 percent_90_max && (
                     <div>
-                        {percent_90_max[1]?.toPrecision(3)}% of all articles are
-                        reachable by clicking {percent_90_max[0]} or less links.
+                        {percent_90_max.percentage?.toPrecision(3)}% of all
+                        articles are reachable by clicking{" "}
+                        {percent_90_max.depth} or less links.
                     </div>
                 )
             }
