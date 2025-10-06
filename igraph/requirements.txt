@@ -4,3 +4,4 @@ tqdm
 python-dateutil
 requests
 igraph
+matplotlib
