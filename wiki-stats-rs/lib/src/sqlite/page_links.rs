@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::path::Path;
+use std::sync::LazyLock;
 use std::time::Instant;
 
 use fxhash::{FxBuildHasher, FxHashMap, FxHashSet};
@@ -20,74 +21,48 @@ use crate::{sqlite, DBCache};
 
 type InsertData = FxHashSet<(u32, String)>;
 
-pub static DB_PAGELINKS_PATH: &str = "/run/media/gareth/7FD71CF32A89EF6A/dev/de_pagelinks2024.db";
-
 // pub fn insert_into_sqlite(data: Vec<(PageId, PageTitle)>) {
 
-pub fn db_setup(conn: &Connection) {
-    conn.execute(
-        "CREATE TABLE if not exists WikiLink (
+const WIKI_LINK_TABLE: &str = "CREATE TABLE if not exists WikiLink (
             page_id INTEGER,
             page_link INTEGER
-        )",
-        (),
+        )";
+
+const WIKI_LINK_UNIQUE_INDEX: &str = "CREATE UNIQUE INDEX if not exists WikiLink_unique_index ON
+           WikiLink(page_id, page_link)";
+
+const WIKI_LINK_ID_INDEX: &str = "CREATE INDEX if not exists idx_link_id ON WikiLink(page_id);";
+const WIKI_LINK_LINK_INDEX: &str =
+    "CREATE INDEX if not exists idx_link_page ON WikiLink(page_link);";
+
+static WIKI_PAGE_SCHEMA: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "{}\n{}\n{}\n{}",
+        WIKI_LINK_TABLE, WIKI_LINK_UNIQUE_INDEX, WIKI_LINK_ID_INDEX, WIKI_LINK_LINK_INDEX
     )
-    .expect("Failed creating table");
-    //            UNIQUE (page_id, page_link)
-    // conn.execute(
-    //         "CREATE UNIQUE INDEX WikiLinks_page_id_page_links_key ON
-    //         WikiLinks(page_id, page_links)", ()
-    // );
+});
+pub fn db_setup(conn: &Connection) {
+    conn.execute(WIKI_LINK_TABLE, ())
+        .expect("Failed creating table");
 
     // conn.execute("PRAGMA journal_mode = MEMORY", ()).unwrap();
 }
 
 pub fn create_unique_index(conn: &Connection) {
-    conn.execute(
-        "CREATE UNIQUE INDEX if not exists WikiLink_unique_index ON
-           WikiLink(page_id, page_link)",
-        (),
-    )
-    .expect("Failed creating unique index");
+    conn.execute(WIKI_LINK_UNIQUE_INDEX, ())
+        .expect("Failed creating unique index");
 }
 
 pub fn create_indices_post_setup(conn: &Connection) {
     println!("Creating index..");
+    conn.execute(WIKI_LINK_ID_INDEX, ())
+        .expect("Failed creating index");
+
     conn.execute(
-        "CREATE INDEX if not exists idx_link_id ON WikiLink(page_id);",
+        WIKI_LINK_LINK_INDEX,
         (),
     )
     .expect("Failed creating index");
-
-    conn.execute(
-        "CREATE INDEX if not exists idx_link_page ON WikiLink(page_link);",
-        (),
-    )
-    .expect("Failed creating index");
-
-    // println!("Creating WikiLink(page_id, wiki_name)");
-    //
-    // conn.execute("
-    //     CREATE INDEX if not exists idx_link_id_wiki ON WikiLink(page_id, wiki_name);
-    // ", ()).unwrap();
-    //
-    // println!("Creating  WikiLink(page_link, wiki_name)");
-    //
-    // conn.execute("
-    //            CREATE INDEX if not exists idx_link_linkid_wiki ON WikiLink(page_link, wiki_name);
-    // ", ()).unwrap();
-
-    // println!("Creating WikiLink(wiki_name, page_link DESC)");
-    //
-    // conn.execute("
-    //     CREATE INDEX WikiLink_idx_name_link_desc ON WikiLink(wiki_name, page_link DESC);
-    // ", ()).unwrap();
-    //
-    // println!("Creating WikiLink(wiki_name, page_id DESC)");
-    //
-    // conn.execute("
-    //     CREATE INDEX WikiLink_idx_name_id_desc ON WikiLink(wiki_name, page_id DESC);
-    // ", ()).unwrap();
 }
 
 // <I: Iterator<Item=PageLink>>
@@ -346,19 +321,19 @@ pub fn get_cache(path: impl AsRef<Path>, num_load_opt: Option<usize>, incoming: 
 /// - select: If empty, load all entries. Otherwise, load only entries for these page IDs
 /// - incoming: If true, map target -> sources (incoming links). If false, map source -> targets (outgoing links)
 pub fn load_link_to_map_db_limit(
-    path: impl AsRef<Path>, 
+    path: impl AsRef<Path>,
     select: Vec<PageId>,
-    incoming: bool
+    incoming: bool,
 ) -> DBCache {
     let conn = Connection::open(path).unwrap();
     let mut limit_str = String::new();
-    
+
     let (key_col, value_col) = if incoming {
-        ("page_link", "page_id")  // target -> source
+        ("page_link", "page_id") // target -> source
     } else {
-        ("page_id", "page_link")  // source -> target
+        ("page_id", "page_link") // source -> target
     };
-    
+
     if !select.is_empty() {
         limit_str = format!(
             "where {} in ({})",
@@ -370,7 +345,7 @@ pub fn load_link_to_map_db_limit(
                 .join(",")
         );
     }
-    
+
     let mut stmt = conn
         .prepare(&format!(
             "SELECT {}, {} FROM WikiLink {limit_str}",

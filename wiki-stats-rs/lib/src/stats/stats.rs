@@ -103,22 +103,27 @@ pub fn num_links_stat(wiki: WikiIdent) -> u64 {
 
 pub async fn get_local_wiki_sizes(base_path: impl AsRef<Path>, tables: &[&str]) -> WikiSizes {
     let download_path = base_path.as_ref().join("downloads");
-    let decompressed_sizes: Vec<(String, u64)> = fs::read_dir(&download_path)
-        .expect("Failed reading wiki download dir")
-        .filter_map(|entry| entry.ok())
-        .filter_map(|entry| {
-            let path = entry.path();
-            if path.is_file() && path.extension().map_or(false, |ext| ext == "sql") {
-                let metadata = fs::metadata(&path).ok()?;
-                let file_size = metadata.len();
-                let file_stem = path.file_stem()?.to_str()?.to_string();
-                let wiki_name = file_stem.split('-').next()?.to_string();
-                Some((wiki_name, file_size))
-            } else {
-                None
-            }
-        })
-        .collect();
+
+    let decompressed_sizes: Vec<(String, u64)> = if fs::exists(&download_path).unwrap_or(false) {
+        fs::read_dir(&download_path)
+            .expect("Failed reading wiki download dir")
+            .filter_map(|entry| entry.ok())
+            .filter_map(|entry| {
+                let path = entry.path();
+                if path.is_file() && path.extension().map_or(false, |ext| ext == "sql") {
+                    let metadata = fs::metadata(&path).ok()?;
+                    let file_size = metadata.len();
+                    let file_stem = path.file_stem()?.to_str()?.to_string();
+                    let wiki_name = file_stem.split('-').next()?.to_string();
+                    Some((wiki_name, file_size))
+                } else {
+                    None
+                }
+            })
+            .collect()
+    } else {
+        vec![]
+    };
 
     let mut decompressed_size_map: HashMap<String, u64> = HashMap::new();
     for (key, value) in decompressed_sizes {
@@ -143,12 +148,12 @@ pub async fn get_local_wiki_sizes(base_path: impl AsRef<Path>, tables: &[&str]) 
         })
         .collect();
 
-    let sizes = decompressed_size_map
+    let sizes = processed_sizes
         .iter()
         .map(|(name, size)| WikiSize {
             name: name.clone(),
-            download_size: Some(*size),
-            processed_size: processed_sizes.get(name).cloned(),
+            download_size: decompressed_size_map.get(name).cloned(),
+            processed_size: Some(*size),
         })
         .collect();
 

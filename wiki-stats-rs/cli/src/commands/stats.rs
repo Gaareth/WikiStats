@@ -1,8 +1,8 @@
 use wiki_stats::sqlite::get_all_database_files;
 
 use crate::{
-    args::{Commands, SampleOptions, StatsArgs, StatsCommands, WikiSizesArgs},
-    utils::print_error_and_exit,
+    args::{SampleOptions, StatsArgs, StatsCommands, WikiSizesArgs},
+    print_error_and_exit,
     validation::{validate_sqlite_files, validate_wiki_names},
 };
 
@@ -16,7 +16,7 @@ async fn handle_add_sample_stats(args: StatsArgs, sample_args: SampleOptions) {
 
     let wikis = if all_wikis {
         &get_all_database_files(&db_path).unwrap_or_else(|e| {
-            print_error_and_exit(format!("Failed fetching all wikis from db path: {e}"));
+            print_error_and_exit!("Failed fetching all wikis from db path: {e}")
         })
     } else {
         &wikis
@@ -26,12 +26,10 @@ async fn handle_add_sample_stats(args: StatsArgs, sample_args: SampleOptions) {
 
     validate_wiki_names(wikis)
         .await
-        .unwrap_or_else(|e| print_error_and_exit(format!("Failed validating wiki names: {e}")));
+        .unwrap_or_else(|e| print_error_and_exit!("Failed validating wiki names: {e}"));
     validate_sqlite_files(&db_path, wikis)
         .await
-        .unwrap_or_else(|e| {
-            print_error_and_exit(format!("Failed validating wiki sqlite files: {e}"))
-        });
+        .unwrap_or_else(|e| print_error_and_exit!("Failed validating wiki sqlite files: {e}"));
 
     let SampleOptions {
         sample_size,
@@ -68,7 +66,7 @@ async fn handle_generate_stats(
 
     let wikis = if all_wikis {
         &get_all_database_files(&db_path).unwrap_or_else(|e| {
-            print_error_and_exit(format!("Failed fetching all wikis from db path: {e}"));
+            print_error_and_exit!("Failed fetching all wikis from db path: {e}");
         })
     } else {
         &wikis
@@ -77,18 +75,16 @@ async fn handle_generate_stats(
 
     validate_wiki_names(wikis)
         .await
-        .unwrap_or_else(|e| print_error_and_exit(format!("Failed validating wiki names: {e}")));
+        .unwrap_or_else(|e| print_error_and_exit!("Failed validating wiki names: {e}"));
     validate_sqlite_files(&db_path, wikis)
         .await
-        .unwrap_or_else(|e| {
-            print_error_and_exit(format!("Failed validating wiki sqlite files: {e}"))
-        });
+        .unwrap_or_else(|e| print_error_and_exit!("Failed validating wiki sqlite files: {e}"));
 
     let base_path = db_path
         .clone()
         .parent()
         .unwrap_or_else(|| {
-            print_error_and_exit("Failed extracting base path from db path");
+            print_error_and_exit!("Failed extracting base path from db path");
         })
         .to_path_buf();
 
@@ -96,7 +92,7 @@ async fn handle_generate_stats(
         .file_name()
         .and_then(|s| s.to_str())
         .unwrap_or_else(|| {
-            print_error_and_exit(
+            print_error_and_exit!(
                 "Failed extracting dumpdate from path. Please provide using --dump-date",
             )
         });

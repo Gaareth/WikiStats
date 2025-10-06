@@ -8,16 +8,17 @@ use colored::Colorize;
 use fxhash::FxHashMap;
 use indicatif::{MultiProgress, ProgressBar};
 use num_format::{Locale, ToFormattedString};
-use parse_mediawiki_sql::{FromSqlTuple, iterate_sql_insertions};
 use parse_mediawiki_sql::field_types::{LinkTargetId, PageId, PageTitle};
 use parse_mediawiki_sql::schemas::{CategoryLink, Page, PageLink};
 use parse_mediawiki_sql::utils::{memory_map, Mmap};
+use parse_mediawiki_sql::{iterate_sql_insertions, FromSqlTuple};
+use rusqlite::types::Null;
 use rusqlite::{CachedStatement, Connection};
 
 use crate::calc::MAX_SIZE;
-use crate::sqlite::{category_links, load, page_links, title_id_conv, wiki};
 use crate::sqlite::category_links::pagetype_to_string;
 use crate::sqlite::title_id_conv::TitleIdMap;
+use crate::sqlite::{category_links, load, page_links, title_id_conv, wiki};
 use crate::utils::{default_bar, default_bar_unknown, spinner_bar, write_barstyle};
 
 //
@@ -58,7 +59,6 @@ impl DuplicateOptions {
     }
 }
 
-
 // lazy_static! {
 //     static ref TITLE_ID_MAP: FxHashMap<PageTitle, PageId> = sqlite::title_id_conv::load_title_id_map();
 // }
@@ -89,7 +89,12 @@ impl<'a> ToSqlite<'a> {
     // }
 
     /// base_path: Path that contains the dump_date subdirectories (e.g: 20240501)
-    pub fn new_bar(wiki_name: impl Into<String>, dump_date: impl Into<String>, multi_pb: &'a MultiProgress, base_path: impl Into<PathBuf>) -> Self {
+    pub fn new_bar(
+        wiki_name: impl Into<String>,
+        dump_date: impl Into<String>,
+        multi_pb: &'a MultiProgress,
+        base_path: impl Into<PathBuf>,
+    ) -> Self {
         Self {
             wiki_name: wiki_name.into(),
             dump_date: dump_date.into(),
@@ -98,10 +103,13 @@ impl<'a> ToSqlite<'a> {
         }
     }
 
-    pub fn create_db(&self, db_path: &Path,
-                     pagelinks_sql_path: impl AsRef<Path>,
-                     page_sql_path: impl AsRef<Path>,
-                     linktarget_sql_path: impl AsRef<Path>) {
+    pub fn create_db(
+        &self,
+        db_path: &Path,
+        pagelinks_sql_path: impl AsRef<Path>,
+        page_sql_path: impl AsRef<Path>,
+        linktarget_sql_path: impl AsRef<Path>,
+    ) {
         // println!("-#--#- {wiki_name} -#--#-");
         // println!("[{wiki_name}] Inserting into database at: {db_path:?}");
         // println!("[{wiki_name}] Using {pagelinks_sql_path:?} and \n{page_sql_path:?}");
@@ -109,12 +117,36 @@ impl<'a> ToSqlite<'a> {
         let t1 = Instant::now();
 
         if Path::new(db_path).exists() {
-            println!("{}", format!("sqlite file {db_path:?} already exists").green());
+            println!(
+                "{}",
+                format!("sqlite file {db_path:?} already exists").green()
+            );
             exit(0);
         }
 
-        let mut conn = Connection::open(db_path)
-            .unwrap_or_else(|_| panic!("[{}]  Failed creating database connection with {db_path:?}", &self.wiki_name));
+        let mut conn = Connection::open(db_path).unwrap_or_else(|_| {
+            panic!(
+                "[{}]  Failed creating database connection with {db_path:?}",
+                &self.wiki_name
+            )
+        });
+
+        conn.execute(
+            "CREATE TABLE if not exists Info (
+            is_done INTEGER,
+            insertion_time_s INTEGER,
+            index_creation_time_s INTEGER,
+        )",
+            (),
+        )
+        .unwrap();
+
+        conn.execute(
+            "INSERT INTO Info Values (?, ?, ?),
+        )",
+            (0, Null, Null),
+        )
+        .unwrap();
 
         conn.execute("PRAGMA synchronous = OFF", ()).unwrap();
         // conn.execute("PRAGMA journal_mode = OFF", ()).unwrap();
@@ -124,7 +156,6 @@ impl<'a> ToSqlite<'a> {
         //  167_176_646
         // 6_566_564_65
 
-
         self.create_title_id_conv_db(&page_sql_path, &mut conn);
 
         // let map = title_id_conv::load_title_id_map(db_path);
@@ -132,19 +163,47 @@ impl<'a> ToSqlite<'a> {
         let lt_pt_map = load::load_linktarget_map(lt_mmap);
 
         let title_id_map = title_id_conv::load_title_id_map(db_path);
-        self.create_pagelinks_db(&pagelinks_sql_path, &mut conn, &title_id_map, &lt_pt_map, false);
+        self.create_pagelinks_db(
+            &pagelinks_sql_path,
+            &mut conn,
+            &title_id_map,
+            &lt_pt_map,
+            false,
+        );
+
+        conn.execute(
+            "INSERT INTO Info(insertion_time_s) Values (?),
+        )",
+            (t1.elapsed().as_secs(),),
+        )
+        .unwrap();
 
         // post_insert(db_path);
-        self.multi_pb.println(format!("[{}] Done. Total time elapsed: {:?}", &self.wiki_name, t1.elapsed()).green().to_string()).unwrap()
+        self.multi_pb
+            .println(
+                format!(
+                    "[{}] Done. Total time elapsed: {:?}",
+                    &self.wiki_name,
+                    t1.elapsed()
+                )
+                .green()
+                .to_string(),
+            )
+            .unwrap()
     }
 
     pub fn post_insert(&self, db_path: &Path) {
         let wiki_name = &self.wiki_name;
-        self.multi_pb.println(format!("[{wiki_name}] Creating indices for database at: {db_path:?}")).unwrap();
+        self.multi_pb
+            .println(format!(
+                "[{wiki_name}] Creating indices for database at: {db_path:?}"
+            ))
+            .unwrap();
 
         let t1 = Instant::now();
-        let conn = Connection::open(db_path)
-            .unwrap_or_else(|_| panic!("[{wiki_name}]  Failed creating database connection with {db_path:?}"));
+        let conn = Connection::open(db_path).unwrap_or_else(|_| {
+            panic!("[{wiki_name}]  Failed creating database connection with {db_path:?}")
+        });
 
         let bar = spinner_bar("Creating [WikiPage] index");
         title_id_conv::create_indices_post_setup(&conn);
@@ -157,25 +216,51 @@ impl<'a> ToSqlite<'a> {
         page_links::create_unique_index(&conn);
         bar2.finish_with_message(format!("{:?}", t2.elapsed()));
 
+        conn.execute(
+            "INSERT INTO Info(is_done, index_creation_time_s) Values (?, ?),
+        )",
+            (1, t1.elapsed().as_secs()),
+        )
+        .unwrap();
 
         conn.execute("PRAGMA synchronous = ON", ()).unwrap();
-        println!("{}", format!("[{wiki_name}] Done POSTINSERT. Total time elapsed: {:?}", t1.elapsed()).green());
+        println!(
+            "{}",
+            format!(
+                "[{wiki_name}] Done POSTINSERT. Total time elapsed: {:?}",
+                t1.elapsed()
+            )
+            .green()
+        );
     }
 
-    pub fn create_pagelinks_db_custom(&self,
-                                      in_sql_file_path: impl AsRef<Path>,
-                                      in_linktarget_file_path: impl AsRef<Path>,
-                                      page_db_path: impl AsRef<Path>,
-                                      out_db_path: impl AsRef<Path>) {
-        let mut conn = Connection::open(&out_db_path)
-            .unwrap_or_else(|_| panic!("[{}] Failed creating database connection with {}", self.wiki_name, out_db_path.as_ref().display()));
+    pub fn create_pagelinks_db_custom(
+        &self,
+        in_sql_file_path: impl AsRef<Path>,
+        in_linktarget_file_path: impl AsRef<Path>,
+        page_db_path: impl AsRef<Path>,
+        out_db_path: impl AsRef<Path>,
+    ) {
+        let mut conn = Connection::open(&out_db_path).unwrap_or_else(|_| {
+            panic!(
+                "[{}] Failed creating database connection with {}",
+                self.wiki_name,
+                out_db_path.as_ref().display()
+            )
+        });
 
         let lt_mmap: Mmap = unsafe { memory_map(&in_linktarget_file_path).unwrap() };
         let lt_pt_map = load::load_linktarget_map(lt_mmap);
 
         let title_id_map = title_id_conv::load_title_id_map(page_db_path);
 
-        self.create_pagelinks_db(&in_sql_file_path, &mut conn, &title_id_map, &lt_pt_map, false);
+        self.create_pagelinks_db(
+            &in_sql_file_path,
+            &mut conn,
+            &title_id_map,
+            &lt_pt_map,
+            false,
+        );
     }
 
     pub fn create_pagelinks_db_default(&self) {
@@ -194,8 +279,7 @@ impl<'a> ToSqlite<'a> {
 
         fs::create_dir_all(&db_dir_path).unwrap();
 
-        let base =
-            format!("{base_path_str}/{dump_date}/downloads/{wiki_name}-{dump_date}");
+        let base = format!("{base_path_str}/{dump_date}/downloads/{wiki_name}-{dump_date}");
 
         let db_path = db_dir_path.join(format!("{wiki_name}_{table_name}_database.sqlite"));
 
@@ -204,11 +288,21 @@ impl<'a> ToSqlite<'a> {
         (mmap_path, db_path)
     }
 
-
-    pub fn create_pagelinks_db(&self, sql_file_path: impl AsRef<Path>, conn: &mut Connection,
-                               map: &TitleIdMap, lt_map: &LinkTargetTitleMap,
-                               count: bool) {
-        self.multi_pb.println(format!("[{}] {}", self.wiki_name, "--- WikiLink ---".purple())).unwrap();
+    pub fn create_pagelinks_db(
+        &self,
+        sql_file_path: impl AsRef<Path>,
+        conn: &mut Connection,
+        map: &TitleIdMap,
+        lt_map: &LinkTargetTitleMap,
+        count: bool,
+    ) {
+        self.multi_pb
+            .println(format!(
+                "[{}] {}",
+                self.wiki_name,
+                "--- WikiLink ---".purple()
+            ))
+            .unwrap();
         let mmap: Mmap = unsafe { memory_map(&sql_file_path).unwrap() };
 
         if map.is_empty() {
@@ -219,18 +313,24 @@ impl<'a> ToSqlite<'a> {
             panic!("LinkTargetTitleMap map cant be empty");
         }
 
-
         page_links::db_setup(conn);
 
-        let opts = DuplicateOptions::skip_duplicates(|conn| {
-            page_links::create_unique_index(conn);
-        }, 1.0);
+        let opts = DuplicateOptions::skip_duplicates(
+            |conn| {
+                page_links::create_unique_index(conn);
+            },
+            1.0,
+        );
 
         // let opts = DuplicateOptions::allow_duplicates();
         type InsertType = (PageId, LinkTargetId);
 
-        fn insert_pagelink(stmt: &mut CachedStatement, link: InsertType,
-                           map: &TitleIdMap, lt_pt_map: &LinkTargetTitleMap) {
+        fn insert_pagelink(
+            stmt: &mut CachedStatement,
+            link: InsertType,
+            map: &TitleIdMap,
+            lt_pt_map: &LinkTargetTitleMap,
+        ) {
             let from_id = link.0;
             let target_id = link.1;
 
@@ -251,7 +351,11 @@ impl<'a> ToSqlite<'a> {
         };
 
         // self.count_progress_bar::<PageLink>(&mmap);
-        let num_entries = if count { self.count_progress_bar::<PageLink>(&mmap) } else { MAX_ESTIMATED_SIZE };
+        let num_entries = if count {
+            self.count_progress_bar::<PageLink>(&mmap)
+        } else {
+            MAX_ESTIMATED_SIZE
+        };
         // let num_entries = MAX_SIZE as usize;
 
         // target namespace not in sql dump anymore since 1.43
@@ -259,40 +363,59 @@ impl<'a> ToSqlite<'a> {
         //     pl.namespace.0 != 0 || pl.from_namespace.0 != 0
         // };
 
-        let skip_fn = |pl: &PageLink| -> bool {
-            pl.from_namespace.0 != 0
-        };
-
+        let skip_fn = |pl: &PageLink| -> bool { pl.from_namespace.0 != 0 };
 
         // let data = load_sql_part_set::<PageLink>(mmap, (MAX_SIZE / 2) as usize, 1, skip_fn);
         // let data = load_sql_part_map(mmap, (MAX_SIZE / 10), 1);
-        self.insert_directly::<PageLink, InsertType>(&mmap, conn, num_entries, &insrt_opts, skip_fn, opts,
-                                                     map, lt_map, "pagelinks");
+        self.insert_directly::<PageLink, InsertType>(
+            &mmap,
+            conn,
+            num_entries,
+            &insrt_opts,
+            skip_fn,
+            opts,
+            map,
+            lt_map,
+            "pagelinks",
+        );
 
         // remove_duplicates(conn, "WikiLink", false);
         // page_links::create_indices_post_setup(conn);
     }
 
-
     pub fn create_title_id_conv_db_default(&self) {
         let (mmap, out_db_path) = self.prepare("page");
-        let mut conn = Connection::open(&out_db_path)
-            .unwrap_or_else(|_| panic!("[{}] Failed creating database connection with {}", self.wiki_name, out_db_path.display()));
+        let mut conn = Connection::open(&out_db_path).unwrap_or_else(|_| {
+            panic!(
+                "[{}] Failed creating database connection with {}",
+                self.wiki_name,
+                out_db_path.display()
+            )
+        });
 
         self.create_title_id_conv_db(&mmap, &mut conn);
     }
 
     pub fn create_title_id_conv_db(&self, sql_file_path: impl AsRef<Path>, conn: &mut Connection) {
-        self.multi_pb.println(format!("[{}] {}", self.wiki_name, "--- WikiPage ---".purple())).unwrap();
+        self.multi_pb
+            .println(format!(
+                "[{}] {}",
+                self.wiki_name,
+                "--- WikiPage ---".purple()
+            ))
+            .unwrap();
         conn.execute("PRAGMA synchronous = OFF", ()).unwrap();
 
         let mmap: Mmap = unsafe { memory_map(sql_file_path).unwrap() };
 
         title_id_conv::db_setup(conn);
 
-        let opts = DuplicateOptions::skip_duplicates(|conn| {
-            title_id_conv::create_unique_index(conn);
-        }, 1.0);
+        let opts = DuplicateOptions::skip_duplicates(
+            |conn| {
+                title_id_conv::create_unique_index(conn);
+            },
+            1.0,
+        );
 
         // let opts = DuplicateOptions::allow_duplicates();
         type InsertType = (u32, String, u8);
@@ -305,7 +428,12 @@ impl<'a> ToSqlite<'a> {
         //     (page.id.0, page.title.0)
         // }
 
-        fn insert_page(stmt: &mut CachedStatement, insert: InsertType, _: &TitleIdMap, _: &LinkTargetTitleMap) {
+        fn insert_page(
+            stmt: &mut CachedStatement,
+            insert: InsertType,
+            _: &TitleIdMap,
+            _: &LinkTargetTitleMap,
+        ) {
             // assert!(link.from_namespace.into_inner() == 0);
             let res = stmt.execute(insert).unwrap();
             // if res.is_err() {
@@ -317,17 +445,11 @@ impl<'a> ToSqlite<'a> {
         }
 
         let insrt_opts = InsertOptions {
-            insert_stmt: "INSERT INTO WikiPage(page_id, page_title, is_redirect) VALUES (?, ?, ?)".to_string(),
+            insert_stmt: "INSERT INTO WikiPage(page_id, page_title, is_redirect) VALUES (?, ?, ?)"
+                .to_string(),
             insert_fn: insert_page,
             from_fn: from_page,
         };
-
-        // let insrt_opts = InsertOptions {
-        //     insert_stmt: "INSERT INTO WikiPage(page_id, page_title) VALUES (?, ?)".to_string(),
-        //     insert_fn: insert_page,
-        //     from_fn: from_page,
-        // };
-
 
         // let mut spinner = Spinner::new(Spinners::Dots3, "counting rows".to_string());
 
@@ -342,21 +464,38 @@ impl<'a> ToSqlite<'a> {
         };
 
         self.insert_directly::<Page, InsertType>(
-            &mmap, conn, num_entries_hint, &insrt_opts, skip_fn, opts, &FxHashMap::default(), &FxHashMap::default(), "page");
+            &mmap,
+            conn,
+            num_entries_hint,
+            &insrt_opts,
+            skip_fn,
+            opts,
+            &FxHashMap::default(),
+            &FxHashMap::default(),
+            "page",
+        );
 
         // title_id_conv::create_indices_post_setup(conn);
     }
 
-
     pub fn create_category_links_db(&self, sql_file_path: impl AsRef<Path>, conn: &mut Connection) {
-        self.multi_pb.println(format!("[{}] {}", self.wiki_name, "--- WikiCategoryLinks ---".purple())).unwrap();
+        self.multi_pb
+            .println(format!(
+                "[{}] {}",
+                self.wiki_name,
+                "--- WikiCategoryLinks ---".purple()
+            ))
+            .unwrap();
         let mmap: Mmap = unsafe { memory_map(sql_file_path).unwrap() };
 
         category_links::db_setup(conn);
 
-        let opts = DuplicateOptions::skip_duplicates(|conn| {
-            category_links::create_unique_index(conn);
-        }, 1.0);
+        let opts = DuplicateOptions::skip_duplicates(
+            |conn| {
+                category_links::create_unique_index(conn);
+            },
+            1.0,
+        );
 
         // let opts = DuplicateOptions::allow_duplicates();
         type InsertType = (u32, String, String);
@@ -365,7 +504,12 @@ impl<'a> ToSqlite<'a> {
             (cl.from.0, cl.to.0, pagetype_to_string(cl.r#type))
         }
 
-        fn insert_cl(stmt: &mut CachedStatement, insert: InsertType, _: &TitleIdMap, _: &LinkTargetTitleMap) {
+        fn insert_cl(
+            stmt: &mut CachedStatement,
+            insert: InsertType,
+            _: &TitleIdMap,
+            _: &LinkTargetTitleMap,
+        ) {
             stmt.execute(insert).unwrap();
         }
 
@@ -383,30 +527,53 @@ impl<'a> ToSqlite<'a> {
             false
         };
 
-        self.insert_directly::<CategoryLink, InsertType>(&mmap, conn, num_entries, &insrt_opts, skip_fn, opts,
-                                                         &FxHashMap::default(), &FxHashMap::default(), "categorylinks");
+        self.insert_directly::<CategoryLink, InsertType>(
+            &mmap,
+            conn,
+            num_entries,
+            &insrt_opts,
+            skip_fn,
+            opts,
+            &FxHashMap::default(),
+            &FxHashMap::default(),
+            "categorylinks",
+        );
 
         // title_id_conv::create_indices_post_setup(conn);
     }
 
-    pub fn insert_directly<'b, WikiType, InsertType>
-    (&self, mmap: &'b Mmap, conn: &mut Connection,
-     num_entries_hint: usize,
-     insert_options: &InsertOptions<WikiType, InsertType>,
-     skip_fn: SkipFn<WikiType>,
-     duplicate_options: DuplicateOptions,
-     map: &TitleIdMap, lt_map: &LinkTargetTitleMap,
-     table_name: &str,
-    ) where WikiType: Hash + Eq + FromSqlTuple<'b> + 'b, InsertType: Hash + Eq {
+    pub fn insert_directly<'b, WikiType, InsertType>(
+        &self,
+        mmap: &'b Mmap,
+        conn: &mut Connection,
+        num_entries_hint: usize,
+        insert_options: &InsertOptions<WikiType, InsertType>,
+        skip_fn: SkipFn<WikiType>,
+        duplicate_options: DuplicateOptions,
+        map: &TitleIdMap,
+        lt_map: &LinkTargetTitleMap,
+        table_name: &str,
+    ) where
+        WikiType: Hash + Eq + FromSqlTuple<'b> + 'b,
+        InsertType: Hash + Eq,
+    {
         let t1 = Instant::now();
 
         let mut data = iterate_sql_insertions::<WikiType>(mmap);
-        let data_iterator = data.into_iter()
-            .filter(|wiki| !skip_fn(wiki))  // remove unwanted sql entries
-            .map(|wiki| (insert_options.from_fn)(wiki));                            // map from Wikipedia SQL to wanted type
+        let data_iterator = data
+            .into_iter()
+            .filter(|wiki| !skip_fn(wiki)) // remove unwanted sql entries
+            .map(|wiki| (insert_options.from_fn)(wiki)); // map from Wikipedia SQL to wanted type
 
-        let total_inserted = self.insert_transaction(conn, num_entries_hint, insert_options, data_iterator,
-                                                     map, lt_map, table_name);
+        let total_inserted = self.insert_transaction(
+            conn,
+            num_entries_hint,
+            insert_options,
+            data_iterator,
+            map,
+            lt_map,
+            table_name,
+        );
         // dbg!(&total_inserted);
         // assert!(total_inserted > 0, "SQL File should contain at least one row");
 
@@ -417,27 +584,32 @@ impl<'a> ToSqlite<'a> {
         // sp.stop();
         sp.finish();
 
-        self.multi_pb.println(format!("\nCreating unique index took: {:?}", t2.elapsed())).unwrap();
+        self.multi_pb
+            .println(format!("\nCreating unique index took: {:?}", t2.elapsed()))
+            .unwrap();
 
         self.multi_pb.println("\n-- Total stats: --").unwrap();
         self.print_stats(t1, total_inserted);
     }
 
-
-    fn insert_transaction<WikiType, InsertType, I: Iterator<Item=InsertType>>
-    (
+    fn insert_transaction<WikiType, InsertType, I: Iterator<Item = InsertType>>(
         &self,
-        conn: &mut Connection, length_hint: usize,
+        conn: &mut Connection,
+        length_hint: usize,
         insert_options: &InsertOptions<WikiType, InsertType>,
         iterator: I,
-        map: &TitleIdMap, lt_map: &LinkTargetTitleMap,
+        map: &TitleIdMap,
+        lt_map: &LinkTargetTitleMap,
         table_name: &str,
     ) -> u64 {
         let t1 = Instant::now();
         let tx = conn.transaction().unwrap();
 
         let bar = ProgressBar::new(length_hint as u64);
-        bar.set_style(write_barstyle(&format!("[{}] {}", &self.wiki_name, table_name)));
+        bar.set_style(write_barstyle(&format!(
+            "[{}] {}",
+            &self.wiki_name, table_name
+        )));
         let bar = self.multi_pb.add(bar);
 
         self.multi_pb.println("Writing to database..").unwrap();
@@ -457,7 +629,9 @@ impl<'a> ToSqlite<'a> {
 
         tx.commit().expect("Failed committing transaction :(");
 
-        self.multi_pb.println("Successfully inserted data into db".green().to_string()).unwrap();
+        self.multi_pb
+            .println("Successfully inserted data into db".green().to_string())
+            .unwrap();
 
         self.print_stats(t1, num_inserted);
 
@@ -466,9 +640,14 @@ impl<'a> ToSqlite<'a> {
 
     fn print_stats(&self, t1: Instant, num_inserted: u64) {
         let elapsed = t1.elapsed();
-        let total_secs = elapsed.as_secs() as f64
-            + elapsed.subsec_nanos() as f64 * 1e-9;
-        let msg = format!("Elapsed: {:#?} \nSpeed: {} rows/s", elapsed, ((num_inserted as f64 / total_secs) as u64).to_formatted_string(&Locale::de).bold());
+        let total_secs = elapsed.as_secs() as f64 + elapsed.subsec_nanos() as f64 * 1e-9;
+        let msg = format!(
+            "Elapsed: {:#?} \nSpeed: {} rows/s",
+            elapsed,
+            ((num_inserted as f64 / total_secs) as u64)
+                .to_formatted_string(&Locale::de)
+                .bold()
+        );
         self.multi_pb.println(msg).unwrap();
     }
 
@@ -483,11 +662,12 @@ impl<'a> ToSqlite<'a> {
         }
 
         bar.finish();
-        self.multi_pb.println(format!("Found: {count} rows")).unwrap();
+        self.multi_pb
+            .println(format!("Found: {count} rows"))
+            .unwrap();
         count
     }
 }
-
 
 //
 // pub fn insert_iter<'a, WikiType, InsertType>(mmap: &'a Mmap, conn: &mut Connection,
@@ -607,7 +787,6 @@ impl<'a> ToSqlite<'a> {
 //     print_stats(t1, total_inserted);
 // }
 
-
 pub fn count_rows_sqlfile<'a, T: FromSqlTuple<'a> + 'a>(mmap: &'a Mmap) -> usize {
     iterate_sql_insertions::<T>(mmap).count()
 }
@@ -620,11 +799,11 @@ pub fn count_rows_sqlfile<'a, T: FromSqlTuple<'a> + 'a>(mmap: &'a Mmap) -> usize
 
 pub fn count_duplicates(conn: &Connection, table_name: &str) {
     // let conn = Connection::open(db_path).unwrap();
-    let mut stmt = conn.prepare(&format!("Select DISTINCT * from {table_name};")).unwrap();
+    let mut stmt = conn
+        .prepare(&format!("Select DISTINCT * from {table_name};"))
+        .unwrap();
 
-
-    let rows = stmt.query_map([], |row|
-        Ok(row.get(0).unwrap())).unwrap();
+    let rows = stmt.query_map([], |row| Ok(row.get(0).unwrap())).unwrap();
 
     // dbg!(rows.count());
     let bar = default_bar(MAX_SIZE as u64);
@@ -646,11 +825,12 @@ pub fn remove_duplicates(conn: &mut Connection, table_name: &str, count: bool) {
         count_duplicates(conn, table_name);
     }
 
-    conn.execute_batch(
-        &format!(
-            "CREATE TABLE temp_table as SELECT DISTINCT * FROM {table_name};
+    conn.execute_batch(&format!(
+        "CREATE TABLE temp_table as SELECT DISTINCT * FROM {table_name};
             DROP TABLE {table_name};
-            ALTER TABLE temp_table RENAME TO {table_name}")).unwrap();
+            ALTER TABLE temp_table RENAME TO {table_name}"
+    ))
+    .unwrap();
 
     dbg!(&t1.elapsed());
     println!("Removed duplicates");
@@ -687,7 +867,6 @@ mod tests {
         let lt_mmap = unsafe { memory_map(lt_path).unwrap() };
         let lt_map = load_linktarget_map(lt_mmap);
 
-
         // can't get tempdir to work here?
         let out_db_path = "tests/data/temp/data.sqlite";
         fs::remove_file(out_db_path).expect("Failed removing file");
@@ -700,7 +879,12 @@ mod tests {
         let tosqlite = ToSqlite::new_bar("test", dump_date, &multi_pb, base_directory);
         tosqlite.create_pagelinks_db(pl_path, &mut conn, &pt_map, &lt_map, false);
 
-        assert!(fs::metadata(out_db_path).expect("Failed to get metadata").len() > 0);
+        assert!(
+            fs::metadata(out_db_path)
+                .expect("Failed to get metadata")
+                .len()
+                > 0
+        );
 
         fs::remove_file(out_db_path).expect("Failed removing file");
     }

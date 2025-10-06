@@ -94,10 +94,12 @@ pub async fn query_wikipedia_api<T: DeserializeOwned>(
 ) -> Result<Vec<T>, WikipediaApiError> {
     let wiki_prefix = wiki_prefix.as_ref();
 
-    let mut continue_param = None;
+    let mut continue_param: Option<String> = None;
     let mut results: Vec<T> = Vec::new();
 
     let client = reqwest::Client::new();
+
+    let prop = urlencoding::encode(prop).into_owned();
 
     loop {
         let url = format!(
@@ -120,7 +122,7 @@ pub async fn query_wikipedia_api<T: DeserializeOwned>(
 
         let v = content
             .get("query")
-            .and_then(|v| v.get("pages").and_then(|pages| pages[0].get(prop)));
+            .and_then(|v| v.get("pages").and_then(|pages| pages[0].get(&prop)));
 
         if let Some(v) = v {
             let linkshere: Vec<T> = serde_json::from_value(v.clone())?;
@@ -295,7 +297,7 @@ pub async fn get_page_info_by_title(
     title: impl AsRef<str>,
     wiki_prefix: impl AsRef<str>,
 ) -> Result<Option<PageInfo>, WikipediaApiError> {
-    get_page_info(&format!("&titles={}", title.as_ref()), wiki_prefix).await
+    get_page_info(&format!("&titles={}", urlencoding::encode(title.as_ref())), wiki_prefix).await
 }
 
 pub async fn get_page_info_by_id(

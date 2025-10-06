@@ -6,7 +6,7 @@ use async_stream::stream;
 use crossbeam::queue::SegQueue;
 use futures::Stream;
 use fxhash::{FxHashMap, FxHashSet};
-use log::{debug, trace};
+use log::{debug, info, trace};
 use parse_mediawiki_sql::field_types::PageId;
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
@@ -336,7 +336,7 @@ pub fn bfs(
         }
     }
 
-    debug!(
+    info!(
         "Hits to misses ratio {:?}%",
         (HITS.load(Ordering::SeqCst) as f32
             / (HITS.load(Ordering::SeqCst) + MISSES.load(Ordering::SeqCst)) as f32)

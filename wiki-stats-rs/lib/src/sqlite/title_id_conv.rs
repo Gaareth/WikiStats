@@ -4,25 +4,23 @@ use std::path::Path;
 use fxhash::{FxHashMap, FxHashSet};
 use parse_mediawiki_sql::field_types::{PageId, PageTitle};
 use parse_mediawiki_sql::iterate_sql_insertions;
-use parse_mediawiki_sql::schemas::{Page};
+use parse_mediawiki_sql::schemas::Page;
 use parse_mediawiki_sql::utils::Mmap;
 use rusqlite::Connection;
-
+use std::sync::LazyLock;
 
 pub fn page_id_to_title(id: &PageId, conn: &Connection) -> Option<PageTitle> {
     // let conn = Connection::open(DB_PAGE).unwrap();
 
     // let where_wiki = where_wiki_name.map(|wiki_name| format!("AND WikiPage.wiki_name = '{wiki_name}'")).unwrap_or_default();
 
-
-    let mut stmt = conn.prepare(
-        "SELECT page_title FROM WikiPage WHERE page_id = ?1"
-    ).unwrap();
+    let mut stmt = conn
+        .prepare("SELECT page_title FROM WikiPage WHERE page_id = ?1")
+        .unwrap();
     let mut rows = stmt.query_map([id.0], |row| row.get(0)).unwrap();
     let title = rows.next();
 
     // return title.and_then(Result::ok);
-
 
     // match title {
     //     Some(title) => title.ok().and_then(PageTitle).and_then(),
@@ -41,7 +39,9 @@ pub fn page_id_to_title(id: &PageId, conn: &Connection) -> Option<PageTitle> {
 }
 
 pub fn page_title_to_id(title: &PageTitle, conn: &Connection) -> Option<PageId> {
-    let mut stmt = conn.prepare("SELECT page_id FROM WikiPage where page_title = ?1").unwrap();
+    let mut stmt = conn
+        .prepare("SELECT page_id FROM WikiPage where page_title = ?1")
+        .unwrap();
 
     let mut rows = stmt.query_map([title.clone().0], |row| row.get(0)).unwrap();
     let title = rows.next();
@@ -76,17 +76,19 @@ pub fn load_wiki_pages(page_db_path: impl AsRef<Path>) -> Vec<WikiPage> {
     // let mut stmt = conn.prepare(
     //     &format!("SELECT page_id, page_title FROM WikiPage where wiki_name = '{wiki_name}'")).unwrap();
 
-    let mut stmt = conn.prepare(
-        "SELECT page_id, page_title, is_redirect FROM WikiPage").unwrap();
+    let mut stmt = conn
+        .prepare("SELECT page_id, page_title, is_redirect FROM WikiPage")
+        .unwrap();
 
-    let rows = stmt.query_map([],
-                              |row| {
-                                  Ok(WikiPage {
-                                      id: row.get(0).unwrap(),
-                                      title: row.get(1).unwrap(),
-                                      is_redirect: row.get::<usize, u32>(2).unwrap() == 1,
-                                  })
-                              }).unwrap();
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(WikiPage {
+                id: row.get(0).unwrap(),
+                title: row.get(1).unwrap(),
+                is_redirect: row.get::<usize, u32>(2).unwrap() == 1,
+            })
+        })
+        .unwrap();
 
     let mut row_vec: Vec<WikiPage> = vec![];
     for row in rows {
@@ -97,7 +99,6 @@ pub fn load_wiki_pages(page_db_path: impl AsRef<Path>) -> Vec<WikiPage> {
     row_vec
 }
 
-
 //TODO: return iterator
 pub fn load_rows_from_page(page_db_path: impl AsRef<Path>) -> Vec<(PageId, PageTitle)> {
     // let path = "/home/gareth/dev/Rust/WikiGame/page_db.db";
@@ -106,17 +107,19 @@ pub fn load_rows_from_page(page_db_path: impl AsRef<Path>) -> Vec<(PageId, PageT
     // let mut stmt = conn.prepare(
     //     &format!("SELECT page_id, page_title FROM WikiPage where wiki_name = '{wiki_name}'")).unwrap();
 
-    let mut stmt = conn.prepare(
-        "SELECT page_id, page_title FROM WikiPage").unwrap();
+    let mut stmt = conn
+        .prepare("SELECT page_id, page_title FROM WikiPage")
+        .unwrap();
 
-    let rows = stmt.query_map([],
-                              |row| {
-                                  Ok(WikiPage {
-                                      id: row.get(0).unwrap(),
-                                      title: row.get(1).unwrap(),
-                                      is_redirect: false, // not used, unknown here, does not matter
-                                  })
-                              }).unwrap();
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(WikiPage {
+                id: row.get(0).unwrap(),
+                title: row.get(1).unwrap(),
+                is_redirect: false, // not used, unknown here, does not matter
+            })
+        })
+        .unwrap();
 
     let mut row_vec: Vec<(PageId, PageTitle)> = vec![];
     for row in rows {
@@ -126,7 +129,6 @@ pub fn load_rows_from_page(page_db_path: impl AsRef<Path>) -> Vec<(PageId, PageT
 
     row_vec
 }
-
 
 pub type TitleIdMap = FxHashMap<PageTitle, PageId>;
 
@@ -149,51 +151,81 @@ pub fn load_id_title_map(path: impl AsRef<Path>) -> IdTitleMap {
     pageid_title_map
 }
 
-pub fn db_setup(conn: &Connection) {
-    conn.execute(
-        "CREATE TABLE if not exists WikiPage (
+const WIKI_PAGE_TABLE: &str = "CREATE TABLE if not exists WikiPage (
              page_id integer not null,
              page_title text not null,
              is_redirect integer
-         )",
-        (),
-    ).expect("Failed creating table");
-                 // is_redirect integer
+         )";
 
+const WIKI_PAGE_UNIQUE_INDEX: &str = "CREATE UNIQUE INDEX if not exists WikiPage_unique_index ON
+           WikiPage(page_id, page_title)";
+
+const WIKI_PAGE_TITLE_INDEX: &str = "CREATE INDEX if not exists idx_title_id ON WikiPage(page_title);";
+const WIKI_PAGE_ID_INDEX: &str = "CREATE INDEX if not exists idx_page_id ON WikiPage(page_id);";
+
+static WIKI_PAGE_SCHEMA: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "{}\n{}\n{}\n{}",
+        WIKI_PAGE_TABLE,
+        WIKI_PAGE_UNIQUE_INDEX,
+        WIKI_PAGE_TITLE_INDEX,
+        WIKI_PAGE_ID_INDEX
+    )
+});
+
+pub fn db_setup(conn: &Connection) {
+    conn.execute(WIKI_PAGE_TABLE, ())
+        .expect("Failed creating table");
 }
 
 pub fn create_indices_post_setup(conn: &Connection) {
     conn.execute(
-        "CREATE INDEX if not exists idx_title_id ON WikiPage(page_title);",
+        WIKI_PAGE_TITLE_INDEX,
         (),
-    ).expect("Failed creating index");
+    )
+    .expect("Failed creating index");
 
     conn.execute(
-        "CREATE INDEX if not exists idx_page_id ON WikiPage(page_id);",
+        WIKI_PAGE_ID_INDEX,
         (),
-    ).expect("Failed creating index");
+    )
+    .expect("Failed creating index");
 }
 
 pub fn create_unique_index(conn: &Connection) {
     conn.execute(
-        "CREATE UNIQUE INDEX if not exists WikiPage_unique_index ON
-           WikiPage(page_id, page_title)", (),
-    ).expect("Failed creating unique index");
+        WIKI_PAGE_UNIQUE_INDEX,
+        (),
+    )
+    .expect("Failed creating unique index");
 }
 
 pub fn count_articles(mmap: &Mmap) {
-    let count = iterate_sql_insertions::<Page>(&mmap).filter(|p| !p.is_redirect && p.namespace.0 == 0).count();
+    let count = iterate_sql_insertions::<Page>(&mmap)
+        .filter(|p| !p.is_redirect && p.namespace.0 == 0)
+        .count();
     dbg!(&count);
 }
 
 pub fn count_duplicates(db_path: &str) {
     let conn = Connection::open(db_path).unwrap();
 
-    let mut stmt = conn.prepare("SELECT page_id, page_title, COUNT(*) FROM WikiPage \
-            GROUP BY page_id, page_title HAVING COUNT(*) > 1").unwrap();
+    let mut stmt = conn
+        .prepare(
+            "SELECT page_id, page_title, COUNT(*) FROM WikiPage \
+            GROUP BY page_id, page_title HAVING COUNT(*) > 1",
+        )
+        .unwrap();
 
-    let rows = stmt.query_map([], |row|
-        Ok((row.get(0).unwrap(), row.get(1).unwrap(), row.get(2).unwrap()))).unwrap();
+    let rows = stmt
+        .query_map([], |row| {
+            Ok((
+                row.get(0).unwrap(),
+                row.get(1).unwrap(),
+                row.get(2).unwrap(),
+            ))
+        })
+        .unwrap();
 
     for row in rows {
         let res: (u32, u32, u32) = row.unwrap();
@@ -202,18 +234,21 @@ pub fn count_duplicates(db_path: &str) {
 }
 
 pub fn get_random_page(db_path: &Path, num: u32) -> FxHashSet<WikiPage> {
-    let stmt_str = "SELECT page_id, page_title, is_redirect FROM WikiPage ORDER BY RANDOM() LIMIT ?1";
+    let stmt_str =
+        "SELECT page_id, page_title, is_redirect FROM WikiPage ORDER BY RANDOM() LIMIT ?1";
     let conn = Connection::open(db_path).unwrap();
     let mut stmt = conn.prepare(stmt_str).unwrap();
     // dbg!(&stmt);
 
-    let res = stmt.query_map(
-        [num], |row|
+    let res = stmt
+        .query_map([num], |row| {
             Ok(WikiPage {
                 id: row.get(0).unwrap(),
                 title: row.get(1).unwrap(),
                 is_redirect: row.get::<usize, u32>(2).unwrap() == 1,
-            })).unwrap();
+            })
+        })
+        .unwrap();
     let r = res.map(|r| r.unwrap());
     r.collect()
 }
@@ -226,26 +261,27 @@ mod page_test {
     use rusqlite::Connection;
 
     use crate::sqlite::db_wiki_path;
-    use crate::sqlite::title_id_conv::{load_id_title_map, load_title_id_map, page_id_to_title, page_title_to_id};
+    use crate::sqlite::title_id_conv::{
+        load_id_title_map, load_title_id_map, page_id_to_title, page_title_to_id,
+    };
 
     fn path() -> &'static str {
         dotenv::dotenv().unwrap();
         static DB_PATH: OnceLock<String> = OnceLock::new();
-        DB_PATH.get_or_init(|| {
-            db_wiki_path("dewiki")
-        })
+        DB_PATH.get_or_init(|| db_wiki_path("dewiki"))
     }
 
     fn connection() -> &'static Arc<Mutex<Connection>> {
         static CONN: OnceLock<Arc<Mutex<Connection>>> = OnceLock::new();
-        CONN.get_or_init(|| {
-            Arc::new(Mutex::new(Connection::open(path()).unwrap()))
-        })
+        CONN.get_or_init(|| Arc::new(Mutex::new(Connection::open(path()).unwrap())))
     }
 
     #[test]
     fn test_page_id_to_title() {
-        let pid = page_title_to_id(&PageTitle("Angela_Merkel".to_string()), &connection().lock().unwrap());
+        let pid = page_title_to_id(
+            &PageTitle("Angela_Merkel".to_string()),
+            &connection().lock().unwrap(),
+        );
         assert_eq!(pid.unwrap(), PageId(145));
     }
 

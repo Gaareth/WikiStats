@@ -5,6 +5,7 @@ use std::{
     path::Path, process::exit,
 };
 
+use colored::Colorize;
 use log::error;
 use parse_mediawiki_sql::{field_types::PageTitle, utils::memory_map};
 use schemars::schema_for;
@@ -14,7 +15,7 @@ use wiki_stats::{
     web::{self, find_smallest_wikis},
 };
 
-use crate::args::DebugCommands;
+use crate::{args::DebugCommands, print_error_and_exit};
 
 pub async fn handle_debug_commands(subcommands: DebugCommands) {
     match subcommands {
@@ -30,9 +31,9 @@ pub async fn handle_debug_commands(subcommands: DebugCommands) {
             // gentest("/home/gareth/dev/Rust/WikiGame/lib/tests/data/dewiki-20240901-linktarget.sql",
             //         "/home/gareth/dev/Rust/WikiGame/lib/tests/data/dewiki-20240901-linktarget-small.sql").unwrap()
         }
-        DebugCommands::ValidatePageLinks { path } => {
+        DebugCommands::ValidatePageLinks { path, num_pages } => {
             let filename = path.file_name().unwrap().to_str().unwrap().to_string();
-            let prefix = &filename.clone()[..2];
+            let prefix: &str = &filename.clone()[..2];
             println!("Assuming wikiprefix: {prefix}");
 
             let dump_date = path
@@ -44,19 +45,19 @@ pub async fn handle_debug_commands(subcommands: DebugCommands) {
 
             println!("Assuming dumpdate: {dump_date}");
 
-            let random_pages: Vec<PageTitle> = web::get_random_wikipedia_pages(2, prefix)
+            let random_pages: Vec<PageTitle> = web::get_random_wikipedia_pages(num_pages, prefix)
                 .await
                 .unwrap()
                 .into_iter()
                 .map(|p| PageTitle(p.title))
                 .collect();
+
             let valid = validate::post_validation(&path, dump_date, prefix, &random_pages).await;
-            dbg!(&valid);
+
             if !valid {
-                error!("Validation failed!");
-                exit(-1);
+                print_error_and_exit!("Validation failed!")
             } else {
-                println!("Validation successful");
+                println!("{}", "Validation successful".green());
             }
         }
         DebugCommands::FindSmallestWiki { tables } => {

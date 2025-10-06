@@ -4,7 +4,7 @@ use wiki_stats::{download, stats::Stats};
 
 use crate::{
     args::{TasksCommands, WikisArgs},
-    utils::print_error_and_exit,
+    print_error_and_exit,
     validation::validate_wiki_names,
 };
 
@@ -12,9 +12,9 @@ pub async fn handle_tasks_commands(subcommands: TasksCommands) {
     match subcommands {
         TasksCommands::GetCompleteDumpdates { args } => {
             let WikisArgs { wikis, tables } = args;
-            validate_wiki_names(&wikis).await.unwrap_or_else(|e| {
-                print_error_and_exit(format!("Failed validating wiki names: {e}"))
-            });
+            validate_wiki_names(&wikis)
+                .await
+                .unwrap_or_else(|e| print_error_and_exit!("Failed validating wiki names: {e}"));
             println!("> Searching all dump dates for {wikis:?} where the tables {tables:?} are available");
 
             for wiki in wikis {
@@ -25,12 +25,12 @@ pub async fn handle_tasks_commands(subcommands: TasksCommands) {
 
         TasksCommands::GetTasks { args, stats_path } => {
             let WikisArgs { wikis, tables } = args;
-            validate_wiki_names(&wikis).await.unwrap_or_else(|e| {
-                print_error_and_exit(format!("Failed validating wiki names: {e}"))
-            });
+            validate_wiki_names(&wikis)
+                .await
+                .unwrap_or_else(|e| print_error_and_exit!("Failed validating wiki names: {e}"));
             if !stats_path.exists() {
                 if let Err(e) = fs::create_dir_all(&stats_path) {
-                    print_error_and_exit(format!("Failed to create stats_path directory: {e}"));
+                    print_error_and_exit!("Failed to create stats_path directory: {e}");
                 }
             }
 
@@ -44,15 +44,11 @@ pub async fn handle_tasks_commands(subcommands: TasksCommands) {
                     if file_name.ends_with(".json") {
                         let stats: Stats = serde_json::from_str(
                             &fs::read_to_string(entry.path()).unwrap_or_else(|_| {
-                                print_error_and_exit(format!(
-                                    "Failed loading stats file: {file_name:?}"
-                                ))
+                                print_error_and_exit!("Failed loading stats file: {file_name:?}")
                             }),
                         )
                         .unwrap_or_else(|_| {
-                            print_error_and_exit(format!(
-                                "Failed deserializing stats file: {file_name:?}"
-                            ))
+                            print_error_and_exit!("Failed deserializing stats file: {file_name:?}")
                         });
 
                         // println!()

@@ -49,6 +49,14 @@ pub enum Commands {
         /// Specify which dump date to use (defaults to latest). Format: YYYYMMDD
         #[arg(short, long)]
         dump_date: Option<String>,
+
+        /// Validate
+        #[arg(long, default_value_t = false, help_heading = "Validation Options")]
+        validate: bool,
+
+        /// Number of pages to validate
+        #[arg(short, long, default_value_t = 2, help_heading = "Validation Options")]
+        num_pages: u16
     },
 
     /// Generate statistics about the dumps to a json file
@@ -219,6 +227,9 @@ pub enum DebugCommands {
     ValidatePageLinks {
         #[arg(short, long, value_name = "PATH", help = "Path to db file")]
         path: PathBuf,
+
+        #[arg(short, long, default_value_t = 2)]
+        num_pages: u16
     },
     ValidateWikis {
         /// Path containing the json statistics files

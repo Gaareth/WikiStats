@@ -1,10 +1,9 @@
-use std::path::Path;
+use std::{fs, path::Path};
 
+use anyhow::anyhow;
 use reqwest::StatusCode;
 use rusqlite::Connection;
-use anyhow::anyhow;
-use wiki_stats::sqlite::{join_db_wiki_path};
-
+use wiki_stats::{sqlite::join_db_wiki_path, validate::check_is_done};
 
 /// Checks if wikimedia has sql dumps for the wiki
 /// Returns `Ok(())` if valid, or an `Err` with an error message if invalid.
@@ -40,7 +39,7 @@ pub async fn validate_wiki_names(wikis: &[impl AsRef<str>]) -> Result<(), String
     Ok(())
 }
 
-/// Validate the wiki name
+/// Validate the sqlite file
 /// Returns `Ok(())` if valid, or an `Err` with an error message if invalid.
 pub async fn validate_sqlite_file(db_path: impl AsRef<Path>, wiki: &str) -> anyhow::Result<()> {
     if wiki.is_empty() {
@@ -48,8 +47,15 @@ pub async fn validate_sqlite_file(db_path: impl AsRef<Path>, wiki: &str) -> anyh
     }
     let db_path = db_path.as_ref().to_path_buf();
     let path = join_db_wiki_path(db_path, wiki);
-    Connection::open(path)?;
-    Ok(())
+    if !fs::exists(&path).unwrap() {
+        return Err(anyhow!("DB File {path:?} does not exist"));
+    }
+
+    let conn = Connection::open(&path)?;
+    if check_is_done(&conn)? {
+        return Ok(())
+    }
+    return Err(anyhow!("sqlite file {path:?} is not done"));
 }
 
 pub async fn validate_sqlite_files(
