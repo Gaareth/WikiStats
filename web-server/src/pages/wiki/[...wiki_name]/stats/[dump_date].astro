@@ -8,13 +8,14 @@ import GlobalStats from "../../../../components/SPC/Stats/GlobalStats.astro";
 import StatTable from "../../../../components/StatTable.astro";
 import {
     get_latest_date,
+    get_stat,
     TOP_TEN_MOST_LINKED_STAT,
     TOP_TEN_MOST_LINKS_STAT,
 } from "../../../../db/constants";
 import Layout from "../../../../layouts/Layout.astro";
 import { big_num_format } from "../../../../utils";
 
-import { getCollection, getEntry } from "astro:content";
+import { getCollection } from "astro:content";
 import DumpDateSelection from "../../../../components/Selection/DumpDateSelection.astro";
 
 // 1. Generate a new path for every collection entry
@@ -64,8 +65,7 @@ let most_linked_pages =
 // let most_linked_page = (await getEntry("stats", dump_date))?.data
 //     .most_linked[0];
 
-let bfs_sample_stats = (await getEntry("stats", dump_date))?.data
-    .bfs_sample_stats;
+let bfs_sample_stats = (await get_stat(dump_date))?.bfs_sample_stats;
 ---
 
 <!-- w-[calc(((100vw-900px)/2)-2rem)] -->

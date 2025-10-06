@@ -1,9 +1,8 @@
 import { type ChartOptions } from "chart.js";
 import { createSignal, For } from "solid-js";
-import { Dynamic } from "solid-js/web";
 import { cn } from "../../utils";
-import { BarChart } from "./BarChart";
 import { LineChart } from "./LineChart";
+import { SimpleChart } from "./SimpleChart";
 
 export type DatasetType = { label: string; data: number[]; labels: string[] };
 
@@ -28,30 +27,6 @@ export const DatasetSelection = (props: Props) => {
         return props.chartOptions ? props.chartOptions[selection()] : {};
     };
 
-    const Bar = () => (
-        <BarChart
-            labels={props.datasets[selection()][0].labels}
-            datasets={props.datasets[selection()].map(({ label, data }) => ({
-                label,
-                data,
-            }))}
-            client:load
-            height={350}
-            chartOptions={{ ...props.chartOptionsAll, ...opt() }}
-        />
-    );
-
-    const Line = () => (
-        <LineChart
-            labels={props.labels}
-            datasets={[]}
-            title={"props.title"}
-            client:load
-            height={350}
-        />
-    );
-
-    const [chart, _] = createSignal(props.chartType == "bar" ? Bar : Line);
 
     let selectElement!: HTMLSelectElement;
 
@@ -88,7 +63,7 @@ export const DatasetSelection = (props: Props) => {
                         <select
                             name="selection"
                             class={cn(
-                                "input-default bg-white hover:bg-neutral-50 !dark-layer-1 col-span-2 appearance-none",
+                                "input-default bg-white hover:bg-neutral-50 !dark-layer-1 col-span-1 appearance-none",
                                 selection() >= DEFAULT_SHOWING
                                     ? "button-select-selected"
                                     : "text-secondary",
@@ -124,7 +99,20 @@ export const DatasetSelection = (props: Props) => {
                     </div>
                 </div>
             </div>
-            <Dynamic component={chart()} />
+
+            <SimpleChart
+                labels={props.datasets[selection()][0].labels}
+                datasets={props.datasets[selection()].map(
+                    ({ label, data }) => ({
+                        label,
+                        data,
+                    }),
+                )}
+                client:load
+                height={350}
+                chartOptions={{ ...props.chartOptionsAll, ...opt() }}
+                chartType={props.chartType}
+            />
         </div>
     );
 };

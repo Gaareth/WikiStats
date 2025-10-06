@@ -4,9 +4,10 @@ import type statsSchema from "../schemas/stats-schema";
 import { big_num_format, wiki_link } from "../utils";
 import Alert from "./Alert.astro";
 import { LineChart } from "./Charts/LineChart";
+import PathHistogram from "./Charts/PathHistogram";
+import SkippedEntriesChart from "./Charts/SkippedEntriesChart";
 import { MaterialSymbolsArrowCoolDownRounded } from "./ClientIcons/Icons";
 import MinMaxCard from "./MinMaxCard.astro";
-import PathHistogram from "./PathHistogram";
 
 function make_cum(depth_histogram: { [k: string]: number }) {
     const cum: { [k: string]: number } = {};
@@ -110,10 +111,10 @@ const percent_90_max = find_depth_for_percentage(cum_histogram, 0.9);
         <MinMaxCard title="Deepest Page">
             <div slot="min">
                 {big_num_format(deepest_min[1])}
-                <div class="flex items-center gap-1 flex-wrap">
+                <div class="flex items-center gap-1 flex-wrap justify-center">
                     <a
                         href={wiki_link(deepest_min[0][0], wiki_name)}
-                        class="text-base">
+                        class="text-base break-all">
                         ({deepest_min[0][0]})
                     </a>
                     <span class="-rotate-90 block mx-1 w-5">
@@ -123,7 +124,7 @@ const percent_90_max = find_depth_for_percentage(cum_histogram, 0.9);
                     </span>
                     <a
                         href={wiki_link(deepest_min[0][1], wiki_name)}
-                        class="text-base">
+                        class="text-base break-all">
                         ({deepest_min[0][1]})
                     </a>
                 </div>
@@ -133,10 +134,10 @@ const percent_90_max = find_depth_for_percentage(cum_histogram, 0.9);
             </div>
             <div slot="max">
                 {big_num_format(deepest_max[1])}
-                <div class="flex items-center gap-1 flex-wrap">
+                <div class="flex items-center gap-1 flex-wrap justify-center">
                     <a
                         href={wiki_link(deepest_max[0][0], wiki_name)}
-                        class="text-base">
+                        class="text-base break-all">
                         ({deepest_max[0][0]})
                     </a>
                     <span class="-rotate-90 block mx-1 w-5">
@@ -146,7 +147,7 @@ const percent_90_max = find_depth_for_percentage(cum_histogram, 0.9);
                     </span>
                     <a
                         href={wiki_link(deepest_max[0][1], wiki_name)}
-                        class="text-base">
+                        class="text-base break-all">
                         ({deepest_max[0][1]})
                     </a>
                 </div>
@@ -185,21 +186,17 @@ const percent_90_max = find_depth_for_percentage(cum_histogram, 0.9);
 
             <PathHistogram client:load depth_histogram={depth_histogram} />
 
-            <h3 class="text-2xl mt-10">Cumulative Depth Histogram</h3>
-            <p class="text-base text-secondary">
-                Visualizes how depth values accumulate across the dataset
-            </p>
-            <LineChart
-                title="Cumulative Depth"
-                labels={sortedDepths.map((n) => String(n))}
-                datasets={[
-                    {
-                        label: "Cumulative Depth",
-                        data: sortedDepths.map((n) => cum_histogram[n]),
-                    },
-                ]}
+            <SkippedEntriesChart
                 client:load
+                dataset={cum_histogram}
+                title="Cumulative Depth Histogram"
+                description="Visualizes how depth values accumulate across the dataset"
+                label="Cumulative Depth"
+                chartType="line"
+                sliceIdx={14}
+                classNameWrapper="mt-10"
             />
+           
 
             {
                 percent_90_max && (
