@@ -1,7 +1,7 @@
 import { Chart, Colors, Legend, LinearScale, Tooltip } from "chart.js";
 import { createSignal, onMount } from "solid-js";
-import { SimpleChart } from "./SimpleChart";
 import { cn } from "../../utils";
+import { SimpleChart } from "./SimpleChart";
 
 interface Props {
     dataset: { [key: string]: number };

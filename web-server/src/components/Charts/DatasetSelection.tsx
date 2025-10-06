@@ -1,7 +1,6 @@
 import { type ChartOptions } from "chart.js";
 import { createSignal, For } from "solid-js";
 import { cn } from "../../utils";
-import { LineChart } from "./LineChart";
 import { SimpleChart } from "./SimpleChart";
 
 export type DatasetType = { label: string; data: number[]; labels: string[] };
@@ -26,7 +25,6 @@ export const DatasetSelection = (props: Props) => {
     const opt = () => {
         return props.chartOptions ? props.chartOptions[selection()] : {};
     };
-
 
     let selectElement!: HTMLSelectElement;
 

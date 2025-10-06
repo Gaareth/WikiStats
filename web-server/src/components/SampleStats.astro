@@ -3,7 +3,6 @@ import type { z } from "astro/zod";
 import type statsSchema from "../schemas/stats-schema";
 import { big_num_format, wiki_link } from "../utils";
 import Alert from "./Alert.astro";
-import { LineChart } from "./Charts/LineChart";
 import PathHistogram from "./Charts/PathHistogram";
 import SkippedEntriesChart from "./Charts/SkippedEntriesChart";
 import { MaterialSymbolsArrowCoolDownRounded } from "./ClientIcons/Icons";
@@ -196,7 +195,6 @@ const percent_90_max = find_depth_for_percentage(cum_histogram, 0.9);
                 sliceIdx={14}
                 classNameWrapper="mt-10"
             />
-           
 
             {
                 percent_90_max && (

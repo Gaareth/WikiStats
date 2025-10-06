@@ -1,5 +1,5 @@
 import type { ChartOptions } from "chart.js";
-import { SimpleChart } from "./SimpleChart"
+import { SimpleChart } from "./SimpleChart";
 
 interface Props {
     title?: string;
@@ -11,5 +11,5 @@ interface Props {
 }
 
 export const LineChart = (props: Props) => {
-    return <SimpleChart {...props} chartType="line" />
-}
+    return <SimpleChart {...props} chartType="line" />;
+};
