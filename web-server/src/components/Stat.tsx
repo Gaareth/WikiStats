@@ -1,8 +1,9 @@
-import { createUniqueId, Match, Show, Switch } from "solid-js";
+import { createUniqueId, Show } from "solid-js";
+import type { Trend } from "../db/constants";
 import { cn } from "../utils";
 import Card from "./Card";
-import { InfoIcon, TrendingDown, TrendingUp } from "./ClientIcons/Icons";
-import Pill from "./Pill";
+import { InfoIcon } from "./ClientIcons/Icons";
+import TrendPill from "./TrendPill";
 import WikiLink from "./WikiLink";
 
 interface Props {
@@ -12,14 +13,14 @@ interface Props {
     wiki_link?: { wiki_name: string; page_title: string };
     className?: string;
     tooltipDescription?: string;
-    trend?: { trend: "up" | "down"; value: any };
+    trend?: Trend;
 }
 
 const Stat = (props: Props) => {
     const uid = createUniqueId();
 
     return (
-        <Card className={cn(props.className, "relative px-4 py-4")}>
+        <Card className={cn(props.className, "relative px-4 py-6")}>
             <div class="flex flex-wrap gap-1 sm:gap-2 justify-center items-center">
                 <p class="text-lg">{props.title}</p>
 
@@ -68,28 +69,12 @@ const Stat = (props: Props) => {
                 </p>
             </Show>
 
-            <Show when={props.trend}>
-                <div class="absolute top-0 right-0">
-                    <Pill
-                        class={cn(
-                            "m-1 text-xs flex items-center gap-0",
-                            props.trend?.trend == "up"
-                                ? "text-green-700 bg-green-100 dark:text-green-100 dark:bg-green-600"
-                                : "text-red-700 bg-red-100 dark:text-red-100 dark:bg-red-600",
-                        )}>
-                        <span class="block w-4">
-                            <Switch>
-                                <Match when={props.trend?.trend == "up"}>
-                                    <TrendingUp />
-                                </Match>
-                                <Match when={props.trend?.trend == "down"}>
-                                    <TrendingDown />
-                                </Match>
-                            </Switch>
-                        </span>
-                        {props.trend?.value}
-                    </Pill>
-                </div>
+            <Show when={props.trend} keyed>
+                {(trend) => (
+                    <div class="absolute top-0 right-0">
+                        <TrendPill trend={trend} relative={true} />
+                    </div>
+                )}
             </Show>
         </Card>
     );

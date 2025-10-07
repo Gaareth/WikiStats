@@ -1,5 +1,6 @@
 ---
 import {
+    get_trend_from_all_number,
     LONGEST_NAME_STAT,
     LONGEST_NO_REDIRECTS_NAME_STAT,
     NUM_DEAD_PAGES_STAT,
@@ -17,6 +18,7 @@ interface Props {
 }
 
 const { wiki_name, dump_date } = Astro.props;
+
 let longest_name = await LONGEST_NAME_STAT.get(dump_date, wiki_name);
 let longest_no_redirect_name = await LONGEST_NO_REDIRECTS_NAME_STAT.get(
     dump_date,
@@ -25,9 +27,25 @@ let longest_no_redirect_name = await LONGEST_NO_REDIRECTS_NAME_STAT.get(
 
 let all_pages = await NUM_PAGES_LOADED_STAT.get(dump_date, wiki_name);
 // let shortest = SHORTEST_NAME_STAT.get(dump_date, wiki_name);
-let dead_pages = await NUM_DEAD_PAGES_STAT.get(dump_date, wiki_name);
-let root_pages = await NUM_ROOT_PAGES_STAT.get(dump_date, wiki_name);
-let dead_root_pages = await NUM_DEAD_ROOT_PAGES_STAT.get(dump_date, wiki_name);
+
+let dead_pages_all = await NUM_DEAD_PAGES_STAT.get_all_until(
+    dump_date,
+    wiki_name,
+);
+let [dead_pages, dead_pages_trend] = get_trend_from_all_number(dead_pages_all);
+
+let root_pages_all = await NUM_ROOT_PAGES_STAT.get_all_until(
+    dump_date,
+    wiki_name,
+);
+let [root_pages, root_pages_trend] = get_trend_from_all_number(root_pages_all);
+
+let dead_root_pages_all = await NUM_DEAD_ROOT_PAGES_STAT.get_all_until(
+    dump_date,
+    wiki_name,
+);
+let [dead_root_pages, dead_root_pages_trend] =
+    get_trend_from_all_number(dead_root_pages_all);
 ---
 
 <!-- 
@@ -41,6 +59,7 @@ let dead_root_pages = await NUM_DEAD_ROOT_PAGES_STAT.get(dump_date, wiki_name);
     tooltipDescription="Pages which contain no links to other pages (dead-ends)"
     value={`${big_num_format(dead_pages)} (${((dead_pages / all_pages) * 100).toFixed(2)}%)`}
     className="w-full lg:col-span-2"
+    trend={dead_pages_trend}
     client:load
 />
 <Stat
@@ -48,6 +67,7 @@ let dead_root_pages = await NUM_DEAD_ROOT_PAGES_STAT.get(dump_date, wiki_name);
     tooltipDescription="Pages with no incoming links"
     value={`${big_num_format(root_pages)} (${((root_pages / all_pages) * 100).toFixed(2)}%)`}
     className="w-full lg:col-span-2"
+    trend={root_pages_trend}
     client:load
 />
 <Stat
@@ -55,6 +75,7 @@ let dead_root_pages = await NUM_DEAD_ROOT_PAGES_STAT.get(dump_date, wiki_name);
     tooltipDescription="Pages with no incoming or outgoing links"
     value={`${big_num_format(dead_root_pages)} (${((dead_root_pages / all_pages) * 100).toFixed(2)}%)`}
     className="w-full col-span-2 lg:col-span-2"
+    trend={dead_root_pages_trend}
     client:load
 />
 

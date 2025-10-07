@@ -1,6 +1,7 @@
 ---
 import clsx from "clsx";
 import {
+    get_trend_from_all_number,
     NUM_LINKED_REDIRECTS_STAT,
     NUM_LINKS_LOADED_STAT,
     NUM_PAGES_LOADED_STAT,
@@ -11,9 +12,10 @@ import {
 
 import { getCollection } from "astro:content";
 import { getEarlierEntry } from "../content.config";
-import { big_num_format } from "../utils";
+import { big_num_format, cn } from "../utils";
 import CardTabs from "./CardTabs.astro";
 import Stat from "./Stat";
+import TrendPill from "./TrendPill";
 
 interface Props {
     wiki_name?: string;
@@ -42,19 +44,34 @@ let most_linked_page_last =
 
 // console.log(most_linked_page_last);
 
-const num_pages = await NUM_PAGES_LOADED_STAT.get(dump_date, wiki_name);
-// const num_pages_trend = get_trend(num_pages, num_page_previous);
-
-const num_redirects = await NUM_REDIRECTS_LOADED_STAT.get(dump_date, wiki_name);
-const redirects_percentage = ((num_redirects / num_pages) * 100).toFixed(2);
-
-const num_links = await NUM_LINKS_LOADED_STAT.get(dump_date, wiki_name);
-const linked_redirects = await NUM_LINKED_REDIRECTS_STAT.get(
+const num_pages_all = await NUM_PAGES_LOADED_STAT.get_all_until(
     dump_date,
     wiki_name,
 );
+const [num_pages, num_pages_trend] = get_trend_from_all_number(num_pages_all);
+
+const num_redirects_all = await NUM_REDIRECTS_LOADED_STAT.get_all_until(
+    dump_date,
+    wiki_name,
+);
+const [num_redirects, num_redirects_trend] =
+    get_trend_from_all_number(num_redirects_all);
+const redirects_percentage = ((num_redirects / num_pages) * 100).toFixed(2);
+
+const num_links_all = await NUM_LINKS_LOADED_STAT.get_all_until(
+    dump_date,
+    wiki_name,
+);
+const [num_links, num_links_trend] = get_trend_from_all_number(num_links_all);
+
+const num_linked_redirects_all = await NUM_LINKED_REDIRECTS_STAT.get_all_until(
+    dump_date,
+    wiki_name,
+);
+const [num_linked_redirects, num_linked_redirects_trend] =
+    get_trend_from_all_number(num_linked_redirects_all);
 const linked_redirects_percentage = (
-    (linked_redirects / num_links) *
+    (num_linked_redirects / num_links) *
     100
 ).toFixed(2);
 
@@ -62,27 +79,81 @@ const num_dump_dates = (await getCollection("stats")).map((c) => c.id);
 ---
 
 <div
-    class="grid grid-cols-1 min-[550px]:grid-cols-3 gap-1 sm:gap-2 md:gap-3 my-1 sm:my-2 md:my-3">
-    <CardTabs tabs={["All Articles", "Redirects"]} className="w-full lg:w-72">
-        <p class="font-bold" slot="tab1">{big_num_format(num_pages)}</p>
+    class={cn(
+        "grid grid-cols-1 gap-1 sm:gap-2 md:gap-3 my-1 sm:my-2 md:my-3",
+        "min-[550px]:grid-cols-2",
+        simple && "min-[550px]:grid-cols-3",
+    )}>
+    <CardTabs tabs={["All Articles", "Redirects"]} className="w-full relative">
+        <div
+            slot="tab1"
+            class="flex flex-wrap items-center gap-x-1 justify-center">
+            <p class="font-bold">{big_num_format(num_pages)}</p>
+            {
+                num_pages_trend && !simple && (
+                    <div class="absolute top-0 right-0">
+                        <TrendPill trend={num_pages_trend} relative={true} />
+                    </div>
+                )
+            }
+        </div>
 
-        <p slot="tab2" class="font-bold flex items-center justify-center gap-2">
-            {`${big_num_format(num_redirects)}`}
-            <span class="font-normal text-sm">({redirects_percentage}%)</span>
-        </p>
+        <div slot="tab2">
+            <p class="font-bold flex items-center justify-center gap-2">
+                {`${big_num_format(num_redirects)}`}
+                <span class="font-normal text-sm">
+                    ({redirects_percentage}%)
+                </span>
+            </p>
+
+            {
+                num_redirects_trend && !simple && (
+                    <div class="absolute top-0 right-0">
+                        <TrendPill
+                            trend={num_redirects_trend}
+                            relative={true}
+                        />
+                    </div>
+                )
+            }
+        </div>
     </CardTabs>
 
     <CardTabs
         tabs={["All Links", "Linked Redirects"]}
-        className="w-full lg:w-72">
-        <p class="font-bold" slot="tab1">{big_num_format(num_links)}</p>
+        className="w-full relative">
+        <div
+            slot="tab1"
+            class="flex flex-wrap items-center gap-x-1 justify-center">
+            <p class="font-bold">{big_num_format(num_links)}</p>
+            {
+                num_links_trend && !simple && (
+                    <div class="absolute top-0 right-0">
+                        <TrendPill trend={num_links_trend} relative={true} />
+                    </div>
+                )
+            }
+        </div>
 
-        <p slot="tab2" class="font-bold flex items-center justify-center gap-2">
-            {`${big_num_format(linked_redirects)}`}
-            <span class="font-normal text-sm">
-                ({linked_redirects_percentage}%)
-            </span>
-        </p>
+        <div slot="tab2">
+            <p class="font-bold flex items-center justify-center gap-2">
+                {`${big_num_format(num_linked_redirects)}`}
+                <span class="font-normal text-sm">
+                    ({linked_redirects_percentage}%)
+                </span>
+            </p>
+
+            {
+                num_linked_redirects_trend && !simple && (
+                    <div class="absolute top-0 right-0">
+                        <TrendPill
+                            trend={num_linked_redirects_trend}
+                            relative={true}
+                        />
+                    </div>
+                )
+            }
+        </div>
     </CardTabs>
 
     {

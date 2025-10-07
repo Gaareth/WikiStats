@@ -6,7 +6,8 @@ import {
 import { TooltipButton } from "./TooltipButton";
 
 const fetchStatus = async () => {
-    const response = await fetch(`api/server-status`);
+    const response = await fetch(`/api/server-status`);
+
     const json: {
         is_updating: boolean;
         is_rebuilding: boolean;

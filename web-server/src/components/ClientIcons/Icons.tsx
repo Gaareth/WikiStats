@@ -476,6 +476,10 @@ export function TrendingDown(_props: JSX.IntrinsicElements["svg"]) {
     return <MaterialSymbolsArrowDownwardRounded />;
 }
 
+export function TrendingFlat(_props: JSX.IntrinsicElements["svg"]) {
+    return <MaterialSymbolsArrowDownwardRounded class="rotate-90" />;
+}
+
 export function SvgSpinnersPulseRing(props: JSX.IntrinsicElements["svg"]) {
     return (
         <>

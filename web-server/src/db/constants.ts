@@ -42,17 +42,31 @@ export async function get_supported_wikis(dump_date: string) {
     return entry?.data.wikis ?? [];
 }
 
-type Trend<T> = {
+export type Trend = {
     trend: "up" | "down" | "no change";
     absValue: number;
     relValue: number;
 };
 
+// export function get_trend_from_all(all: any[]): Trend<any> | undefined {
+
+// }
+
+export function get_trend_from_all_number(
+    all: number[],
+): [current: number, trend: Trend | undefined] {
+    const current = all.at(-1)!;
+    const prev = all.at(-2);
+    const trend = get_trend(current, prev);
+
+    return [current, trend];
+}
+
 export function get_trend(
     current_data: number,
     previous_data: number | undefined,
-): Trend<any> | undefined {
-    if (previous_data === undefined) {
+): Trend | undefined {
+    if (previous_data == null) {
         return undefined;
     }
 
@@ -67,43 +81,59 @@ export function get_trend(
 }
 // , ValueOf<Stats[key]> | undefined]
 export async function make_wiki_stat<key extends RecordKeys>(key: key) {
-    const get: (
-        dump_date: string,
-        wiki_name: string | undefined,
-    ) => Promise<ValueOf<Stats[key]>> = async (
-        dump_date: "latest" | string,
+    const extract = (
+        entry_data: InferEntrySchema<"stats"> | undefined,
         wiki_name: string | undefined,
     ) => {
-        const extract = (entry_data: InferEntrySchema<"stats"> | undefined) => {
-            if (entry_data == null) {
-                return undefined;
-            }
-            const data_current = entry_data[key];
-
-            if (data_current == null) {
-                return undefined;
-            }
-
-            wiki_name = wiki_name ?? "global";
-            if (
-                typeof data_current === "object" &&
-                data_current !== null &&
-                (data_current as Record<string, any>).hasOwnProperty(wiki_name)
-            ) {
-                return (data_current as Record<string, any>)[wiki_name];
-            }
-
+        if (entry_data == null) {
             return undefined;
-        };
+        }
+        const data_current = entry_data[key];
 
-        const data_current = await get_stat(dump_date);
+        if (data_current == null) {
+            return undefined;
+        }
 
-        // extract(entry_previous?.data)
-        return extract(data_current);
+        wiki_name = wiki_name ?? "global";
+        if (
+            typeof data_current === "object" &&
+            data_current !== null &&
+            (data_current as Record<string, any>).hasOwnProperty(wiki_name)
+        ) {
+            return (data_current as Record<string, any>)[wiki_name];
+        } else {
+            return data_current;
+        }
     };
+
+    async function get(
+        dump_date: "latest" | string,
+        wiki_name?: string | undefined,
+    ): Promise<ValueOf<Stats[key]>> {
+        const data_current = await get_stat(dump_date);
+        return extract(data_current, wiki_name);
+    }
+
+    async function get_all_until(
+        dump_date: "latest" | string,
+        wiki_name?: string | undefined,
+    ): Promise<ValueOf<Stats[key]>[]> {
+        // const data_current = await get_stat(dump_date);
+        const stats = await get_stats_until(dump_date);
+        if (stats == null) {
+            return [];
+        }
+
+        const extracted_stats: ValueOf<Stats[key]>[] = [];
+        for (const stat of stats) {
+            extracted_stats.push(extract(stat, wiki_name));
+        }
+        return extracted_stats;
+    }
 
     return {
         get,
+        get_all_until,
     };
 }
 
@@ -145,20 +175,6 @@ export const NUM_DEAD_ROOT_PAGES_STAT = await make_wiki_stat(
     "num_dead_orphan_pages",
 );
 
-export async function make_global_stat<key extends RecordKeys>(
-    key: key,
-): Promise<(dump_date: string) => Promise<Stats[key]>> {
-    // @ts-ignore
-    return async (dump_date: string) => {
-        let data = await get_stat(dump_date);
-        if (!data) {
-            return undefined;
-        }
-        return data[key];
-        // get_stat(dump_date).then((data) => data?.[key]);
-    };
-}
-
 export async function get_stat(dump_date: string) {
     const dump_date_validated =
         dump_date == "latest" ? await get_latest_date() : dump_date;
@@ -172,8 +188,34 @@ export async function get_stat(dump_date: string) {
     return data;
 }
 
-export const MAX_NUM_PAGES_STAT = await make_global_stat("max_num_pages");
-export const MIN_NUM_PAGES_STAT = await make_global_stat("min_num_pages");
+export async function get_stats_until(dump_date: string) {
+    const dump_date_validated =
+        dump_date == "latest" ? await get_latest_date() : dump_date;
 
-export const MAX_NUM_LINKS_STAT = await make_global_stat("max_num_links");
-export const MIN_NUM_LINKS_STAT = await make_global_stat("min_num_links");
+    if (dump_date_validated == null) {
+        return undefined;
+    }
+
+    const entries = await getCollection("stats");
+    entries.sort(
+        (c1, c2) =>
+            parseDumpDate(c1.id).getTime() - parseDumpDate(c2.id).getTime(),
+    );
+
+    const stats = [];
+    const dump_date_time = parseDumpDate(dump_date_validated).getTime();
+
+    for (const entry of entries) {
+        if (parseDumpDate(entry.id).getTime() <= dump_date_time) {
+            stats.push(entry.data);
+        }
+    }
+
+    return stats;
+}
+
+export const MAX_NUM_PAGES_STAT = await make_wiki_stat("max_num_pages");
+export const MIN_NUM_PAGES_STAT = await make_wiki_stat("min_num_pages");
+
+export const MAX_NUM_LINKS_STAT = await make_wiki_stat("max_num_links");
+export const MIN_NUM_LINKS_STAT = await make_wiki_stat("min_num_links");

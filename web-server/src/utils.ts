@@ -47,19 +47,25 @@ export function big_num_format(
 
     num = Number(num);
 
-    const s = num.toString();
+    const [s, after_decimal] = num.toString().split(".");
     let formatted_string = "";
     let c = 0;
 
     for (const char of reverse_string(s)) {
         formatted_string += char;
         c += 1;
-        if (c % 3 == 0 && c < s.length) {
+        if (c % 3 == 0 && c < s.length - (s.startsWith("-") ? 1 : 0)) {
             formatted_string += symbol;
         }
     }
 
-    return reverse_string(formatted_string);
+    formatted_string = reverse_string(formatted_string);
+
+    if (after_decimal != null) {
+        formatted_string = formatted_string + "." + after_decimal.toString();
+    }
+
+    return formatted_string;
 }
 
 export function sleep(time: number) {
