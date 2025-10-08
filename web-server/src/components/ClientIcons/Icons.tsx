@@ -360,6 +360,54 @@ export function MaterialSymbolsLineEndArrowNotchRounded(
     );
 }
 
+export function MaterialSymbolsHorizontalRuleRounded(
+    props: JSX.IntrinsicElements["svg"],
+) {
+    return (
+        <>
+            <span class="hidden">
+                Icon from Material Symbols by Google -
+                https://github.com/google/material-design-icons/blob/master/LICENSE
+            </span>
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                {...props}>
+                <path
+                    fill="currentColor"
+                    d="M5 13q-.425 0-.712-.288T4 12t.288-.712T5 11h14q.425 0 .713.288T20 12t-.288.713T19 13z"
+                />
+            </svg>
+        </>
+    );
+}
+
+export function MaterialSymbolsTrendingFlatRounded(
+    props: JSX.IntrinsicElements["svg"],
+) {
+    return (
+        <>
+            <span class="hidden">
+                Icon from Material Symbols by Google -
+                https://github.com/google/material-design-icons/blob/master/LICENSE
+            </span>
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="1em"
+                height="1em"
+                viewBox="0 0 24 24"
+                {...props}>
+                <path
+                    fill="currentColor"
+                    d="M18.175 13H4q-.425 0-.712-.288T3 12t.288-.712T4 11h14.175L16.8 9.6q-.3-.3-.288-.7t.313-.7q.3-.275.713-.287t.687.287l3.075 3.1q.3.3.3.7t-.3.7l-3.1 3.1q-.275.275-.687.275T16.8 15.8q-.3-.3-.3-.712t.3-.713z"
+                />
+            </svg>
+        </>
+    );
+}
+
 export function MaterialSymbolsArrowDownwardRounded(
     props: JSX.IntrinsicElements["svg"],
 ) {
@@ -477,7 +525,7 @@ export function TrendingDown(_props: JSX.IntrinsicElements["svg"]) {
 }
 
 export function TrendingFlat(_props: JSX.IntrinsicElements["svg"]) {
-    return <MaterialSymbolsArrowDownwardRounded class="-rotate-90" />;
+    return <MaterialSymbolsHorizontalRuleRounded />;
 }
 
 export function SvgSpinnersPulseRing(props: JSX.IntrinsicElements["svg"]) {
