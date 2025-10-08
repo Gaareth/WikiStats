@@ -18,6 +18,7 @@ import {
 import { LoadingSpinner, Refresh } from "./ClientIcons/Icons";
 import FloatingLabelInput from "./FloatingLabelInput";
 import PageLinkPills from "./PageLinkPills";
+import { TooltipButton } from "./TooltipButton";
 
 interface Props {
     wiki_name?: string;
@@ -99,29 +100,18 @@ export function PageSearch(props: Props) {
                     <p>Try:</p>
                     {props.wiki_name !== undefined && (
                         <div>
-                            <button
+                            <TooltipButton
                                 class="button dark-layer-3 px-1 py-1 group"
                                 type="button"
                                 onClick={async () => {
                                     setShow(true);
                                     refetch();
                                 }}
-                                aria-labelledby={"refresh-tip-" + componentID}
-                                data-tooltip-target={
-                                    "refresh-tip-" + componentID
-                                }
-                                ref={tooltipRef}>
+                                tooltip="Try another">
                                 <span class="w-6 h-6 block">
                                     <Refresh />
                                 </span>
-                            </button>
-                            <div
-                                id={"refresh-tip-" + componentID}
-                                class="tooltip default-tooltip"
-                                role="tooltip">
-                                Try another
-                                <div class="tooltip-arrow" data-popper-arrow />
-                            </div>
+                            </TooltipButton>
                         </div>
                     )}
                 </div>

@@ -33,7 +33,7 @@ export const TooltipButton: Component<TooltipButtonProps> = (props) => {
                 aria-labelledby={"tooltip-" + componentID}
                 data-tooltip-target={"tooltip-" + componentID}
                 ref={btnRef}
-                // title={local.tooltip}
+                title={local.tooltip}
             >
                 {local.children}
             </button>

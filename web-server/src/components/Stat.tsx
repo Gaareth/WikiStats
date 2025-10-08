@@ -3,6 +3,7 @@ import type { Trend } from "../db/constants";
 import { cn } from "../utils";
 import Card from "./Card";
 import { InfoIcon } from "./ClientIcons/Icons";
+import { TooltipButton } from "./TooltipButton";
 import TrendPill from "./TrendPill";
 import WikiLink from "./WikiLink";
 
@@ -25,22 +26,14 @@ const Stat = (props: Props) => {
                 <p class="text-lg">{props.title}</p>
 
                 <Show when={props.tooltipDescription}>
-                    <button
-                        data-tooltip-target={`tooltip-stat-${uid}`}
-                        aria-describedby={`tooltip-stat-${uid}`}
+                    <TooltipButton
+                        tooltip={props.tooltipDescription ?? ""}
                         type="button"
                         class="text-secondary">
                         <span class="block w-4 h-4">
                             <InfoIcon />
                         </span>
-                    </button>
-                    <div
-                        class="tooltip default-tooltip z-20"
-                        id={`tooltip-stat-${uid}`}
-                        role="tooltip">
-                        {props.tooltipDescription}
-                        <div class="tooltip-arrow" data-popper-arrow />
-                    </div>
+                    </TooltipButton>
                 </Show>
             </div>
 
