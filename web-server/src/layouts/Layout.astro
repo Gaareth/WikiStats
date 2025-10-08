@@ -49,6 +49,7 @@ const appleTouchIcon = await getImage({
         <link rel="apple-touch-icon" href={appleTouchIcon.src} />
 
         <meta name="generator" content={Astro.generator} />
+        <link rel="sitemap" href="/sitemap-index.xml" />
         <title>{title}</title>
         <slot name="head" />
         <script is:inline>
