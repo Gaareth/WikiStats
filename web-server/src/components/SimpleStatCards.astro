@@ -11,7 +11,6 @@ import {
 } from "../db/constants";
 
 import { getCollection } from "astro:content";
-import { getEarlierEntry } from "../content.config";
 import { big_num_format, cn } from "../utils";
 import CardTabs from "./CardTabs.astro";
 import Stat from "./Stat";
@@ -35,11 +34,6 @@ let most_linked_pages = await TOP_TEN_MOST_LINKED_STAT.get(
 let most_linked_page = most_linked_pages?.at(0);
 let most_link_page = most_link_pages?.at(0);
 
-const earlierDumpdate = (await getEarlierEntry(dump_date))?.id;
-let most_linked_page_last =
-    earlierDumpdate != null &&
-    (await TOP_TEN_MOST_LINKED_STAT.get(earlierDumpdate, wiki_name))?.at(0);
-
 // console.log(earlierDumpdate);
 
 // console.log(most_linked_page_last);
@@ -48,6 +42,8 @@ const num_pages_all = await NUM_PAGES_LOADED_STAT.get_all_until(
     dump_date,
     wiki_name,
 );
+// console.log("A", num_pages_all, dump_date, wiki_name);
+
 const [num_pages, num_pages_trend] = get_trend_from_all_number(num_pages_all);
 
 const num_redirects_all = await NUM_REDIRECTS_LOADED_STAT.get_all_until(
