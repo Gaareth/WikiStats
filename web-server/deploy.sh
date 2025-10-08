@@ -24,11 +24,10 @@ select bump in patch minor major; do
 done
 
 git push
-
 # if push worked bump version
 npm version "$bump";
 git add package.json package-lock.json; git commit -m "Bump version to $(jq -r .version package.json)";
-git push --no-verify && git push --tags  # push commit and tag
-
+git tag v$(jq -r .version package.json)
+git push origin tag v$(jq -r .version package.json) --no-verify
 # rsync --exclude node_modules --exclude dist --delete -v -r ./* ${DEPLOY_HOST}:${DEPLOY_LOCATION}/web-server-test-environment;
-ssh ${DEPLOY_HOST} "cd ${DEPLOY_LOCATION}; ./trigger-update.sh"
+#ssh ${DEPLOY_HOST} "cd ${DEPLOY_LOCATION}; ./trigger-update.sh"
