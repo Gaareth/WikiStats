@@ -18,8 +18,9 @@ git push   # push first
 echo "> Select version bump type:"
 select bump in patch minor major; do
     if [[ -n "$bump" ]]; then
-        npm version "$bump"   # creates new commit + tag
-        git push && git push --tags  # push commit and tag
+        npm version "$bump";
+        git add package.json package-lock.json; git commit -m "Bump version to $(jq -r .version package.json)";
+        git push --no-verify && git push --tags  # push commit and tag
         break
     else
         echo "Invalid selection."
