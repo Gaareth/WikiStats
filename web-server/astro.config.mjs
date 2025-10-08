@@ -7,13 +7,8 @@ import { defineConfig } from "astro/config";
 import sitemap from "@astrojs/sitemap";
 import { loadEnv } from "vite";
 
+// https://github.com/withastro/astro/issues/12667
 const env = loadEnv(process.env.NODE_ENV, process.cwd(), '');
-
-console.log("process", process.env.SITE);
-console.log("meta", import.meta.env.SITE);
-
-console.log("env", env.SITE);
-
 
 // https://astro.build/config
 export default defineConfig({
@@ -22,5 +17,5 @@ export default defineConfig({
     adapter: node({
         mode: "standalone",
     }),
-    site: process.env.SITE,
+    site: env.SITE,
 });
