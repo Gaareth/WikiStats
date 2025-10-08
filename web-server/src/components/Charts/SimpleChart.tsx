@@ -71,10 +71,17 @@ export const SimpleChart = (props: Props) => {
     return (
         <div class="relative" style={`min-height: ${rest.height}px`}>
             <div class={cn(loaded() && "hidden")}>
-                <span class="block w-12 absolute left-0 right-0 top-0 bottom-0 m-auto h-fit">
-                    <LoadingSpinner />
-                </span>
-                <span class="text-secondary">Loading Chart..</span>
+                <div class="absolute left-0 right-0 top-0 bottom-0 m-auto h-fit flex flex-col items-center">
+                    <span class="block w-12">
+                        <LoadingSpinner />
+                    </span>
+                    <span class="text-secondary">Loading Chart..</span>
+                    <noscript>
+                        <span class="text-error">
+                            Enable Javascript to load this chart
+                        </span>
+                    </noscript>
+                </div>
             </div>
 
             <div class="w-full h-full" hidden ref={wrapperRef}>
