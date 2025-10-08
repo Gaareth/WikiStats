@@ -98,7 +98,9 @@ export async function make_wiki_stat<key extends RecordKeys>(key: key) {
         if (
             typeof data_current === "object" &&
             data_current !== null &&
-            (data_current as Record<string, any>).hasOwnProperty(wiki_name_or_global)
+            (data_current as Record<string, any>).hasOwnProperty(
+                wiki_name_or_global,
+            )
         ) {
             return (data_current as Record<string, any>)[wiki_name_or_global];
         }

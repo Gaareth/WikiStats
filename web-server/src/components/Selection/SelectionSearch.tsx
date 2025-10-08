@@ -34,7 +34,6 @@ export default function SearchWithDropdown(props: Props) {
     let input!: HTMLInputElement;
     onMount(() => (input.autocomplete = "off"));
 
-
     return (
         <form
             action="/api/selection-search-redirect"
