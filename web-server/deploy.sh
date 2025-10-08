@@ -13,19 +13,22 @@ source ../.env
 # upgrade patch?version
 # jq '.version |= (. | split(".") | .[2] = ((.[2] | tonumber) + 1 | tostring) | join("."))' package.json | sponge package.json
 
-git push   # push first
-
 echo "> Select version bump type:"
 select bump in patch minor major; do
     if [[ -n "$bump" ]]; then
-        npm version "$bump";
-        git add package.json package-lock.json; git commit -m "Bump version to $(jq -r .version package.json)";
-        git push --no-verify && git push --tags  # push commit and tag
+        echo "Selected bump type: $bump"/
         break
     else
         echo "Invalid selection."
     fi
 done
+
+git push
+
+# if push worked bump version
+npm version "$bump";
+git add package.json package-lock.json; git commit -m "Bump version to $(jq -r .version package.json)";
+git push --no-verify && git push --tags  # push commit and tag
 
 # rsync --exclude node_modules --exclude dist --delete -v -r ./* ${DEPLOY_HOST}:${DEPLOY_LOCATION}/web-server-test-environment;
 ssh ${DEPLOY_HOST} "cd ${DEPLOY_LOCATION}; ./trigger-update.sh"
