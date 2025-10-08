@@ -8,6 +8,11 @@ Sitemap: ${sitemapURL.href}
 `;
 
 export const GET: APIRoute = ({ site }) => {
-    const sitemapURL = new URL("sitemap-index.xml", site);
-    return new Response(getRobotsTxt(sitemapURL));
+    try {
+        const sitemapURL = new URL("sitemap-index.xml", site);
+        return new Response(getRobotsTxt(sitemapURL));
+    } catch (e) {
+        console.log("Failed building url for robots.txt", e, "Site:", site);
+        throw e;
+    }
 };
