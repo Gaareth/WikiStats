@@ -94,16 +94,22 @@ export async function make_wiki_stat<key extends RecordKeys>(key: key) {
             return undefined;
         }
 
-        wiki_name = wiki_name ?? "global";
+        const wiki_name_or_global = wiki_name ?? "global";
         if (
             typeof data_current === "object" &&
             data_current !== null &&
-            (data_current as Record<string, any>).hasOwnProperty(wiki_name)
+            (data_current as Record<string, any>).hasOwnProperty(wiki_name_or_global)
         ) {
-            return (data_current as Record<string, any>)[wiki_name];
-        } else {
+            return (data_current as Record<string, any>)[wiki_name_or_global];
+        }
+
+        // for global stats that dont have per wiki data
+        if (wiki_name == undefined) {
             return data_current;
         }
+
+        // if wikiname is not in the data return undefined
+        return undefined;
     };
 
     async function get(
@@ -126,7 +132,11 @@ export async function make_wiki_stat<key extends RecordKeys>(key: key) {
 
         const extracted_stats: ValueOf<Stats[key]>[] = [];
         for (const stat of stats) {
-            extracted_stats.push(extract(stat, wiki_name));
+            const extracted_data = extract(stat, wiki_name);
+            // only add non undefined data, to still calculate trends even if the directly previous dumpdate does not exit
+            if (extracted_data != null) {
+                extracted_stats.push(extracted_data);
+            }
         }
         return extracted_stats;
     }
