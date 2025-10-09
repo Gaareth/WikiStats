@@ -18,17 +18,23 @@ type Stats = InferEntrySchema<"stats">;
 type RecordKeys = KeysOfType<Stats, Record<string, any>>;
 type ValueOf<T> = T[keyof T];
 
-export async function get_latest_date(): Promise<string | undefined> {
+export async function get_sorted_entries(order: "asc" | "desc") {
     const collection = await getCollection("stats");
     if (collection.length == 0) {
-        return undefined;
+        return [];
     }
 
     collection.sort(
         (c1, c2) =>
-            parseDumpDate(c2.id).getTime() - parseDumpDate(c1.id).getTime(),
+            (parseDumpDate(c1.id).getTime() - parseDumpDate(c2.id).getTime()) *
+            (order == "desc" ? -1 : 1),
     );
 
+    return collection;
+}
+
+export async function get_latest_date(): Promise<string | undefined> {
+    const collection = await get_sorted_entries("desc");
     return collection[0].id;
 }
 
@@ -125,6 +131,7 @@ export async function make_wiki_stat<key extends RecordKeys>(key: key) {
     async function get_all_until(
         dump_date: "latest" | string,
         wiki_name?: string | undefined,
+        add_undefined?: boolean
     ): Promise<ValueOf<Stats[key]>[]> {
         // const data_current = await get_stat(dump_date);
         const stats = await get_stats_until(dump_date);
@@ -136,7 +143,8 @@ export async function make_wiki_stat<key extends RecordKeys>(key: key) {
         for (const stat of stats) {
             const extracted_data = extract(stat, wiki_name);
             // only add non undefined data, to still calculate trends even if the directly previous dumpdate does not exit
-            if (extracted_data != null) {
+            // or add undefined if wanted
+            if (extracted_data != null || add_undefined) {
                 extracted_stats.push(extracted_data);
             }
         }
@@ -208,11 +216,7 @@ export async function get_stats_until(dump_date: string) {
         return undefined;
     }
 
-    const entries = await getCollection("stats");
-    entries.sort(
-        (c1, c2) =>
-            parseDumpDate(c1.id).getTime() - parseDumpDate(c2.id).getTime(),
-    );
+    const entries = await get_sorted_entries("asc");
 
     const stats = [];
     const dump_date_time = parseDumpDate(dump_date_validated).getTime();

@@ -124,7 +124,6 @@ const MyChart = (props: Props) => {
                 <SimpleChart
                     labels={chartLabels()}
                     datasets={chartDatasets()}
-                    client:load
                     height={500}
                     chartOptions={chartOptions}
                     chartType={props.chartType}

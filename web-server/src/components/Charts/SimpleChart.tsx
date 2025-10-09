@@ -13,9 +13,9 @@ import { createSignal, Match, onMount, splitProps, Switch } from "solid-js";
 import { cn } from "../../utils";
 import { LoadingSpinner } from "../ClientIcons/Icons";
 
-interface Props {
+export interface SimpleChartProps {
     title?: string;
-    labels: string[];
+    labels: string[]; // text on the x axis
     datasets: { label: string; data: number[] }[];
     chartOptions?: ChartOptions;
     height?: number;
@@ -23,7 +23,7 @@ interface Props {
     chartType: "bar" | "line";
 }
 
-export const SimpleChart = (props: Props) => {
+export const SimpleChart = (props: SimpleChartProps) => {
     /**
      * You must register optional elements before using the chart,
      * otherwise you will have the most primitive UI
@@ -36,7 +36,9 @@ export const SimpleChart = (props: Props) => {
         "datasets",
         "title",
         "chartType",
+        
     ]);
+
 
     const chartData = (): ChartData => ({
         labels: local.labels,
@@ -48,6 +50,7 @@ export const SimpleChart = (props: Props) => {
             display: true,
             text: local.title,
         },
+        ...rest.plugins
     });
 
     const chartOptions = (): ChartOptions => ({

@@ -265,3 +265,12 @@ export function flattenGroupedData<T>(
         data: value,
     }));
 }
+
+export function toSlug(s: string) {
+    return s.toLowerCase().replaceAll(" ", "-")
+}
+
+export function fromSlug(s: string) {
+    s = s.replaceAll("-", " ")
+    return s.charAt(0).toUpperCase() + s.slice(1);
+}
