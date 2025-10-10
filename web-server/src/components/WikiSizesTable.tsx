@@ -128,7 +128,7 @@ export function WikiSizesTable(props: {
                     fallback={<p>No data about downloaded wikis</p>}>
                     {(sizes) => (
                         <>
-                            <p>Downloaded Wikis ({sizes.length})</p>
+                            <p>Downloaded Wikis ({sizes().length})</p>
                             <Table
                                 data={sizes()}
                                 columns={[
