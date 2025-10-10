@@ -51,7 +51,6 @@ export const SimpleChart = (props: SimpleChartProps) => {
         ...rest.plugins,
     });
 
-
     const chartOptions = (): ChartOptions => {
         const base: ChartOptions = {
             responsive: true,

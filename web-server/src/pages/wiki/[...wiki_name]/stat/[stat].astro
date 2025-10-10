@@ -107,9 +107,9 @@ const numeric_values: number[] =
                             wiki_name: string;
                         },
                     )
-                  : d as number,
+                  : (d as number),
           )
-        : data_all as number[];
+        : (data_all as number[]);
 
 const extra_values =
     stat.getExtra != null

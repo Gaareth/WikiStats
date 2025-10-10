@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 FROM base AS prod-deps
-RUN npm install --omit=dev --fetch-retries=5 --fetch-retry-factor=2
+RUN npm ci --fetch-retries=5 --fetch-retry-factor=2
 
 FROM base AS build-deps
 RUN npm install

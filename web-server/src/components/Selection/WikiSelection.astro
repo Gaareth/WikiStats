@@ -23,7 +23,7 @@ const {
     wikis_shown,
     ...rest
 } = Astro.props;
-const wikis = wikis_shown ?? await get_supported_wikis(dump_date || "latest");
+const wikis = wikis_shown ?? (await get_supported_wikis(dump_date || "latest"));
 ---
 
 <Selection
