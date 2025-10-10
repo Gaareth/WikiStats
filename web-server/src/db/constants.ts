@@ -58,6 +58,11 @@ export type Trend = {
 
 // }
 
+// todo: better typeing
+export function get_trend_link(wiki_name: string | undefined, stat: string) {
+    return `/wiki/${wiki_name != null ? wiki_name + "/" : ""}stat/${stat}`;
+}
+
 export function get_trend_from_all_number(
     all: number[],
 ): [current: number, trend: Trend | undefined] {

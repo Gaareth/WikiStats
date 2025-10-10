@@ -10,8 +10,9 @@ import {
 } from "chart.js";
 import { Bar, Line } from "solid-chartjs";
 import { createSignal, Match, onMount, splitProps, Switch } from "solid-js";
-import { cn } from "../../utils";
+import { cn, deepMerge } from "../../utils";
 import { LoadingSpinner } from "../ClientIcons/Icons";
+import themeStore from "../ThemeStore";
 
 export interface SimpleChartProps {
     title?: string;
@@ -24,21 +25,18 @@ export interface SimpleChartProps {
 }
 
 export const SimpleChart = (props: SimpleChartProps) => {
-    /**
-     * You must register optional elements before using the chart,
-     * otherwise you will have the most primitive UI
-     */
+    const { theme, setTheme } = themeStore;
+
     onMount(() => {
         Chart.register(Title, Tooltip, Legend, Colors, LogarithmicScale);
     });
+
     const [local, rest] = splitProps(props, [
         "labels",
         "datasets",
         "title",
         "chartType",
-        
     ]);
-
 
     const chartData = (): ChartData => ({
         labels: local.labels,
@@ -50,15 +48,43 @@ export const SimpleChart = (props: SimpleChartProps) => {
             display: true,
             text: local.title,
         },
-        ...rest.plugins
+        ...rest.plugins,
     });
 
-    const chartOptions = (): ChartOptions => ({
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: plugins(),
-        ...rest.chartOptions,
-    });
+
+    const chartOptions = (): ChartOptions => {
+        const base: ChartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: plugins(),
+            scales: {
+                x: {
+                    grid: {
+                        color:
+                            theme() == "dark"
+                                ? "rgba(255,255,255,0.1)"
+                                : "rgba(0,0,0,0.05)",
+                    },
+                    ticks: {
+                        color: theme() == "dark" ? "#ADBABD" : "#4B5563",
+                    },
+                },
+                y: {
+                    grid: {
+                        color:
+                            theme() == "dark"
+                                ? "rgba(255,255,255,0.1)"
+                                : "rgba(0,0,0,0.05)",
+                    },
+                    ticks: {
+                        color: theme() == "dark" ? "#ADBABD" : "#4B5563",
+                    },
+                },
+            },
+        };
+
+        return deepMerge(base, rest.chartOptions || {});
+    };
 
     // there is weird "flickering"? on mobile ios? devices, otherwise
     // It looks like the chart overflows and then shrinks to the correct size

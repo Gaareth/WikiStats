@@ -1,4 +1,4 @@
-import { createUniqueId, Show } from "solid-js";
+import { type JSX, Show } from "solid-js";
 import type { Trend } from "../db/constants";
 import { cn } from "../utils";
 import Card from "./Card";
@@ -15,13 +15,22 @@ interface Props {
     className?: string;
     tooltipDescription?: string;
     trend?: Trend;
+    trend_link?: string;
+    children?: JSX.Element;
 }
 
 const Stat = (props: Props) => {
-    const uid = createUniqueId();
-
     return (
-        <Card className={cn(props.className, "relative px-4 py-6")}>
+        <Card
+            className={cn(
+                props.className,
+                "relative px-4 py-6",
+                props.trend_link &&
+                    "text-current hover:bg-gray-50 !no-underline dark:hover:bg-dark_02 dark:hover:border-dark_03",
+            )}
+            wrapperComponent={props.trend_link && !props.wiki_link ? "a" : "div"}
+            href={props.trend_link}>
+           
             <div class="flex flex-wrap gap-1 sm:gap-2 justify-center items-center">
                 <p class="text-lg">{props.title}</p>
 
@@ -69,6 +78,8 @@ const Stat = (props: Props) => {
                     </div>
                 )}
             </Show>
+
+            {props.children}
         </Card>
     );
 };

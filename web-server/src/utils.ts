@@ -274,3 +274,22 @@ export function fromSlug(s: string) {
     s = s.replaceAll("-", " ")
     return s.charAt(0).toUpperCase() + s.slice(1);
 }
+
+
+export function deepMerge<T>(target: T, source: Partial<T>): T {
+  for (const key in source) {
+    if (
+      source[key] &&
+      typeof source[key] === "object" &&
+      !Array.isArray(source[key])
+    ) {
+      target[key] = deepMerge(
+        (target[key] as any) || {},
+        source[key] as any
+      ) as any;
+    } else {
+      (target as any)[key] = source[key];
+    }
+  }
+  return target;
+}
