@@ -72,8 +72,6 @@ let dead_root_pages_all = await NUM_DEAD_ROOT_PAGES_STAT.get_all_until(
 );
 let [dead_root_pages, dead_root_pages_trend] =
     get_trend_from_all_number(dead_root_pages_all);
-
-
 ---
 
 <!-- 
@@ -129,7 +127,10 @@ let [dead_root_pages, dead_root_pages_trend] =
                         <TrendPill
                             trend={longest_name_trend}
                             relative={true}
-                            link={get_trend_link(wiki_name, "longest-page-name")}
+                            link={get_trend_link(
+                                wiki_name,
+                                "longest-page-name",
+                            )}
                         />
                     </div>
                 )}
@@ -148,7 +149,8 @@ let [dead_root_pages, dead_root_pages_trend] =
                         <TrendPill
                             trend={longest_no_redirect_name_trend}
                             relative={true}
-                            link={get_trend_link(wiki_name, 
+                            link={get_trend_link(
+                                wiki_name,
                                 "longest-non-redirect-page-name",
                             )}
                         />

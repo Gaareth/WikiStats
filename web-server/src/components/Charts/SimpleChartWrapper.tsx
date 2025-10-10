@@ -16,11 +16,14 @@ export const SimpleChartWrapper = (props: Props) => {
         tooltip: {
             callbacks: {
                 label: function (context: any) {
-                    const info = props.infoValues != null ? props.infoValues[context.dataIndex] : undefined;
+                    const info =
+                        props.infoValues != null
+                            ? props.infoValues[context.dataIndex]
+                            : undefined;
                     console.log(info);
-                    
+
                     //   const splitInfo = info.match(/.{1,25}/g) || [info];
-                    const splitInfo = info?.split("_") ?? []; 
+                    const splitInfo = info?.split("_") ?? [];
                     return [
                         `${context.dataset.label}: ${context.formattedValue}`, // first line
                         ...splitInfo, // second line

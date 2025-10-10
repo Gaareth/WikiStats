@@ -136,7 +136,7 @@ export async function make_wiki_stat<key extends RecordKeys>(key: key) {
     async function get_all_until(
         dump_date: "latest" | string,
         wiki_name?: string | undefined,
-        add_undefined?: boolean
+        add_undefined?: boolean,
     ): Promise<ValueOf<Stats[key]>[]> {
         // const data_current = await get_stat(dump_date);
         const stats = await get_stats_until(dump_date);

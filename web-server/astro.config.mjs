@@ -8,7 +8,7 @@ import sitemap from "@astrojs/sitemap";
 import { loadEnv } from "vite";
 
 // https://github.com/withastro/astro/issues/12667
-const env = loadEnv(process.env.NODE_ENV, process.cwd(), '');
+const env = loadEnv(process.env.NODE_ENV, process.cwd(), "");
 
 // https://astro.build/config
 export default defineConfig({

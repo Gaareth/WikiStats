@@ -28,9 +28,10 @@ const Stat = (props: Props) => {
                 props.trend_link &&
                     "text-current hover:bg-gray-50 !no-underline dark:hover:bg-dark_02 dark:hover:border-dark_03",
             )}
-            wrapperComponent={props.trend_link && !props.wiki_link ? "a" : "div"}
+            wrapperComponent={
+                props.trend_link && !props.wiki_link ? "a" : "div"
+            }
             href={props.trend_link}>
-           
             <div class="flex flex-wrap gap-1 sm:gap-2 justify-center items-center">
                 <p class="text-lg">{props.title}</p>
 

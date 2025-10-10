@@ -1,4 +1,7 @@
 #!/bin/bash
+source ../.env
+cp ../.env .env
+
 
 IMAGE_NAME="wiki-stats-webserver"
 TEST_URL="localhost:4321"
@@ -14,14 +17,16 @@ cleanup() {
 }
 
 echo "> Starting container"
-docker compose --profile dev up -d --build
-docker compose build webserver --no-cache
-docker compose up -d webserver
+docker compose --profile dev up -d 
+docker compose build webserver 
+# docker compose build webserver --no-cache
 
 if [ $? -ne 0 ]; then
     print_error "Docker build failed. Stopping script."
     exit 1
 fi
+
+docker compose --profile dev up -d 
 
 # Wait a moment for the server to start
 sleep 3
