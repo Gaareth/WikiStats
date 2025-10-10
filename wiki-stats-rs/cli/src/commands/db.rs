@@ -41,7 +41,7 @@ pub async fn handle_process_databases(command: Commands) {
         if validate {
             for wiki in wikis {
                 let random_pages: Vec<PageTitle> =
-                    web::get_random_wikipedia_pages(num_pages, &wiki)
+                    web::get_random_wikipedia_pages(num_pages, &wiki[..2])
                         .await
                         .unwrap()
                         .into_iter()
