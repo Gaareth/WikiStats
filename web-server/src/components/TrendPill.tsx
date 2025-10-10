@@ -7,6 +7,7 @@ import Pill from "./Pill";
 interface Props {
     trend: Trend;
     relative: boolean;
+    link?: string;
 }
 
 export default function TrendPill(props: Props) {
@@ -18,6 +19,7 @@ export default function TrendPill(props: Props) {
 
     return (
         <Pill
+            link={props.link}
             class={cn(
                 "m-1 text-xs flex items-center gap-0",
                 colors[props.trend.trend],

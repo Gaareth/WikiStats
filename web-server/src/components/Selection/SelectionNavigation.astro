@@ -11,6 +11,7 @@ interface Props {
     wiki_name?: string;
     dir?: string;
     show_wiki_selection?: boolean;
+    wikis_shown?: string[];
     show_date_selection?: boolean;
     dump_date_filter?: (entry: {
         id: string;
@@ -23,6 +24,7 @@ const {
     dump_date,
     wiki_name,
     dir,
+    wikis_shown,
     show_wiki_selection = true,
     show_date_selection = true,
     dump_date_filter,
@@ -34,7 +36,8 @@ const {
         {
             show_wiki_selection && (
                 <WikiSelection
-                    dump_date={dump_date}
+                    {wikis_shown}
+                    {dump_date}
                     currrent_wikiname={wiki_name}
                     global_possible={true}
                     {dir}

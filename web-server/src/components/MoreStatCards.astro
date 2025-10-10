@@ -1,16 +1,22 @@
 ---
+import type { z } from "astro:content";
 import {
+    get_trend,
     get_trend_from_all_number,
+    get_trend_link,
     LONGEST_NAME_STAT,
     LONGEST_NO_REDIRECTS_NAME_STAT,
     NUM_DEAD_PAGES_STAT,
     NUM_DEAD_ROOT_PAGES_STAT,
     NUM_PAGES_LOADED_STAT,
     NUM_ROOT_PAGES_STAT,
+    type Trend,
 } from "../db/constants";
+import type statsSchema from "../schemas/stats-schema";
 import { big_num_format } from "../utils";
 import CardTabs from "./CardTabs.astro";
 import Stat from "./Stat";
+import TrendPill from "./TrendPill";
 
 interface Props {
     wiki_name?: string;
@@ -19,11 +25,31 @@ interface Props {
 
 const { wiki_name, dump_date } = Astro.props;
 
-let longest_name = await LONGEST_NAME_STAT.get(dump_date, wiki_name);
-let longest_no_redirect_name = await LONGEST_NO_REDIRECTS_NAME_STAT.get(
+export function get_trend_from_all_page(
+    all_stats: z.infer<typeof statsSchema>["longest_name"][0][],
+): [
+    current: z.infer<typeof statsSchema>["longest_name"][0],
+    trend: Trend | undefined,
+] {
+    const current = all_stats.at(-1)!;
+    const prev = all_stats.at(-2)?.page_title.length;
+    const trend = get_trend(current.page_title.length, prev);
+
+    return [current, trend];
+}
+
+let longest_name_all = await LONGEST_NAME_STAT.get_all_until(
     dump_date,
     wiki_name,
 );
+
+let [longest_name, longest_name_trend] =
+    get_trend_from_all_page(longest_name_all);
+
+let longest_no_redirect_name_all =
+    await LONGEST_NO_REDIRECTS_NAME_STAT.get_all_until(dump_date, wiki_name);
+let [longest_no_redirect_name, longest_no_redirect_name_trend] =
+    get_trend_from_all_page(longest_no_redirect_name_all);
 
 let all_pages = await NUM_PAGES_LOADED_STAT.get(dump_date, wiki_name);
 // let shortest = SHORTEST_NAME_STAT.get(dump_date, wiki_name);
@@ -46,6 +72,8 @@ let dead_root_pages_all = await NUM_DEAD_ROOT_PAGES_STAT.get_all_until(
 );
 let [dead_root_pages, dead_root_pages_trend] =
     get_trend_from_all_number(dead_root_pages_all);
+
+
 ---
 
 <!-- 
@@ -60,6 +88,7 @@ let [dead_root_pages, dead_root_pages_trend] =
     value={`${big_num_format(dead_pages)} (${((dead_pages / all_pages) * 100).toFixed(2)}%)`}
     className="w-full lg:col-span-2"
     trend={dead_pages_trend}
+    trend_link={get_trend_link(wiki_name, "number-of-dead-pages")}
     client:load
 />
 <Stat
@@ -68,6 +97,7 @@ let [dead_root_pages, dead_root_pages_trend] =
     value={`${big_num_format(root_pages)} (${((root_pages / all_pages) * 100).toFixed(2)}%)`}
     className="w-full lg:col-span-2"
     trend={root_pages_trend}
+    trend_link={get_trend_link(wiki_name, "number-of-orphan-pages")}
     client:load
 />
 <Stat
@@ -76,6 +106,7 @@ let [dead_root_pages, dead_root_pages_trend] =
     value={`${big_num_format(dead_root_pages)} (${((dead_root_pages / all_pages) * 100).toFixed(2)}%)`}
     className="w-full col-span-2 lg:col-span-2"
     trend={dead_root_pages_trend}
+    trend_link={get_trend_link(wiki_name, "number-of-dead-orphan-pages")}
     client:load
 />
 
@@ -92,8 +123,17 @@ let [dead_root_pages, dead_root_pages_trend] =
                 wiki_link={{ ...longest_no_redirect_name }}
                 className="border-none px-0 pt-0 pb-1"
                 slot="tab1"
-                client:load
-            />
+                client:load>
+                {longest_name_trend && (
+                    <div class="absolute top-0 right-0">
+                        <TrendPill
+                            trend={longest_name_trend}
+                            relative={true}
+                            link={get_trend_link(wiki_name, "longest-page-name")}
+                        />
+                    </div>
+                )}
+            </Stat>
 
             <Stat
                 title={`Longest name (${big_num_format(
@@ -102,8 +142,19 @@ let [dead_root_pages, dead_root_pages_trend] =
                 wiki_link={{ ...longest_name }}
                 className="border-none px-0 pt-0 pb-1"
                 slot="tab2"
-                client:load
-            />
+                client:load>
+                {longest_no_redirect_name_trend && (
+                    <div class="absolute top-0 right-0">
+                        <TrendPill
+                            trend={longest_no_redirect_name_trend}
+                            relative={true}
+                            link={get_trend_link(wiki_name, 
+                                "longest-non-redirect-page-name",
+                            )}
+                        />
+                    </div>
+                )}
+            </Stat>
         </CardTabs>
     ) : (
         // else show only one

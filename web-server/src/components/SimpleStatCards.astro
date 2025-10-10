@@ -2,6 +2,7 @@
 import clsx from "clsx";
 import {
     get_trend_from_all_number,
+    get_trend_link,
     NUM_LINKED_REDIRECTS_STAT,
     NUM_LINKS_LOADED_STAT,
     NUM_PAGES_LOADED_STAT,
@@ -84,7 +85,11 @@ const num_dump_dates = (await getCollection("stats")).map((c) => c.id);
             {
                 num_pages_trend && !simple && (
                     <div class="absolute top-0 right-0">
-                        <TrendPill trend={num_pages_trend} relative={true} />
+                        <TrendPill
+                            trend={num_pages_trend}
+                            relative={true}
+                            link={get_trend_link(wiki_name, "number-of-pages")}
+                        />
                     </div>
                 )
             }
@@ -104,6 +109,10 @@ const num_dump_dates = (await getCollection("stats")).map((c) => c.id);
                         <TrendPill
                             trend={num_redirects_trend}
                             relative={true}
+                            link={get_trend_link(
+                                wiki_name,
+                                "number-of-redirects",
+                            )}
                         />
                     </div>
                 )
@@ -121,7 +130,11 @@ const num_dump_dates = (await getCollection("stats")).map((c) => c.id);
             {
                 num_links_trend && !simple && (
                     <div class="absolute top-0 right-0">
-                        <TrendPill trend={num_links_trend} relative={true} />
+                        <TrendPill
+                            trend={num_links_trend}
+                            relative={true}
+                            link={get_trend_link(wiki_name, "number-of-links")}
+                        />
                     </div>
                 )
             }
@@ -141,6 +154,10 @@ const num_dump_dates = (await getCollection("stats")).map((c) => c.id);
                         <TrendPill
                             trend={num_linked_redirects_trend}
                             relative={true}
+                            link={get_trend_link(
+                                wiki_name,
+                                "number-of-linked-redirects",
+                            )}
                         />
                     </div>
                 )

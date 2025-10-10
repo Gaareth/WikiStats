@@ -1,4 +1,4 @@
-import { onMount } from "solid-js";
+import { onCleanup, onMount } from "solid-js";
 import { cn, get_wiki_prefix, wiki_link } from "../utils";
 import Pill from "./Pill";
 
@@ -16,14 +16,26 @@ const WikiLink = (props: Props) => {
     // Always add the line clamp class initially, because if no javascript, we want it to clamp
     // If javascript is enabled, we will remove it if needed on mount
     props.class_name = cn(props.class_name, lineClampClass);
+
     onMount(() => {
-        if (linkRef) {
-            const lineHeight = parseFloat(getComputedStyle(linkRef).lineHeight);
-            const maxHeight = lineHeight * maxLines;
-            if (linkRef.scrollHeight <= maxHeight + 1) {
-                linkRef.classList.remove(lineClampClass);
+        // When the component is hidden by default this should be run only when its shown and its clear what the scrollHeight is
+        const observer = new IntersectionObserver((entries) => {
+            for (const entry of entries) {
+                if (entry.isIntersecting) {
+                    const lineHeight = parseFloat(
+                        getComputedStyle(linkRef).lineHeight,
+                    );
+                    const maxHeight = lineHeight * maxLines;
+
+                    if (linkRef.scrollHeight <= maxHeight + 1) {
+                        linkRef.classList.remove(lineClampClass);
+                    }
+                }
             }
-        }
+        });
+
+        observer.observe(linkRef);
+        onCleanup(() => observer.disconnect());
     });
 
     return (

@@ -1,0 +1,175 @@
+---
+import { getCollection, z } from "astro:content";
+import { SimpleChartWrapper } from "../../../../components/Charts/SimpleChartWrapper";
+import Selection from "../../../../components/Selection/Selection.astro";
+import SelectionNavigation from "../../../../components/Selection/SelectionNavigation.astro";
+import {
+    get_sorted_entries,
+    LONGEST_NAME_STAT,
+    LONGEST_NO_REDIRECTS_NAME_STAT,
+    NUM_DEAD_PAGES_STAT,
+    NUM_DEAD_ROOT_PAGES_STAT,
+    NUM_LINKED_REDIRECTS_STAT,
+    NUM_LINKS_LOADED_STAT,
+    NUM_PAGES_LOADED_STAT,
+    NUM_REDIRECTS_LOADED_STAT,
+    NUM_ROOT_PAGES_STAT,
+} from "../../../../db/constants";
+import Layout from "../../../../layouts/Layout.astro";
+import type statsSchema from "../../../../schemas/stats-schema";
+import { fromSlug, toSlug } from "../../../../utils";
+
+export async function getStaticPaths() {
+    let params = [];
+
+    const STATS = [
+        { name: "Number of pages", data: NUM_PAGES_LOADED_STAT },
+        { name: "Number of redirects", data: NUM_REDIRECTS_LOADED_STAT },
+        { name: "Number of linked redirects", data: NUM_LINKED_REDIRECTS_STAT },
+        { name: "Number of links", data: NUM_LINKS_LOADED_STAT },
+
+        {
+            name: "Longest page name",
+            data: LONGEST_NAME_STAT,
+            getValue: (s: z.infer<typeof statsSchema>["longest_name"][0]) =>
+                s.page_title.length,
+            getExtra: (s: z.infer<typeof statsSchema>["longest_name"][0]) =>
+                s.page_title,
+        },
+        {
+            name: "Longest non redirect page name",
+            data: LONGEST_NO_REDIRECTS_NAME_STAT,
+            getValue: (
+                s: z.infer<typeof statsSchema>["longest_name_no_redirect"][0],
+            ) => s.page_title.length,
+            getExtra: (
+                s: z.infer<typeof statsSchema>["longest_name_no_redirect"][0],
+            ) => s.page_title,
+        },
+        { name: "Number of dead pages", data: NUM_DEAD_PAGES_STAT },
+        { name: "Number of orphan pages", data: NUM_ROOT_PAGES_STAT },
+        { name: "Number of dead orphan pages", data: NUM_DEAD_ROOT_PAGES_STAT },
+    ];
+
+    const entries = await getCollection("stats");
+
+    const all_wikis = [...new Set(entries.flatMap((e) => e.data.wikis))];
+    const all_stats = STATS.map((s) => s.name);
+
+    for (const stat of STATS) {
+        const stat_slug = toSlug(stat.name);
+        // const stat_data = stat.data;
+        const props = {
+            all_wikis,
+            all_stats,
+            stat,
+        };
+
+        for (const wiki of all_wikis) {
+            params.push({
+                params: { wiki_name: wiki, stat: stat_slug },
+                props,
+            });
+        }
+
+        // Global wiki
+        params.push({
+            params: { wiki_name: undefined, stat: stat_slug },
+            props,
+        });
+    }
+
+    return params;
+}
+
+const { wiki_name, stat: slug_stat } = Astro.params;
+const { stat, all_wikis, all_stats } = Astro.props;
+
+const stat_title = fromSlug(slug_stat);
+const stat_data = stat.data;
+
+const data_all = await stat_data.get_all_until("latest", wiki_name, true);
+// console.log(data_all);
+
+// console.log(stat.getValue(data_all[0]));
+
+// const numeric_values = [];
+
+//
+const numeric_values: number[] =
+    stat.getValue != null
+        ? data_all.map((d) =>
+              d != null
+                  ? stat.getValue(
+                        d as {
+                            page_id: number;
+                            page_title: string;
+                            wiki_name: string;
+                        },
+                    )
+                  : d as number,
+          )
+        : data_all as number[];
+
+const extra_values =
+    stat.getExtra != null
+        ? data_all.map((d) =>
+              d != null
+                  ? stat.getExtra(
+                        d as {
+                            page_id: number;
+                            page_title: string;
+                            wiki_name: string;
+                        },
+                    )
+                  : d,
+          )
+        : null;
+
+const dump_dates = (await get_sorted_entries("asc")).map((e) => e.id);
+---
+
+<Layout title={"Statistic"}>
+    <SelectionNavigation
+        wikis_shown={all_wikis}
+        wiki_name={wiki_name}
+        slot="left-sidebar"
+        show_date_selection={false}
+        dir={"stat/" + slug_stat}
+    />
+    <Selection
+        slot="right-sidebar"
+        vertical={true}
+        classNameWrapper={"bg-transparent p-0 m-0 pt-2 !flex-col-reverse hidden lg:block sticky top-8 w-[15rem]"}
+        className="!flex !flex-col !text-start text-base"
+        classNameLegend="text-lg"
+        items={all_stats}
+        currrent_item={stat_title}
+        what="Stats"
+        get_url={(item) => toSlug(item)}
+    />
+
+    <Selection
+        vertical={false}
+        classNameWrapper={"block mb-5 lg:hidden"}
+        items={all_stats}
+        currrent_item={stat_title}
+        what="Stats"
+        get_url={(item) => toSlug(item)}
+    />
+
+    <div>
+        <h1 class="text-3xl mt-2 capitalize">
+            {stat_title} - {wiki_name || "global"}
+        </h1>
+
+        <SimpleChartWrapper
+            labels={dump_dates}
+            label={stat_title}
+            data={numeric_values}
+            infoValues={extra_values}
+            chartOptions={{ scales: { y: { beginAtZero: false } } }}
+            client:only="solid-js"
+        />
+    </div>
+</Layout>
