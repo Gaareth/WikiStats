@@ -410,7 +410,7 @@ def process_wiki(self, name, dump_date, supported_wikis: List[str]):
                 "--validate",
                 "true",
                 "--num-pages",
-                2
+                "2"
             ]
             logging.info(f"> Running command: {cmd}")
             result = subprocess.run(cmd, capture_output=True, text=True)
