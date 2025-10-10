@@ -406,9 +406,7 @@ def process_wiki(self, name, dump_date, supported_wikis: List[str]):
                 "--dump-date",
                 dump_date,
                 "--remove-downloads",
-                "true",
                 "--validate",
-                "true",
                 "--num-pages",
                 "2"
             ]
