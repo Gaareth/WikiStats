@@ -135,18 +135,14 @@ impl<'a> ToSqlite<'a> {
             "CREATE TABLE if not exists Info (
             is_done INTEGER,
             insertion_time_s INTEGER,
-            index_creation_time_s INTEGER,
+            index_creation_time_s INTEGER
         )",
             (),
         )
         .unwrap();
 
-        conn.execute(
-            "INSERT INTO Info Values (?, ?, ?),
-        )",
-            (0, Null, Null),
-        )
-        .unwrap();
+        conn.execute("INSERT INTO Info Values (?, ?, ?)", (0, Null, Null))
+            .unwrap();
 
         conn.execute("PRAGMA synchronous = OFF", ()).unwrap();
         // conn.execute("PRAGMA journal_mode = OFF", ()).unwrap();
@@ -172,8 +168,7 @@ impl<'a> ToSqlite<'a> {
         );
 
         conn.execute(
-            "INSERT INTO Info(insertion_time_s) Values (?),
-        )",
+            "INSERT INTO Info(insertion_time_s) Values (?)",
             (t1.elapsed().as_secs(),),
         )
         .unwrap();
@@ -217,8 +212,7 @@ impl<'a> ToSqlite<'a> {
         bar2.finish_with_message(format!("{:?}", t2.elapsed()));
 
         conn.execute(
-            "INSERT INTO Info(is_done, index_creation_time_s) Values (?, ?),
-        )",
+            "INSERT INTO Info(is_done, index_creation_time_s) Values (?, ?)",
             (1, t1.elapsed().as_secs()),
         )
         .unwrap();

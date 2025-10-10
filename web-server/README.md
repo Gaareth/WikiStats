@@ -13,6 +13,8 @@ Live: [wiki-stats.gaareth.com](wiki-stats.gaareth.com)
 
 ## TODO
 
+
+- stat page: make stats and wiki addable to chart to easily compare them 
 - switch to after npm alternative
 
 - num links histogram
