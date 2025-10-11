@@ -39,6 +39,7 @@ pub async fn handle_process_databases(command: Commands) {
             process_wikis_seq(&wikis, basepath, dump_date, remove_downloads, overwrite_sql).await;
 
         if validate {
+            print!("> Validating");
             for wiki in wikis {
                 let wiki_prefix = &wiki[..2];
                 let random_pages: Vec<PageTitle> =
@@ -52,6 +53,8 @@ pub async fn handle_process_databases(command: Commands) {
                 let valid = post_validation(&db_file, &dump_date, &wiki_prefix, &random_pages).await;
                 if !valid {
                     print_error_and_exit!("[{wiki}] Failed post validation for {db_file:?}")
+                } else {
+                    print!("{}", format!("Validation was successful").green())
                 }
             }
         }
