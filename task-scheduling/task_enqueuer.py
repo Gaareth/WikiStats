@@ -41,7 +41,7 @@ def check_for_tasks():
             "-w",
             wiki,
         ]
-        print(f"Checking for tasks: {' '.join(args)}")
+        print(f"[{wiki}] Checking for tasks: {' '.join(args)}")
         result = subprocess.run(
             args,
             capture_output=True,

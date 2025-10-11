@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::fs;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+use std::{fs, vec};
 
 use colored::Colorize;
 use crossbeam::queue::ArrayQueue;
@@ -24,7 +24,7 @@ use crate::download::{unpack_gz_pb, ALL_DB_TABLES};
 use crate::sqlite::load::load_linktarget_map;
 use crate::sqlite::title_id_conv::TitleIdMap;
 use crate::sqlite::to_sqlite::{LinkTargetTitleMap, ToSqlite};
-use crate::sqlite::{join_db_wiki_path, page_links, title_id_conv};
+use crate::sqlite::{join_db_wiki_path, page_links, title_id_conv, wiki};
 
 // 1_591_804_203 20240401 pagelinks
 // 785_164_001 20240301 pagelinks
@@ -101,7 +101,7 @@ pub async fn process_wikis_seq(
     base_directory: impl Into<PathBuf>,
     dump_date_option: Option<String>,
     remove_after_finish: bool,
-    overwrite_sql: bool
+    overwrite_sql: bool,
 ) -> String {
     let tables = ALL_DB_TABLES;
 
@@ -120,12 +120,14 @@ pub async fn process_wikis_seq(
     let base_directory = base_directory.into().join(&dump_date);
     let download_path = base_directory.join("downloads");
 
-    check_existing_sqlite_files(overwrite_sql, &wiki_names, &base_directory);
-
+    // remove wikis that were done already
+    let done_wiki_names = check_existing_sqlite_files(overwrite_sql, &wiki_names, &base_directory);
+    let mut wiki_names: Vec<String> = wiki_names.iter().map(|s| s.as_ref().to_string()).collect();
+    wiki_names.retain(|x| !done_wiki_names.contains(x));
 
     let multi_pb = MultiProgress::new();
 
-    for wiki_name in wiki_names {
+    for wiki_name in &wiki_names {
         for table_name in tables {
             download::download_wikis(
                 &[wiki_name],
@@ -136,7 +138,6 @@ pub async fn process_wikis_seq(
             )
             .await;
 
-            let wiki_name = wiki_name.as_ref();
             let gz_file_path =
                 download_path.join(format!("{wiki_name}-{dump_date}-{table_name}.sql.gz"));
             unpack_gz_pb(&gz_file_path, &multi_pb, false, false).unwrap();
@@ -147,7 +148,10 @@ pub async fn process_wikis_seq(
 
     if remove_after_finish {
         fs::remove_dir_all(&download_path).unwrap_or_else(|e| {
-            eprintln!("{}", format!("Failed to remove download directory: {e}").red());
+            eprintln!(
+                "{}",
+                format!("Failed to remove download directory: {e}").red()
+            );
         });
     }
 
@@ -190,7 +194,11 @@ pub async fn process_threaded(
     let download_path = base_directory.join("downloads");
     let download_path = Arc::new(download_path);
 
-    check_existing_sqlite_files(overwrite_sql, &wiki_names, &base_directory);
+    // remove wikis that were done already
+    let done_wiki_names = check_existing_sqlite_files(overwrite_sql, &wiki_names, &base_directory);
+    let mut wiki_names: Vec<String> = wiki_names.into_iter().map(|s| s.to_string()).collect();
+    wiki_names.retain(|x| !done_wiki_names.contains(x));
+
 
     let num_jobs = wiki_names.len() * processed_tables.len();
     let num_sql_threads = 2;
@@ -209,7 +217,7 @@ pub async fn process_threaded(
 
     let multi_pb = Arc::new(MultiProgress::new());
 
-    let job_queue = Arc::new(ArrayQueue::new(num_jobs));
+    let job_queue: Arc<ArrayQueue<(String, String, usize)>> = Arc::new(ArrayQueue::new(num_jobs));
     let mut job_counter = 0;
     for wiki_name in &wiki_names {
         for table_name in processed_tables {
@@ -308,8 +316,15 @@ pub async fn process_threaded(
     dump_date
 }
 
-fn check_existing_sqlite_files(overwrite_sql: bool, wiki_names: &[impl AsRef<str>], base_directory: &PathBuf) {
+fn check_existing_sqlite_files(
+    overwrite_sql: bool,
+    wiki_names: &[impl AsRef<str>],
+    base_directory: &PathBuf,
+) -> Vec<String> {
+    let mut done_wikis = vec![];
+
     for wiki_name in wiki_names {
+        let wiki_name = wiki_name.as_ref();
         let output_file = join_db_wiki_path(base_directory.join("sqlite"), wiki_name);
         dbg!(&output_file);
         // when calling the command twice, it will error upon inserting if there already is data (Unique error).
@@ -323,9 +338,11 @@ fn check_existing_sqlite_files(overwrite_sql: bool, wiki_names: &[impl AsRef<str
                 "Success".green(),
                 output_file
             );
-            exit(0); // assume it was already done, so we good (controversial)
+            done_wikis.push(wiki_name.to_string());
         }
     }
+
+    return done_wikis;
 }
 
 #[derive(Clone)]
