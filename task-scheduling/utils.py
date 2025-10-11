@@ -72,8 +72,16 @@ def get_done_dump_dates(filter: (Callable[[str], bool]) = lambda _: True):
             wikis_done_total.append(filename.split(".json")[0])
     return wikis_done_total
 
+def get_done_wikis(dump_date):
+    wikis_done_total = []
+    with open(os.path.join(STATS_OUTPUT_PATH, f"{dump_date}.json"), "r") as f:
+         data = json.load(f)
+         wikis_done_total = data["wikis"]
+
+    return wikis_done_total
+
 def check_stats_are_ready(supported_wikis, DB_DIR, name, dump_date):
-    already_done = get_done_dump_dates()
+    already_done = get_done_wikis(dump_date)
     sqlite_done = get_sqlite_files(DB_DIR)
     wikis_done = already_done + sqlite_done
     logger.info(f"[{name} {dump_date}] wikis: done {wikis_done}")
