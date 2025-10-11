@@ -61,7 +61,7 @@ def get_dump_dates_without_samples_stats():
     return get_done_dump_dates(lambda fp: does_not_contain_samples_stats(fp) and has_sqlite_files(fp))
 
 
-def get_done_dump_dates(filter: (Callable[[str], bool]) = lambda x: True):
+def get_done_dump_dates(filter: (Callable[[str], bool]) = lambda _: True):
     wikis_done_total: list[str] = []
     stats_file_pattern = r"(\d{8}).json"
     
@@ -72,8 +72,15 @@ def get_done_dump_dates(filter: (Callable[[str], bool]) = lambda x: True):
             wikis_done_total.append(filename.split(".json")[0])
     return wikis_done_total
 
-def check_all_sqlite_files_are_ready(supported_wikis, DB_DIR, name, dump_date):
-    """Check if all expected sqlite files ($supported_wikis) are present and non-empty in the given directory."""
+def check_stats_are_ready(supported_wikis, DB_DIR, name, dump_date):
+    already_done = get_done_dump_dates()
+    sqlite_done = get_sqlite_files(DB_DIR)
+    wikis_done = already_done + sqlite_done
+    logger.info(f"[{name} {dump_date}] wikis: done {wikis_done}")
+    return set(supported_wikis).issubset(wikis_done)
+
+
+def get_sqlite_files(DB_DIR):
     wikis_done = []
     for file in os.listdir(DB_DIR):
         filename = os.fsdecode(file)
@@ -82,9 +89,7 @@ def check_all_sqlite_files_are_ready(supported_wikis, DB_DIR, name, dump_date):
         ):
             wikis_done.append(filename.split("_")[0])
 
-    logger.info(f"[{name} {dump_date}] wikis: done {wikis_done}")
-    return set(supported_wikis).issubset(wikis_done)
-
+    return wikis_done
 
 def get_latest_dump_date(DB_WIKIS_BASEPATH):
     dump_dates: list[int] = []

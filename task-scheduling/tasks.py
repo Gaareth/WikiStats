@@ -84,7 +84,7 @@ redis = redis.Redis(host=redis_host, port=redis_port, db=redis_db)
 import handlers  # imports the signal handlers
 from utils import (
     TaskData,
-    check_all_sqlite_files_are_ready,
+    check_stats_are_ready,
     deleted_old_dump_dates,
     get_done_dump_dates,
     get_dump_dates_without_samples_stats,
@@ -448,7 +448,7 @@ def process_wiki(self, name, dump_date, supported_wikis: List[str]):
 
     # if this tasks is the last of all SUPPORTED_WIKIS, then finish_dump
     # it is the last if all of supportedwikis are in wikis_done
-    if check_all_sqlite_files_are_ready(supported_wikis, DB_DIR, name, dump_date):
+    if check_stats_are_ready(supported_wikis, DB_DIR, name, dump_date):
         logging.info(f"[{name} {dump_date}] done")
         finish_dump(dump_date)
 
