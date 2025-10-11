@@ -1,4 +1,5 @@
 source ../.env
+set -e
 
 cross build  --bin cli --target ${DEPLOY_TARGET_ARCH} --release
 #cross build  --bin server --target ${DEPLOY_TARGET_ARCH} --release

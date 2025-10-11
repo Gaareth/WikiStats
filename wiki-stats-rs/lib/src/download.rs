@@ -212,7 +212,7 @@ async fn download_file_bar(
         .unwrap();
 
     let response = client.get(&url).send().await.unwrap();
-    let mut dest = {
+    let dest = {
         let fname = response.url().path_segments().unwrap().last().unwrap();
         dest_dir.join(fname)
     };
