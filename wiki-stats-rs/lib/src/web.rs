@@ -4,7 +4,7 @@ use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
 use anyhow::anyhow;
-use chrono::{DateTime, Datelike, SecondsFormat, TimeZone, Utc};
+use chrono::{DateTime, Datelike, FixedOffset, SecondsFormat, TimeZone, Utc};
 use indicatif::ProgressBar;
 use log::{debug, info, trace};
 use num_format::Locale::{el, ta};
@@ -179,10 +179,51 @@ pub async fn get_latest_revision_id_before_date(
     Ok(results.first().map(|r| r.revid))
 }
 
+pub async fn get_creation_date(
+    page_name: &str,
+    wiki_prefix: impl AsRef<str>,
+) -> Result<Option<DateTime<FixedOffset>>, WikipediaApiError> {
+    #[derive(Debug, Deserialize, Eq, PartialEq, Hash)]
+    pub struct Revision {
+        pub timestamp: String, // ISO 8601
+    }
+
+    let results: Vec<Revision> = query_wikipedia_api::<Revision>(
+        wiki_prefix,
+        "revisions",
+        &format!("&titles={page_name}&rvlimit=1&rvdir=newer&rvprop=timestamp|user|comment"),
+        None,
+    )
+    .await?;
+
+    return Ok(results
+        .first()
+        .map(|r| DateTime::parse_from_rfc3339(&r.timestamp).unwrap()));
+}
+
+
+
 pub async fn get_added_diff_to_current(
     page_name: &str,
     wiki_prefix: impl AsRef<str>,
     rev_id: u64,
+) -> Result<Vec<String>, WikipediaApiError> {
+    get_diff_to_current(page_name, wiki_prefix, rev_id, true).await
+}
+
+pub async fn get_deleted_diff_to_current(
+    page_name: &str,
+    wiki_prefix: impl AsRef<str>,
+    rev_id: u64,
+) -> Result<Vec<String>, WikipediaApiError> {
+    get_diff_to_current(page_name, wiki_prefix, rev_id, false).await
+}
+
+pub async fn get_diff_to_current(
+    page_name: &str,
+    wiki_prefix: impl AsRef<str>,
+    rev_id: u64,
+    added: bool,
 ) -> Result<Vec<String>, WikipediaApiError> {
     let wiki_prefix = wiki_prefix.as_ref();
 
@@ -193,6 +234,7 @@ pub async fn get_added_diff_to_current(
         &difftype=inline\
         &format=json&formatversion=2"
     );
+    info!("Requesting url: {}", &url);
 
     let res = get_wikipedia_async(&url).await?;
     let json = res.json::<Value>().await?;
@@ -202,7 +244,7 @@ pub async fn get_added_diff_to_current(
         .and_then(|c| c.get("body"))
         .and_then(|d| d.as_str());
 
-    let selector = Selector::parse("ins").unwrap();
+    let selector = Selector::parse(if added { "ins" } else { "del" }).unwrap();
     if let Some(body) = body {
         let document = Html::parse_document(body);
         let added = document
@@ -297,7 +339,11 @@ pub async fn get_page_info_by_title(
     title: impl AsRef<str>,
     wiki_prefix: impl AsRef<str>,
 ) -> Result<Option<PageInfo>, WikipediaApiError> {
-    get_page_info(&format!("&titles={}", urlencoding::encode(title.as_ref())), wiki_prefix).await
+    get_page_info(
+        &format!("&titles={}", urlencoding::encode(title.as_ref())),
+        wiki_prefix,
+    )
+    .await
 }
 
 pub async fn get_page_info_by_id(
@@ -540,7 +586,8 @@ async fn calc_wiki_size(
         if let Some(table_name) = re.captures(&filename).and_then(|captures| captures.get(1)) {
             wiki_size.total_size = Some(wiki_size.total_size.unwrap_or(0) + filesize_bytes);
             if tables.contains(&table_name.as_str()) {
-                wiki_size.selected_tables_size = Some(wiki_size.selected_tables_size.unwrap_or(0) + filesize_bytes);
+                wiki_size.selected_tables_size =
+                    Some(wiki_size.selected_tables_size.unwrap_or(0) + filesize_bytes);
             }
         }
     }
@@ -554,9 +601,7 @@ mod tests {
     use crate::{
         download::ALL_DB_TABLES,
         web::{
-            calc_wiki_size, find_smallest_wikis, get_added_diff_to_current, get_incoming_links,
-            get_latest_revision_id_before_date, get_outgoing_links, get_page_info_by_id,
-            get_page_info_by_title, parse_size_to_bytes,
+            calc_wiki_size, find_smallest_wikis, get_added_diff_to_current, get_deleted_diff_to_current, get_incoming_links, get_latest_revision_id_before_date, get_outgoing_links, get_page_info_by_id, get_page_info_by_title, parse_size_to_bytes
         },
     };
 
@@ -671,7 +716,28 @@ mod tests {
             247846542,
         )
         .await;
-        dbg!(&res);
-        // assert!(!res.unwrap().is_empty());
+        assert!(!res.unwrap().is_empty());
+
+        let res = get_deleted_diff_to_current(
+            "José_Jerí",
+            "en",
+            1316431833,
+        )
+        .await;
+        assert!(!res.unwrap().is_empty());
+    }
+
+       #[tokio::test]
+    async fn test_deleted_diff() {
+        let res = get_deleted_diff_to_current(
+            "Nati nel 1900",
+            "it",
+            145601453,
+        )
+        .await.unwrap();
+        assert!(!res.is_empty());
+        // dbg!(&res);
+
+        assert!(res.iter().any(|d| d.contains(&"Hans Rehmann".to_string())))
     }
 }

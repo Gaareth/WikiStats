@@ -11,7 +11,10 @@ use rusqlite::Connection;
 
 use crate::sqlite::load::{load_linktarget_map, load_sql_part_map};
 use crate::sqlite::page_links::{get_incoming_links_of_id, get_links_of_id};
-use crate::web::{get_added_diff_to_current, get_latest_revision_id_before_date};
+use crate::web::{
+    get_added_diff_to_current, get_creation_date, get_deleted_diff_to_current,
+    get_latest_revision_id_before_date,
+};
 use crate::{parse_dump_date, web};
 
 async fn compare_links(
@@ -28,17 +31,7 @@ async fn compare_links(
     debug!("expected: {:?}", expected_results);
     debug!("actual: {:?}", db_results);
 
-    let rev_id = get_latest_revision_id_before_date(page_title, wiki_prefix, dump_date)
-        .await
-        .unwrap();
-    let diff_page = if let Some(rev_id) = rev_id {
-        get_added_diff_to_current(page_title, wiki_prefix, rev_id)
-            .await
-            .unwrap()
-    } else {
-        vec![]
-    };
-
+    // links missing in the database
     for diff in missing {
         let (from, to) = if link_type == "incoming" {
             (diff.0.as_str(), page_title)
@@ -46,26 +39,31 @@ async fn compare_links(
             (page_title, diff.0.as_str())
         };
 
-        if link_type != "incoming" {
-            if diff_page.iter().any(|d| d.contains(&diff.0)) {
-                println!("[{}] Link {} -> {} missing from db but seems to be added after {dump_date} db dump", link_type, from, to);
-                continue;
-            }
+        // if there is a missing link, check if the to link was added after the dump to the from page
+        let rev_id_of_from = get_latest_revision_id_before_date(&from, wiki_prefix, dump_date)
+            .await
+            .unwrap();
+        let diff_from = if let Some(rev_id) = rev_id_of_from {
+            get_added_diff_to_current(&from, wiki_prefix, rev_id)
+                .await
+                .unwrap()
         } else {
-            let rev_id_of_incoming =
-                get_latest_revision_id_before_date(&from, wiki_prefix, dump_date)
-                    .await
-                    .unwrap();
-            let diff_incoming = if let Some(rev_id) = rev_id_of_incoming {
-                get_added_diff_to_current(&from, wiki_prefix, rev_id)
-                    .await
-                    .unwrap()
-            } else {
-                vec![]
-            };
+            vec![]
+        };
 
-            if diff_incoming.iter().any(|d| d.contains(&to)) {
-                println!("[{}] Link {} -> {} missing from db but seems to be added after {dump_date} db dump", link_type, from, to);
+        if diff_from.iter().any(|d| d.contains(&to)) {
+            println!("[{}] Link {} -> {} missing from db but seems to be added after {dump_date} db dump", link_type, from, to);
+            continue;
+        }
+
+        // if an incoming link is missing check if the from page was created after the dumpdate
+        if link_type == "incoming" {
+            let creation_date = get_creation_date(&from, wiki_prefix)
+                .await
+                .unwrap()
+                .unwrap();
+            if &creation_date > dump_date {
+                println!("[{}] Link {} -> {} missing from db but seems to be CREATED after {dump_date} db dump", link_type, from, to);
                 continue;
             }
         }
@@ -74,9 +72,22 @@ async fn compare_links(
             "{}",
             format!("[{}] Link {} -> {} missing from db", link_type, from, to).red()
         );
+
+        if link_type == "incoming" {
+            info!(
+                "{}",
+                format!(
+                    "https://{}.wikipedia.org/wiki/{}",
+                    &wiki_prefix,
+                    urlencoding::encode(&from)
+                )
+            )
+        }
         success = false;
     }
 
+    // links that are in the database but not online
+    // check if they are deleted after the dumpdate, or if the page was d
     let outdated = db_results.difference(expected_results);
     for diff in outdated {
         let (from, to) = if link_type == "incoming" {
@@ -84,6 +95,25 @@ async fn compare_links(
         } else {
             (page_title, diff.0.as_str())
         };
+
+        // if there is a link to much, check if the to link was removed after the dump from the from page
+        let rev_id_of_from = get_latest_revision_id_before_date(&from, wiki_prefix, dump_date)
+            .await
+            .unwrap();
+        let diff_from = if let Some(rev_id) = rev_id_of_from {
+            get_deleted_diff_to_current(&from, wiki_prefix, rev_id)
+                .await
+                .unwrap()
+        } else {
+            vec![]
+        };
+
+        dbg!(&rev_id_of_from);
+
+        if diff_from.iter().any(|d| d.contains(&to)) {
+            println!("[{}] Link {} -> {} missing from db but seems to be deleted after {dump_date} db dump", link_type, from, to);
+            continue;
+        }
 
         eprintln!(
             "{}",
@@ -93,6 +123,17 @@ async fn compare_links(
             )
             .red()
         );
+
+        if link_type == "incoming" {
+            info!(
+                "{}",
+                format!(
+                    "https://{}.wikipedia.org/wiki/{}",
+                    &wiki_prefix,
+                    urlencoding::encode(&from)
+                )
+            )
+        }
 
         success = false;
     }
@@ -177,7 +218,11 @@ pub async fn post_validation(
     }
 
     for (page_title, page_id) in pages {
-        let page_url = format!("https://{}.wikipedia.org/wiki/{}", &wiki_prefix, urlencoding::encode(&page_title));
+        let page_url = format!(
+            "https://{}.wikipedia.org/wiki/{}",
+            &wiki_prefix,
+            urlencoding::encode(&page_title)
+        );
         info!("\n Checking page: {:?}   |   {}", &page_title, page_url);
         info!("Checking incoming links..");
 

@@ -52,6 +52,8 @@ pub async fn handle_debug_commands(subcommands: DebugCommands) {
                 .map(|p| PageTitle(p.title))
                 .collect();
 
+            // let random_pages = vec![PageTitle("Hans Rehmann".to_string())];
+
             let valid = validate::post_validation(&path, dump_date, prefix, &random_pages).await;
 
             if !valid {

@@ -81,9 +81,9 @@ def get_done_wikis(dump_date):
     return wikis_done_total
 
 def check_stats_are_ready(supported_wikis, DB_DIR, name, dump_date):
-    already_done = get_done_wikis(dump_date)
-    sqlite_done = get_sqlite_files(DB_DIR)
-    wikis_done = already_done + sqlite_done
+    already_done = set(get_done_wikis(dump_date))
+    sqlite_done = set(get_sqlite_files(DB_DIR))
+    wikis_done = already_done | sqlite_done
     logger.info(f"[{name} {dump_date}] wikis: done {wikis_done}")
     return set(supported_wikis).issubset(wikis_done)
 
