@@ -2,7 +2,7 @@ use std::cmp::min;
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsStr;
 use std::fmt::{Debug, Display};
-use std::io::{Error};
+use std::io::Error;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::time::{Duration, Instant};
@@ -539,4 +539,29 @@ pub async fn download_wikis(
     }
 
     join_all(tasks).await;
+}
+
+pub fn clean_downloads(download_path: &Path, wiki_names: &[String]) {
+    if let Ok(entries) = fs::read_dir(download_path) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if let Some(filename) = path.file_name().and_then(|f| f.to_str()) {
+                if let Some(wiki_name) = filename.split("-").next() {
+                    if wiki_names.contains(&wiki_name.to_string()) {
+                        if let Err(e) = fs::remove_file(&path) {
+                            eprintln!(
+                                "{}",
+                                format!("Failed to remove file {}: {}", filename, e).red()
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        eprintln!(
+            "{}",
+            format!("Failed to read directory {:?}", download_path).red()
+        );
+    }
 }

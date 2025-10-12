@@ -19,7 +19,7 @@ use tokio::sync::{broadcast, mpsc, Mutex};
 use tokio::task::JoinHandle;
 use tokio::time::sleep;
 
-use crate::download;
+use crate::download::{self, clean_downloads};
 use crate::download::{unpack_gz_pb, ALL_DB_TABLES};
 use crate::sqlite::load::load_linktarget_map;
 use crate::sqlite::title_id_conv::TitleIdMap;
@@ -147,12 +147,7 @@ pub async fn process_wikis_seq(
     }
 
     if remove_after_finish {
-        fs::remove_dir_all(&download_path).unwrap_or_else(|e| {
-            eprintln!(
-                "{}",
-                format!("Failed to remove download directory: {e}").red()
-            );
-        });
+        clean_downloads(&download_path, &wiki_names);
     }
 
     dump_date
@@ -198,7 +193,6 @@ pub async fn process_threaded(
     let done_wiki_names = check_existing_sqlite_files(overwrite_sql, &wiki_names, &base_directory);
     let mut wiki_names: Vec<String> = wiki_names.into_iter().map(|s| s.to_string()).collect();
     wiki_names.retain(|x| !done_wiki_names.contains(x));
-
 
     let num_jobs = wiki_names.len() * processed_tables.len();
     let num_sql_threads = 2;
