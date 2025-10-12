@@ -4,6 +4,7 @@ use crate::validation::validate_wiki_names;
 use colored::Colorize;
 use parse_mediawiki_sql::field_types::PageTitle;
 use std::process::exit;
+use std::time::{Duration, Instant};
 use wiki_stats::process::process_wikis_seq;
 use wiki_stats::sqlite::join_db_wiki_path;
 use wiki_stats::validate::post_validation;

@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
+use std::time::Instant;
 
 use chrono::{DateTime, Utc};
 use colored::Colorize as _;
@@ -161,12 +162,25 @@ pub fn check_is_done(conn: &Connection) -> rusqlite::Result<bool> {
     )
 }
 
+pub fn check_is_validated(conn: &Connection) -> rusqlite::Result<bool> {
+    conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM Info WHERE is_validated = 1)",
+        [],
+        |row| {
+            let v: i64 = row.get(0)?;
+            Ok(v != 0)
+        },
+    )
+}
+
 pub async fn post_validation(
     db_file: impl AsRef<Path>,
     dump_date: impl AsRef<str>,
     wiki_prefix: impl AsRef<str>,
     pages_to_test: &[PageTitle],
 ) -> bool {
+    let t1 = Instant::now();
+
     let db_file = db_file.as_ref();
     if !fs::exists(&db_file).unwrap() {
         eprintln!("DB File {db_file:?} does not exist");
@@ -285,6 +299,11 @@ pub async fn post_validation(
         .await;
     }
 
+    conn.execute(
+            "UPDATE Info SET is_validated = ?, num_pages_validated = ?, validation_time_s = ? WHERE id = 0",
+            (success, pages_to_test.len(),t1.elapsed().as_secs_f64()),
+        )
+        .unwrap();
     success
 }
 

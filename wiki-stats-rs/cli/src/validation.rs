@@ -3,7 +3,10 @@ use std::{fs, path::Path};
 use anyhow::anyhow;
 use reqwest::StatusCode;
 use rusqlite::Connection;
-use wiki_stats::{sqlite::join_db_wiki_path, validate::check_is_done};
+use wiki_stats::{
+    sqlite::join_db_wiki_path,
+    validate::{check_is_done, check_is_validated},
+};
 
 /// Checks if wikimedia has sql dumps for the wiki
 /// Returns `Ok(())` if valid, or an `Err` with an error message if invalid.
@@ -54,7 +57,7 @@ pub async fn validate_sqlite_file(db_path: impl AsRef<Path>, wiki: &str) -> anyh
     }
 
     let conn = Connection::open(&path)?;
-    if check_is_done(&conn)? {
+    if check_is_done(&conn)? && check_is_validated(&conn)? {
         return Ok(());
     }
     return Err(anyhow!("sqlite file {path:?} is not done"));

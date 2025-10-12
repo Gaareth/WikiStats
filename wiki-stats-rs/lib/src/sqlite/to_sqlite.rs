@@ -136,7 +136,11 @@ impl<'a> ToSqlite<'a> {
             id INTEGER PRIMARY KEY,
             is_done INTEGER,
             insertion_time_s DOUBLE,
-            index_creation_time_s DOUBLE
+            index_creation_time_s DOUBLE,
+            
+            is_validated INTEGER,
+            num_pages_validated INTEGER,
+            validation_time_s DOUBLE
         )",
             (),
         )
