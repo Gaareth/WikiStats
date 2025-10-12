@@ -15,7 +15,7 @@ use std::{env, thread};
 
 use async_stream::stream;
 use chrono::{Datelike, TimeZone};
-use crossbeam::channel::{unbounded, Receiver, Sender};
+use crossbeam::channel::{Receiver, Sender, unbounded};
 use crossbeam::queue::{ArrayQueue, SegQueue};
 use futures::Stream;
 use fxhash::{FxBuildHasher, FxHashMap, FxHashSet};
@@ -34,11 +34,11 @@ use crate::sqlite::{db_sp_wiki_path, db_wiki_path, paths};
 use crate::stats::queries::top_linked_ids;
 use crate::utils::{bar_color, default_bar, default_bar_unknown};
 use crate::web::get_most_popular_pages;
-use crate::{sqlite, DBCache, DepthHistogram, DistanceMap, PrevMap, PrevMapEntry};
+use crate::{DBCache, DepthHistogram, DistanceMap, PrevMap, PrevMapEntry, sqlite};
 
-mod floyd_warshall;
 pub mod bfs;
 pub mod connected_components;
+mod floyd_warshall;
 // TODO: create sqlite3 database containing only pageid and pagetable
 
 // mod utils;
@@ -48,7 +48,6 @@ pub mod connected_components;
 // mod cli;
 
 pub const MAX_SIZE: u32 = 210_712_457; // 225_574_049
-
 
 pub fn precalc_interlinks_most_popular_threaded_quick(wiki_name: impl AsRef<str>) {
     let wiki_name = wiki_name.as_ref();
@@ -277,7 +276,6 @@ fn get_incoming_links<T: BuildHasher>(
 ) -> Vec<PageId> {
     // sqlite::page_links::get_incoming_links_of_id(conn, page_id)
 
-
     return if cache.contains_key(page_id) {
         HITS.fetch_add(1, Ordering::SeqCst);
         cache.get(page_id).unwrap().clone()
@@ -285,7 +283,6 @@ fn get_incoming_links<T: BuildHasher>(
         MISSES.fetch_add(1, Ordering::SeqCst);
         sqlite::page_links::get_incoming_links_of_id(conn, page_id)
     };
-  
 }
 
 fn get_links<T: BuildHasher>(
@@ -293,7 +290,6 @@ fn get_links<T: BuildHasher>(
     page_id: &PageId,
     cache: &HashMap<PageId, Vec<PageId>, T>,
 ) -> Vec<PageId> {
-
     return if cache.contains_key(page_id) {
         HITS.fetch_add(1, Ordering::SeqCst);
         cache.get(page_id).unwrap().clone()
@@ -301,7 +297,6 @@ fn get_links<T: BuildHasher>(
         MISSES.fetch_add(1, Ordering::SeqCst);
         sqlite::page_links::get_links_of_id(conn, page_id)
     };
-
 }
 
 fn insert_rest_path(
@@ -325,8 +320,6 @@ fn insert_rest_path(
     }
     // dbg!(&working_ids);
 }
-
-
 
 fn dijkstra<S: BuildHasher>(
     start_link_id: &PageId,
@@ -388,7 +381,6 @@ fn dijkstra<S: BuildHasher>(
     dbg!(&visited.len());
     return (dist, prev, visited_counter);
 }
-
 
 fn calc_iter<T: BuildHasher>(
     start_link_id: &PageId,

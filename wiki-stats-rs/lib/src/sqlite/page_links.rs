@@ -13,8 +13,8 @@ use rusqlite::{Connection, Transaction};
 
 use crate::sqlite::title_id_conv::load_wiki_pages;
 use crate::stats::queries::select_link_count_groupby;
-use crate::utils::{default_bar, ProgressBarBuilder};
-use crate::{sqlite, DBCache};
+use crate::utils::{ProgressBarBuilder, default_bar};
+use crate::{DBCache, sqlite};
 
 // type InsertData = FxHashMap<PageId, Vec<PageTitle>>;
 // type InsertData = FxHashSet<(PageId, PageTitle)>;
@@ -58,11 +58,8 @@ pub fn create_indices_post_setup(conn: &Connection) {
     conn.execute(WIKI_LINK_ID_INDEX, ())
         .expect("Failed creating index");
 
-    conn.execute(
-        WIKI_LINK_LINK_INDEX,
-        (),
-    )
-    .expect("Failed creating index");
+    conn.execute(WIKI_LINK_LINK_INDEX, ())
+        .expect("Failed creating index");
 }
 
 // <I: Iterator<Item=PageLink>>

@@ -2,34 +2,31 @@ use std::hash::Hash;
 
 use fxhash::{FxHashMap, FxHashSet};
 use indicatif::ProgressStyle;
-use parse_mediawiki_sql::{FromSqlTuple, iterate_sql_insertions};
 use parse_mediawiki_sql::field_types::{LinkTargetId, PageId, PageTitle};
 use parse_mediawiki_sql::schemas::{LinkTarget, Page, PageLink};
 use parse_mediawiki_sql::utils::Mmap;
+use parse_mediawiki_sql::{FromSqlTuple, iterate_sql_insertions};
 
 use crate::calc::MAX_SIZE;
 use crate::utils::default_bar;
 
-pub fn load_linktarget_map(
-    linktarget_map: Mmap
-) -> FxHashMap<LinkTargetId, PageTitle> {
-    load_map::<_, _, LinkTarget>(&linktarget_map,
-                                 |lt| (lt.id, lt.title),
-                                 |lt| lt.namespace.0 != 0)
+pub fn load_linktarget_map(linktarget_map: Mmap) -> FxHashMap<LinkTargetId, PageTitle> {
+    load_map::<_, _, LinkTarget>(
+        &linktarget_map,
+        |lt| (lt.id, lt.title),
+        |lt| lt.namespace.0 != 0,
+    )
 }
 
-
-pub fn load_title_id_map(
-    page_mmap: Mmap
-) -> FxHashMap<PageTitle, PageId> {
-    load_map::<_, _, Page>(&page_mmap,
-                           |lt| (lt.title, lt.id),
-                           |lt| lt.namespace.0 != 0)
+pub fn load_title_id_map(page_mmap: Mmap) -> FxHashMap<PageTitle, PageId> {
+    load_map::<_, _, Page>(&page_mmap, |lt| (lt.title, lt.id), |lt| lt.namespace.0 != 0)
 }
 
-pub fn load_map<'a, K: Eq + Hash, V, I: FromSqlTuple<'a> + 'a>(linktarget_map: &'a Mmap,
-                                                               insert_fn: fn(I) -> (K, V),
-                                                               skip_fn: fn(&I) -> bool) -> FxHashMap<K, V> {
+pub fn load_map<'a, K: Eq + Hash, V, I: FromSqlTuple<'a> + 'a>(
+    linktarget_map: &'a Mmap,
+    insert_fn: fn(I) -> (K, V),
+    skip_fn: fn(&I) -> bool,
+) -> FxHashMap<K, V> {
     let bar = indicatif::ProgressBar::new(MAX_SIZE as u64);
     bar.set_style(
         ProgressStyle::with_template(
@@ -116,7 +113,6 @@ pub fn load_sql_part_map(
             break;
         }
 
-
         bar.inc(1);
 
         // || pagelink.namespace.0 != 0
@@ -124,7 +120,6 @@ pub fn load_sql_part_map(
         if pagelink.from_namespace.0 != 0 {
             continue;
         }
-
 
         pageid_link_map
             .entry(pagelink.from)
@@ -141,14 +136,13 @@ pub fn load_sql_part_map(
 pub fn load_sql_full<'a, I: Hash + Eq + FromSqlTuple<'a> + 'a, R: Hash + Eq>(
     pagelinks_sql: &'a Mmap,
     insert_fn: fn(I) -> R,
-    skip_fn: fn(&I) -> bool)
-    -> FxHashSet<R> {
+    skip_fn: fn(&I) -> bool,
+) -> FxHashSet<R> {
     let mut row_set: FxHashSet<R> = FxHashSet::default();
     let mut row_count = 0;
 
     for row in iterate_sql_insertions::<I>(pagelinks_sql).into_iter() {
         row_count += 1;
-
 
         if skip_fn(&row) {
             continue;
@@ -161,10 +155,12 @@ pub fn load_sql_full<'a, I: Hash + Eq + FromSqlTuple<'a> + 'a, R: Hash + Eq>(
 }
 
 pub fn load_sql_part_set_generic<'a, I: Hash + Eq + FromSqlTuple<'a> + 'a, R: Hash + Eq>(
-    pagelinks_sql: &'a Mmap, part_size: usize, start_part: usize,
+    pagelinks_sql: &'a Mmap,
+    part_size: usize,
+    start_part: usize,
     insert_fn: fn(I) -> R,
-    skip_fn: fn(&I) -> bool)
-    -> (FxHashSet<R>, u64) {
+    skip_fn: fn(&I) -> bool,
+) -> (FxHashSet<R>, u64) {
     println!("Loading sql file.. with {part_size} entries");
     let bar = default_bar(part_size as u64);
 
@@ -199,7 +195,6 @@ pub fn load_sql_part_set_generic<'a, I: Hash + Eq + FromSqlTuple<'a> + 'a, R: Ha
             continue;
         }
 
-
         if read_rows > part_size {
             dbg!(current_part);
         }
@@ -216,10 +211,16 @@ pub fn load_sql_part_set_generic<'a, I: Hash + Eq + FromSqlTuple<'a> + 'a, R: Ha
     (row_set, row_count)
 }
 
-
 pub fn load_sql_part_set<'a, T: FromSqlTuple<'a> + 'a>(
-    pagelinks_sql: &'a Mmap, part_size: usize, start_part: usize, skip_fn: fn(&T) -> bool)
-    -> (FxHashSet<T>, u64) where T: Hash, T: Eq {
+    pagelinks_sql: &'a Mmap,
+    part_size: usize,
+    start_part: usize,
+    skip_fn: fn(&T) -> bool,
+) -> (FxHashSet<T>, u64)
+where
+    T: Hash,
+    T: Eq,
+{
     println!("Loading sql file.. with {part_size} entries");
     let bar = default_bar(part_size as u64);
 
@@ -270,7 +271,6 @@ pub fn load_sql_part_set<'a, T: FromSqlTuple<'a> + 'a>(
     (row_set, row_count)
 }
 
-
 #[cfg(test)]
 mod tests {
     use fxhash::FxHashMap;
@@ -281,9 +281,7 @@ mod tests {
 
     #[test]
     fn test_load_linktarget_map() {
-        let mmap = unsafe {
-            memory_map("tests/data/small/test-20240901-linktarget.sql").unwrap()
-        };
+        let mmap = unsafe { memory_map("tests/data/small/test-20240901-linktarget.sql").unwrap() };
         let map = load_linktarget_map(mmap);
         let mut expected = FxHashMap::default();
         expected.insert(LinkTargetId(3), PageTitle("Main_Page".to_string()));
@@ -295,9 +293,7 @@ mod tests {
     #[test]
     #[ignore]
     fn test_load_linktarget_map_big() {
-        let mmap = unsafe {
-            memory_map("tests/data/dewiki-20240901-linktarget.sql").unwrap()
-        };
+        let mmap = unsafe { memory_map("tests/data/dewiki-20240901-linktarget.sql").unwrap() };
         let map = load_linktarget_map(mmap);
         assert!(!map.is_empty())
     }

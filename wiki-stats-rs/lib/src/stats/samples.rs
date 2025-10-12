@@ -1,7 +1,11 @@
-use std::{fs, sync::{Arc, Mutex}, thread};
+use std::{
+    fs,
+    sync::{Arc, Mutex},
+    thread,
+};
 
 use crossbeam::{channel::unbounded, queue::ArrayQueue};
-use futures::{pin_mut, StreamExt};
+use futures::{StreamExt, pin_mut};
 use fxhash::FxHashMap;
 use indicatif::MultiProgress;
 use log::{debug, info};
@@ -10,20 +14,18 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tokio::{sync::mpsc, time::Instant};
 
-
 use crate::{
-    calc::bfs::{bfs, bfs_bidirectional, build_path, SpBiStream},
+    AvgDepthHistogram, DepthHistogram, WikiIdent,
+    calc::bfs::{SpBiStream, bfs, bfs_bidirectional, build_path},
     sqlite::{
         page_links::get_cache,
         title_id_conv::{self, get_random_page},
     },
     stats::{
         stats::PageTitle,
-        utils::{average_histograms, MaxMinAvg},
+        utils::{MaxMinAvg, average_histograms},
     },
-    utils::{default_bar, ProgressBarBuilder},
-    AvgDepthHistogram, DepthHistogram,
-    WikiIdent
+    utils::{ProgressBarBuilder, default_bar},
 };
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema, Clone)]

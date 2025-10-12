@@ -4,14 +4,20 @@ use fxhash::FxHashSet;
 use log::info;
 use parse_mediawiki_sql::field_types::PageId;
 
-use crate::{calc::bfs::bfs_undirected, sqlite::{page_links::get_cache, title_id_conv::load_rows_from_page}, stats::queries::query_page, utils::ProgressBarBuilder, WikiIdent};
+use crate::{
+    WikiIdent,
+    calc::bfs::bfs_undirected,
+    sqlite::{page_links::get_cache, title_id_conv::load_rows_from_page},
+    stats::queries::query_page,
+    utils::ProgressBarBuilder,
+};
 
 pub fn find_wcc(wiki_ident: WikiIdent) {
     let db_path = wiki_ident.clone().db_path;
 
     let all_pages = load_rows_from_page(&db_path)
         .into_iter()
-        .map(|p| p.0 .0)
+        .map(|p| p.0.0)
         .collect::<FxHashSet<_>>();
     let redirects = query_page(
         "SELECT * FROM WikiPage WHERE is_redirect = 1;",
@@ -58,7 +64,7 @@ pub fn find_wcc(wiki_ident: WikiIdent) {
 
     components.sort_by(|a, b| a.len().cmp(&b.len())); // ascending
     components.pop(); // remove last, so largest component
-                      // todo: also remove Begriffsklärungsseiten
+    // todo: also remove Begriffsklärungsseiten
 
     info!("Num components after pruning: {}", components.len());
 

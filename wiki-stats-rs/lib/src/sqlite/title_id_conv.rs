@@ -160,16 +160,14 @@ const WIKI_PAGE_TABLE: &str = "CREATE TABLE if not exists WikiPage (
 const WIKI_PAGE_UNIQUE_INDEX: &str = "CREATE UNIQUE INDEX if not exists WikiPage_unique_index ON
            WikiPage(page_id, page_title)";
 
-const WIKI_PAGE_TITLE_INDEX: &str = "CREATE INDEX if not exists idx_title_id ON WikiPage(page_title);";
+const WIKI_PAGE_TITLE_INDEX: &str =
+    "CREATE INDEX if not exists idx_title_id ON WikiPage(page_title);";
 const WIKI_PAGE_ID_INDEX: &str = "CREATE INDEX if not exists idx_page_id ON WikiPage(page_id);";
 
 static WIKI_PAGE_SCHEMA: LazyLock<String> = LazyLock::new(|| {
     format!(
         "{}\n{}\n{}\n{}",
-        WIKI_PAGE_TABLE,
-        WIKI_PAGE_UNIQUE_INDEX,
-        WIKI_PAGE_TITLE_INDEX,
-        WIKI_PAGE_ID_INDEX
+        WIKI_PAGE_TABLE, WIKI_PAGE_UNIQUE_INDEX, WIKI_PAGE_TITLE_INDEX, WIKI_PAGE_ID_INDEX
     )
 });
 
@@ -179,25 +177,16 @@ pub fn db_setup(conn: &Connection) {
 }
 
 pub fn create_indices_post_setup(conn: &Connection) {
-    conn.execute(
-        WIKI_PAGE_TITLE_INDEX,
-        (),
-    )
-    .expect("Failed creating index");
+    conn.execute(WIKI_PAGE_TITLE_INDEX, ())
+        .expect("Failed creating index");
 
-    conn.execute(
-        WIKI_PAGE_ID_INDEX,
-        (),
-    )
-    .expect("Failed creating index");
+    conn.execute(WIKI_PAGE_ID_INDEX, ())
+        .expect("Failed creating index");
 }
 
 pub fn create_unique_index(conn: &Connection) {
-    conn.execute(
-        WIKI_PAGE_UNIQUE_INDEX,
-        (),
-    )
-    .expect("Failed creating unique index");
+    conn.execute(WIKI_PAGE_UNIQUE_INDEX, ())
+        .expect("Failed creating unique index");
 }
 
 pub fn count_articles(mmap: &Mmap) {

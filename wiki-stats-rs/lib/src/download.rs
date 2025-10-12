@@ -10,8 +10,8 @@ use std::{fs, io};
 
 use chrono::{Datelike, Days, Months, Utc};
 use colored::Colorize;
-use futures::future::join_all;
 use futures::StreamExt;
+use futures::future::join_all;
 use indicatif::MultiProgress;
 use log::{debug, error, info, warn};
 use scraper::{Html, Selector};
@@ -185,7 +185,10 @@ pub async fn latest_dump_date(
         }
     }
 
-    warn!("Not dump date found for all wikis [{:?}], and all tables: [{:?}]. Checked {checked_months}", wikis_to_support, tables);
+    warn!(
+        "Not dump date found for all wikis [{:?}], and all tables: [{:?}]. Checked {checked_months}",
+        wikis_to_support, tables
+    );
     None
 }
 
@@ -395,7 +398,9 @@ pub fn unpack_gz_pb(
                     if attempts >= max_attempts {
                         return Err(io::Error::new(
                             io::ErrorKind::Other,
-                            format!("Failed to unpack file {filename} after {max_attempts} attempts: {e}"),
+                            format!(
+                                "Failed to unpack file {filename} after {max_attempts} attempts: {e}"
+                            ),
                         ));
                     }
                 }
@@ -542,12 +547,14 @@ pub async fn download_wikis(
 }
 
 pub fn clean_downloads(download_path: &Path, wiki_names: &[String]) {
-    if let Ok(entries) = fs::read_dir(download_path) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if let Some(filename) = path.file_name().and_then(|f| f.to_str()) {
-                if let Some(wiki_name) = filename.split("-").next() {
-                    if wiki_names.contains(&wiki_name.to_string()) {
+    match fs::read_dir(download_path) {
+        Ok(entries) => {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if let Some(filename) = path.file_name().and_then(|f| f.to_str()) {
+                    if let Some(wiki_name) = filename.split("-").next()
+                        && wiki_names.contains(&wiki_name.to_string())
+                    {
                         if let Err(e) = fs::remove_file(&path) {
                             eprintln!(
                                 "{}",
@@ -558,10 +565,11 @@ pub fn clean_downloads(download_path: &Path, wiki_names: &[String]) {
                 }
             }
         }
-    } else {
-        eprintln!(
-            "{}",
-            format!("Failed to read directory {:?}", download_path).red()
-        );
+        _ => {
+            eprintln!(
+                "{}",
+                format!("Failed to read directory {:?}", download_path).red()
+            );
+        }
     }
 }

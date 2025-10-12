@@ -1,8 +1,12 @@
-use crate::{stats::{stats::{Page, WikiName}}, utils::default_bar_unknown, WikiIdent};
-use std::path::Path;
+use crate::{
+    WikiIdent,
+    stats::stats::{Page, WikiName},
+    utils::default_bar_unknown,
+};
 use fxhash::FxHashSet;
 use parse_mediawiki_sql::field_types::PageId;
 use rusqlite::Connection;
+use std::path::Path;
 use tokio::time::Instant;
 
 pub fn count_from(table_name: &str, db_path: impl AsRef<Path>, where_str: &str) -> u64 {
@@ -125,7 +129,9 @@ pub fn longest_name(wiki_ident: WikiIdent, redirects: bool) -> Page {
     } else {
         ""
     };
-    let stmt_str = format!("SELECT page_title, page_id FROM WikiPage {where_str} ORDER BY length(page_title) DESC LIMIT 1");
+    let stmt_str = format!(
+        "SELECT page_title, page_id FROM WikiPage {where_str} ORDER BY length(page_title) DESC LIMIT 1"
+    );
 
     let conn = Connection::open(db_path).unwrap();
 
@@ -245,7 +251,11 @@ pub fn select_link_count_groupby(
 }
 
 /// return ids of the most linked page. linked by other pages the most times
-pub fn top_linked_ids(top: usize, wiki_name: Option<&str>, db_path: impl AsRef<Path>) -> FxHashSet<PageId> {
+pub fn top_linked_ids(
+    top: usize,
+    wiki_name: Option<&str>,
+    db_path: impl AsRef<Path>,
+) -> FxHashSet<PageId> {
     let mut link_count = FxHashSet::default();
 
     let where_wiki = wiki_name

@@ -1,15 +1,23 @@
-use std::{cmp::{max_by, min_by, Ordering}, future::Future, ops::AddAssign, path::{Path, PathBuf}, thread};
+use std::{
+    cmp::{Ordering, max_by, min_by},
+    future::Future,
+    ops::AddAssign,
+    path::{Path, PathBuf},
+    thread,
+};
 
 use fxhash::{FxHashMap, FxHashSet};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
-use crate::{sqlite::join_db_wiki_path, stats::stats::{StatRecord, WikiName}, AvgDepthHistogram, AvgDepthStat, WikiIdent};
+use crate::{
+    AvgDepthHistogram, AvgDepthStat, WikiIdent,
+    sqlite::join_db_wiki_path,
+    stats::stats::{StatRecord, WikiName},
+};
 
 pub static GLOBAL: &str = "global";
-
-
 
 pub async fn make_stat_record_async<T, Fut, F>(
     wikis: Vec<WikiIdent>,
@@ -43,7 +51,6 @@ where
 
     record
 }
-
 
 pub async fn make_stat_record_seq<T, F>(
     wikis: Vec<WikiIdent>,
@@ -99,7 +106,6 @@ pub async fn make_stat_record<T: Debug + Send + 'static>(
 
 pub fn global_ignore<T>(_: &mut StatRecord<T>) {}
 
-
 #[derive(Debug, Serialize, Deserialize, JsonSchema, Clone)]
 pub struct MaxMinAvg<T, C: PartialOrd> {
     pub min: (T, C),
@@ -135,7 +141,6 @@ where
     }
 }
 
-
 pub fn max_min_value_record<T: Clone + Debug, F: FnOnce(&T, &T) -> Ordering + Copy>(
     record: &StatRecord<T>,
     cmp_fn: F,
@@ -158,7 +163,6 @@ pub fn max_min_value_record<T: Clone + Debug, F: FnOnce(&T, &T) -> Ordering + Co
         (min_element.0.clone(), min_element.1.clone()),
     )
 }
-
 
 pub fn average_histograms(depth_histograms: &[FxHashMap<u32, f64>]) -> AvgDepthHistogram {
     // First, sum up all histograms

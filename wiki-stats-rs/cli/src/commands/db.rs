@@ -50,7 +50,8 @@ pub async fn handle_process_databases(command: Commands) {
                         .map(|p| PageTitle(p.title))
                         .collect();
                 let db_file = join_db_wiki_path(basepath.join(&dump_date).join("sqlite"), &wiki);
-                let valid = post_validation(&db_file, &dump_date, &wiki_prefix, &random_pages).await;
+                let valid =
+                    post_validation(&db_file, &dump_date, &wiki_prefix, &random_pages).await;
                 if !valid {
                     print_error_and_exit!("[{wiki}] Failed post validation for {db_file:?}")
                 } else {

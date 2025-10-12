@@ -10,8 +10,8 @@ use indicatif::{MultiProgress, ProgressBar};
 use num_format::{Locale, ToFormattedString};
 use parse_mediawiki_sql::field_types::{LinkTargetId, PageId, PageTitle};
 use parse_mediawiki_sql::schemas::{CategoryLink, Page, PageLink};
-use parse_mediawiki_sql::utils::{memory_map, Mmap};
-use parse_mediawiki_sql::{iterate_sql_insertions, FromSqlTuple};
+use parse_mediawiki_sql::utils::{Mmap, memory_map};
+use parse_mediawiki_sql::{FromSqlTuple, iterate_sql_insertions};
 use rusqlite::types::Null;
 use rusqlite::{CachedStatement, Connection};
 
@@ -142,11 +142,8 @@ impl<'a> ToSqlite<'a> {
         )
         .unwrap();
 
-        conn.execute(
-            "INSERT INTO Info Values (?, ?, ?, ?)",
-            (0, 0, Null, Null),
-        )
-        .unwrap();
+        conn.execute("INSERT INTO Info Values (?, ?, ?, ?)", (0, 0, Null, Null))
+            .unwrap();
 
         conn.execute("PRAGMA synchronous = OFF", ()).unwrap();
         // conn.execute("PRAGMA journal_mode = OFF", ()).unwrap();

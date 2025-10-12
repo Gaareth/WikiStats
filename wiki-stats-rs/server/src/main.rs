@@ -1,18 +1,18 @@
 use std::collections::HashMap;
-use std::fs::{OpenOptions};
-use std::path::{PathBuf};
+use std::fs::OpenOptions;
+use std::path::PathBuf;
 
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::{routing::get, Json, Router};
+use axum::{Json, Router, routing::get};
 use axum_streams::*;
 use clap::{ArgAction, Parser, crate_version};
 use dotenv::dotenv;
-use futures::{pin_mut, Stream, StreamExt};
+use futures::{Stream, StreamExt, pin_mut};
 use lazy_static::lazy_static;
 use log::info;
-use parse_mediawiki_sql::field_types::{PageTitle};
+use parse_mediawiki_sql::field_types::PageTitle;
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -22,10 +22,9 @@ use simplelog::{
 use std::process::exit;
 
 use wiki_stats::calc::bfs::{bfs_bidirectional, bfs_stream};
-use wiki_stats::sqlite::page_links::{get_cache};
+use wiki_stats::sqlite::page_links::get_cache;
 use wiki_stats::sqlite::{db_wiki_path, get_all_database_files, join_db_wiki_path};
-use wiki_stats::{sqlite, DBCache};
-
+use wiki_stats::{DBCache, sqlite};
 
 // TODO: remove redirects?
 
@@ -229,8 +228,8 @@ fn validate_cli_args(
             eprintln!("{wiki_name} Database at {path:?} does not exist or is emtpy");
             std::process::exit(1);
         }
-        let _ =
-            Connection::open(&path).unwrap_or_else(|error| panic!("Failed connecting to DB {path:?}: {error}"));
+        let _ = Connection::open(&path)
+            .unwrap_or_else(|error| panic!("Failed connecting to DB {path:?}: {error}"));
     }
 
     (db_dir, wikis_to_check)
@@ -302,18 +301,27 @@ async fn main() {
     let addr = format!("{}:{}", cli.host, cli.port);
 
     let app = Router::new()
-        .route("/", get(|| async { "Hello, World! The shortest path endpoint is at /path/<wiki_name>" }))
+        .route(
+            "/",
+            get(|| async { "Hello, World! The shortest path endpoint is at /path/<wiki_name>" }),
+        )
         .route("/path/:wiki", get(get_shortest_path_bidirectional))
         // .route("/test", get(test_json_nl_stream))
         .with_state(state);
 
-    println!("Starting server at: {addr} with load: {:?} | Version: {}", cli.num_load, crate_version!());
+    println!(
+        "Starting server at: {addr} with load: {:?} | Version: {}",
+        cli.num_load,
+        crate_version!()
+    );
     println!("Supported wikis: {:?}", wikis);
 
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap_or_else(|error| {
-        eprintln!("Error: Failed to bind to address: {error}");
-        exit(1)
-    });
+    let listener = tokio::net::TcpListener::bind(addr)
+        .await
+        .unwrap_or_else(|error| {
+            eprintln!("Error: Failed to bind to address: {error}");
+            exit(1)
+        });
     axum::serve(listener, app).await.unwrap();
 }
 

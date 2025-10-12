@@ -2,7 +2,7 @@ extern crate test;
 
 use std::time::Instant;
 
-use fxhash::{FxHashSet};
+use fxhash::FxHashSet;
 use indicatif::ProgressIterator;
 use parse_mediawiki_sql::field_types::{PageId, PageTitle};
 use parse_mediawiki_sql::iterate_sql_insertions;
@@ -10,13 +10,13 @@ use parse_mediawiki_sql::schemas::PageLink;
 use parse_mediawiki_sql::utils::memory_map;
 use rusqlite::Connection;
 
-use crate::calc::bfs::{bfs, build_path};
 use crate::calc::MAX_SIZE;
+use crate::calc::bfs::{bfs, build_path};
 use crate::sqlite;
-use crate::sqlite::{db_sp_wiki_path, db_wiki_path};
 use crate::sqlite::load::load_sql_part_map;
 use crate::sqlite::page_links::{get_links_of_id, load_link_to_map_db_limit};
 use crate::sqlite::paths::build_sp;
+use crate::sqlite::{db_sp_wiki_path, db_wiki_path};
 use crate::stats::queries::select_link_count_groupby;
 use crate::utils::default_bar;
 
@@ -27,20 +27,16 @@ pub fn test_load_link_map_in_memory_sql() {
     let path = "/run/media/gareth/7FD71CF32A89EF6A/dev/wiki/downloads/20240301/dewiki-20240301-pagelinks.sql";
     let pagelinks_sql = unsafe { memory_map(path).unwrap() };
 
-    let map=
-        load_sql_part_map(pagelinks_sql, MAX_SIZE / 1, 1);
+    let map = load_sql_part_map(pagelinks_sql, MAX_SIZE / 1, 1);
 
     dbg!(t1.elapsed());
 }
-
 
 // fast
 pub fn test_load_link_map_in_memory_db() {
     let t1 = Instant::now();
 
-    let map = sqlite::page_links::load_link_to_map_db(
-        db_wiki_path("dewiki")
-    );
+    let map = sqlite::page_links::load_link_to_map_db(db_wiki_path("dewiki"));
 
     dbg!(t1.elapsed());
 }
@@ -50,17 +46,21 @@ pub fn test_limit() {
     let path = db_wiki_path(wiki_name);
 
     let t1 = Instant::now();
-    let cached_entries: Vec<PageId> = select_link_count_groupby(1000, &wiki_name, "WikiLink.page_id")
-        .into_iter().map(|(pid, _)| PageId(pid as u32)).collect();
+    let cached_entries: Vec<PageId> =
+        select_link_count_groupby(1000, &wiki_name, "WikiLink.page_id")
+            .into_iter()
+            .map(|(pid, _)| PageId(pid as u32))
+            .collect();
     let cache = load_link_to_map_db_limit(&path, cached_entries, false);
     dbg!(&t1.elapsed());
 
-
     let t1 = Instant::now();
-    let cached_entries: Vec<PageId> = select_link_count_groupby(100_000, &wiki_name, "WikiLink.page_id")
-        .into_iter().map(|(pid, _)| PageId(pid as u32)).collect();
+    let cached_entries: Vec<PageId> =
+        select_link_count_groupby(100_000, &wiki_name, "WikiLink.page_id")
+            .into_iter()
+            .map(|(pid, _)| PageId(pid as u32))
+            .collect();
     let cache = load_link_to_map_db_limit(&path, cached_entries, false);
-
 
     dbg!(&t1.elapsed());
 }
@@ -72,7 +72,6 @@ pub fn test_save_sp() {
 
     // let cached_entries: Vec<PageId> = select_link_count_groupby(1000, &wiki_name, "WikiLink.page_id")
     //     .into_iter().map(|(pid, _)| PageId(pid as u32)).collect();
-
 
     // let start_link = PageTitle("Taylor_Swift".to_string());
     // let start_link_id = sqlite::title_id_conv::page_title_to_id(&start_link, &path).unwrap();
@@ -86,7 +85,6 @@ pub fn test_save_sp() {
 
     let cache = load_link_to_map_db_limit(&path, vec![], false);
     crate::calc::precalc_interlinks_most_popular_threaded(&path_sp, &path, &cache, wiki_name);
-
 
     // let (depth_histogram, prev_map, num_visited, deepest_id) =
     //     bfs(&start_link_id, None, None, &cache, &path);
@@ -104,8 +102,11 @@ pub fn test_bfs() {
     let conn = Connection::open(&path).unwrap();
 
     let t1 = Instant::now();
-    let cached_entries: Vec<PageId> = select_link_count_groupby(1000, &wiki_name, "WikiLink.page_id")
-        .into_iter().map(|(pid, _)| PageId(pid as u32)).collect();
+    let cached_entries: Vec<PageId> =
+        select_link_count_groupby(1000, &wiki_name, "WikiLink.page_id")
+            .into_iter()
+            .map(|(pid, _)| PageId(pid as u32))
+            .collect();
 
     let cache = load_link_to_map_db_limit(&path, cached_entries, false);
     // let cache = FxHashMap::default();
@@ -119,12 +120,10 @@ pub fn test_bfs() {
     let conn = Connection::open(&path).unwrap();
     dbg!(&get_links_of_id(&conn, &start_link_id).contains(&PageId(5767)));
 
-
     let end_link = PageTitle("Taiwan".to_string());
     let end_link_id = sqlite::title_id_conv::page_title_to_id(&end_link, &conn).unwrap();
 
-    let r =
-        bfs(&start_link_id, Some(&end_link_id), None, &cache, &path);
+    let r = bfs(&start_link_id, Some(&end_link_id), None, &cache, &path);
     dbg!(&r.num_visited);
     dbg!(&build_path(&end_link_id, &r.prev_map));
 
@@ -135,7 +134,6 @@ pub fn test_bfs() {
 // ⠲ [00:00:18] [47,987.8877/s]  922_440/?                                                                                                                                                                                             Found endlink
 // [lib/src/bench.rs:59:5] &num_visited = 2_657_172
 // [lib/src/bench.rs:60:5] &t1.elapsed() = 18.219622256s
-
 
 fn test_title_to_id_in_memory_speed() {
     let t1 = Instant::now();
@@ -149,9 +147,11 @@ fn test_title_to_id_in_memory_speed() {
         title_id_map.get(&PageTitle("$10.000_Vienna_2007".to_string()));
     }
     println!("Converting titles: {:#?}", t2.elapsed());
-    println!("Loading hashmap + converting titles: {:#?}", t1.elapsed() + t2.elapsed());
+    println!(
+        "Loading hashmap + converting titles: {:#?}",
+        t1.elapsed() + t2.elapsed()
+    );
 }
-
 
 fn test_get_links_db_speed() {
     let conn = Connection::open("/home/gareth/dev/Rust/WikiGame/pagelinks_full_ids.db").unwrap();
@@ -173,17 +173,14 @@ fn test_get_links_db_speed() {
 //     dbg!(t1.elapsed());
 // }
 
-
 pub fn test_show_duplicates() {
     // wiki_stats::stats::create_stats().await
     let p = "/run/media/gareth/7FD71CF32A89EF6A/dev/wiki/downloads/20240301/dewiki-20240301-pagelinks.sql";
     let page_sql = unsafe { memory_map(p).unwrap() };
 
-
     let mut set = FxHashSet::default();
     let bar = default_bar(136_343_429 as u64);
     for row in iterate_sql_insertions::<PageLink>(&page_sql).into_iter() {
-
         // || row.namespace.0 != 0
         // namespace zero are articles (what we want)
         if row.from_namespace.0 != 0 {
@@ -239,7 +236,6 @@ pub fn test_show_duplicates() {
 //         })
 //     }
 
-
 //     // #[bench]
 //     fn bench_bfs(b: &mut Bencher) {
 //         dotenv::dotenv().unwrap();
@@ -265,7 +261,6 @@ pub fn test_show_duplicates() {
 //         let mut ids = random_pages().choose_multiple(&mut rand::thread_rng(), 2);
 //         let start = ids.next().unwrap();
 //         let end = ids.next().unwrap();
-        
 
 //         let s = PageId(*start);
 //         let e = PageId(*end);

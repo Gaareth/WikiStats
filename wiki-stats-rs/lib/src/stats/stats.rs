@@ -6,12 +6,12 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 
 use crate::{
+    WikiIdent,
     stats::{
         queries::count_from,
         samples::{BfsSample, BiBfsSample},
     },
     web::WebWikiSize,
-    WikiIdent,
 };
 
 pub type StatRecord<T> = FxHashMap<String, T>;

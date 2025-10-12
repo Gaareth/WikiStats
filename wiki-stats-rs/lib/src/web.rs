@@ -201,8 +201,6 @@ pub async fn get_creation_date(
         .map(|r| DateTime::parse_from_rfc3339(&r.timestamp).unwrap()));
 }
 
-
-
 pub async fn get_added_diff_to_current(
     page_name: &str,
     wiki_prefix: impl AsRef<str>,
@@ -304,7 +302,9 @@ pub fn get_most_popular_pages(wiki_name: &str) -> Vec<(String, u32)> {
     let project = format!("{}.wikipedia", &wiki_name[0..=1]);
     let url = format!(
         "https://wikimedia.org/api/rest_v1/metrics/pageviews/top/{project}/all-access/{}/{}/all-days",
-        last_month.year(), last_month.format("%m"));
+        last_month.year(),
+        last_month.format("%m")
+    );
     dbg!(&url);
 
     let resp = get_wikipedia_blocking(&url).unwrap();
@@ -596,12 +596,14 @@ async fn calc_wiki_size(
 
 #[cfg(test)]
 mod tests {
-    use chrono::{format, Datelike, TimeZone, Utc};
+    use chrono::{Datelike, TimeZone, Utc, format};
 
     use crate::{
         download::ALL_DB_TABLES,
         web::{
-            calc_wiki_size, find_smallest_wikis, get_added_diff_to_current, get_deleted_diff_to_current, get_incoming_links, get_latest_revision_id_before_date, get_outgoing_links, get_page_info_by_id, get_page_info_by_title, parse_size_to_bytes
+            calc_wiki_size, find_smallest_wikis, get_added_diff_to_current,
+            get_deleted_diff_to_current, get_incoming_links, get_latest_revision_id_before_date,
+            get_outgoing_links, get_page_info_by_id, get_page_info_by_title, parse_size_to_bytes,
         },
     };
 
@@ -659,10 +661,12 @@ mod tests {
         let res = get_page_info_by_id(145, "de").await;
         assert_eq!(res.unwrap().unwrap().title, "Angela Merkel");
 
-        assert!(get_page_info_by_title("045a3b28f5a0f08adc295a14", "es")
-            .await
-            .unwrap()
-            .is_none());
+        assert!(
+            get_page_info_by_title("045a3b28f5a0f08adc295a14", "es")
+                .await
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[tokio::test()]
@@ -718,23 +722,15 @@ mod tests {
         .await;
         assert!(!res.unwrap().is_empty());
 
-        let res = get_deleted_diff_to_current(
-            "José_Jerí",
-            "en",
-            1316431833,
-        )
-        .await;
+        let res = get_deleted_diff_to_current("José_Jerí", "en", 1316431833).await;
         assert!(!res.unwrap().is_empty());
     }
 
-       #[tokio::test]
+    #[tokio::test]
     async fn test_deleted_diff() {
-        let res = get_deleted_diff_to_current(
-            "Nati nel 1900",
-            "it",
-            145601453,
-        )
-        .await.unwrap();
+        let res = get_deleted_diff_to_current("Nati nel 1900", "it", 145601453)
+            .await
+            .unwrap();
         assert!(!res.is_empty());
         // dbg!(&res);
 

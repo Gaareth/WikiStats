@@ -18,7 +18,9 @@ pub async fn validate_wiki_name(wiki: &str) -> anyhow::Result<()> {
     if status.is_success() {
         Ok(())
     } else if status == StatusCode::NOT_FOUND {
-        Err(anyhow!("There are no dumps for '{wiki}' on https://dumps.wikimedia.org/. Check https://dumps.wikimedia.org/backup-index.html for available wikis"))
+        Err(anyhow!(
+            "There are no dumps for '{wiki}' on https://dumps.wikimedia.org/. Check https://dumps.wikimedia.org/backup-index.html for available wikis"
+        ))
     } else {
         Err(anyhow!(
             "Error checking '{wiki}' on https://dumps.wikimedia.org/{wiki}/. StatusCode: {status}"
@@ -53,7 +55,7 @@ pub async fn validate_sqlite_file(db_path: impl AsRef<Path>, wiki: &str) -> anyh
 
     let conn = Connection::open(&path)?;
     if check_is_done(&conn)? {
-        return Ok(())
+        return Ok(());
     }
     return Err(anyhow!("sqlite file {path:?} is not done"));
 }

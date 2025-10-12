@@ -22,8 +22,6 @@ pub mod utils;
 pub mod validate;
 pub mod web;
 
-
-
 #[derive(Clone)]
 pub struct WikiIdent {
     pub wiki_name: String,
@@ -48,7 +46,6 @@ pub fn create_wiki_idents(db_path: &Path, wikis: Vec<String>) -> Vec<WikiIdent> 
         })
         .collect()
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct AvgDepthStat {

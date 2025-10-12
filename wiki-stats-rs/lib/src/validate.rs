@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 use colored::Colorize as _;
 use log::{debug, info, warn};
 use parse_mediawiki_sql::field_types::{PageId, PageTitle};
-use parse_mediawiki_sql::utils::{memory_map, Mmap};
+use parse_mediawiki_sql::utils::{Mmap, memory_map};
 use rusqlite::Connection;
 
 use crate::sqlite::load::{load_linktarget_map, load_sql_part_map};
@@ -52,7 +52,10 @@ async fn compare_links(
         };
 
         if diff_from.iter().any(|d| d.contains(&to)) {
-            println!("[{}] Link {} -> {} missing from db but seems to be added after {dump_date} db dump", link_type, from, to);
+            println!(
+                "[{}] Link {} -> {} missing from db but seems to be added after {dump_date} db dump",
+                link_type, from, to
+            );
             continue;
         }
 
@@ -63,7 +66,10 @@ async fn compare_links(
                 .unwrap()
                 .unwrap();
             if &creation_date > dump_date {
-                println!("[{}] Link {} -> {} missing from db but seems to be CREATED after {dump_date} db dump", link_type, from, to);
+                println!(
+                    "[{}] Link {} -> {} missing from db but seems to be CREATED after {dump_date} db dump",
+                    link_type, from, to
+                );
                 continue;
             }
         }
@@ -111,7 +117,10 @@ async fn compare_links(
         dbg!(&rev_id_of_from);
 
         if diff_from.iter().any(|d| d.contains(&to)) {
-            println!("[{}] Link {} -> {} missing from db but seems to be deleted after {dump_date} db dump", link_type, from, to);
+            println!(
+                "[{}] Link {} -> {} missing from db but seems to be deleted after {dump_date} db dump",
+                link_type, from, to
+            );
             continue;
         }
 

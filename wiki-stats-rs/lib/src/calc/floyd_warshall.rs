@@ -79,7 +79,6 @@ fn get_2d(i: u32, j: u32, map: &mut FxHashMap<u32, FxHashMap<u32, u32>>) -> u32 
     *map.get(&i).unwrap().get(&j).unwrap_or(&u32::MAX)
 }
 
-
 fn get_all_edges<S: BuildHasher>(
     cache: &HashMap<PageId, Vec<PageId>, S>,
 ) -> FxHashSet<(PageId, PageId)> {
@@ -92,9 +91,7 @@ fn get_all_edges<S: BuildHasher>(
     return edges;
 }
 
-fn get_all_ids<S: BuildHasher>(
-    cache: &HashMap<PageId, Vec<PageId>, S>,
-) -> FxHashSet<PageId> {
+fn get_all_ids<S: BuildHasher>(cache: &HashMap<PageId, Vec<PageId>, S>) -> FxHashSet<PageId> {
     let mut ids = FxHashSet::default();
     for (id, links) in cache {
         ids.insert(*id);

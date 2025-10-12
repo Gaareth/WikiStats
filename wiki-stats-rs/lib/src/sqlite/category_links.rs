@@ -18,8 +18,9 @@ pub fn db_setup(conn: &Connection) {
             category_type TEXT /* enum('page','subcat','file') */
         )",
         (),
-    ).expect("Failed creating table");
-//            UNIQUE (page_id, page_link)
+    )
+    .expect("Failed creating table");
+    //            UNIQUE (page_id, page_link)
     // conn.execute(
     //         "CREATE UNIQUE INDEX WikiLinks_page_id_page_links_key ON
     //         WikiLinks(page_id, page_links)", ()
@@ -31,8 +32,10 @@ pub fn db_setup(conn: &Connection) {
 pub fn create_unique_index(conn: &Connection) {
     conn.execute(
         "CREATE UNIQUE INDEX if not exists WikiCategoryLinks_unique_index ON
-           WikiCategoryLinks(page_id_from, category_name, category_type)", (),
-    ).expect("Failed creating unique index");
+           WikiCategoryLinks(page_id_from, category_name, category_type)",
+        (),
+    )
+    .expect("Failed creating unique index");
 }
 
 pub fn create_indices_post_setup(conn: &Connection) {
@@ -41,10 +44,10 @@ pub fn create_indices_post_setup(conn: &Connection) {
     //     "CREATE INDEX if not exists idx_link_id ON WikiCategoryLinks(page_id);",
     //     (),
     // ).expect("Failed creating index");
-    // 
+    //
     // conn.execute(
     //     "CREATE INDEX if not exists idx_link_page ON WikiCategoryLinks(page_link);",
     //     (),
     // ).expect("Failed creating index");
-    // 
+    //
 }

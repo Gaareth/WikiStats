@@ -1,5 +1,10 @@
 use std::{
-    collections::{HashMap, VecDeque}, hash::BuildHasher, path::Path, sync::{atomic::Ordering, Arc, Mutex}, thread, time::Instant
+    collections::{HashMap, VecDeque},
+    hash::BuildHasher,
+    path::Path,
+    sync::{Arc, Mutex, atomic::Ordering},
+    thread,
+    time::Instant,
 };
 
 use async_stream::stream;
@@ -12,7 +17,10 @@ use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    calc::{get_incoming_links, get_links, HITS, MISSES}, sqlite::{self, page_links::get_links_of_ids}, utils::default_bar_unknown, DBCache, DepthHistogram, DistanceMap, PrevMap
+    DBCache, DepthHistogram, DistanceMap, PrevMap,
+    calc::{HITS, MISSES, get_incoming_links, get_links},
+    sqlite::{self, page_links::get_links_of_ids},
+    utils::default_bar_unknown,
 };
 
 fn bfs_worker(

@@ -126,7 +126,9 @@ async fn handle_generate_stats(
 
     if add_web_wiki_sizes {
         println!("Assuming basepath (from path): {base_path:?}");
-        println!("Adding web wiki sizes to stats at {output_path:?} using db files from: {base_path:?} for dump date {dump_date:?}");
+        println!(
+            "Adding web wiki sizes to stats at {output_path:?} using db files from: {base_path:?} for dump date {dump_date:?}"
+        );
         wiki_stats::stats::add_web_wiki_sizes(&output_path, Some(dump_date.to_string())).await;
     }
 }
@@ -142,7 +144,9 @@ pub async fn handle_stats(subcommands: StatsCommands) {
                 base_path,
                 dump_date,
             } = args;
-            println!("Adding web wiki sizes to stats at {output_path:?} using db files from: {base_path:?} for dump date {dump_date:?}");
+            println!(
+                "Adding web wiki sizes to stats at {output_path:?} using db files from: {base_path:?} for dump date {dump_date:?}"
+            );
             wiki_stats::stats::add_web_wiki_sizes(&output_path, dump_date).await;
         }
 

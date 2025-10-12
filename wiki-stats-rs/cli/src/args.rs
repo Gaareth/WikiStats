@@ -1,7 +1,6 @@
-use clap::{builder::styling, ArgAction, Args, Parser, Subcommand};
-use wiki_stats::download::ALL_DB_TABLES;
+use clap::{ArgAction, Args, Parser, Subcommand, builder::styling};
 use std::path::PathBuf;
-
+use wiki_stats::download::ALL_DB_TABLES;
 
 const STYLES: styling::Styles = styling::Styles::styled()
     .header(styling::AnsiColor::Green.on_default().bold())
@@ -56,7 +55,7 @@ pub enum Commands {
 
         /// Number of pages to validate
         #[arg(short, long, default_value_t = 2, help_heading = "Validation Options")]
-        num_pages: u16
+        num_pages: u16,
     },
 
     /// Generate statistics about the dumps to a json file
@@ -83,7 +82,7 @@ pub enum TasksCommands {
     /// Returns all dump_dates that have the specified tables completed per wiki
     GetCompleteDumpdates {
         #[command(flatten)]
-        args: WikisArgs
+        args: WikisArgs,
     },
 
     /// Returns which dump_dates need to be done for the specified wikis and tables
@@ -99,7 +98,6 @@ pub enum TasksCommands {
 
 #[derive(Subcommand, Debug)]
 pub enum StatsCommands {
-
     /// Generate default stats
     Generate {
         #[command(flatten)]
@@ -148,7 +146,6 @@ pub struct WikiSizesArgs {
     pub dump_date: Option<String>,
 }
 
-
 /// Arguments for the `stats` subcommand
 #[derive(Args, Debug)]
 pub struct StatsArgs {
@@ -160,8 +157,7 @@ pub struct StatsArgs {
     #[arg(long, value_name = "PATH")]
     pub db_path: PathBuf,
 
-    #[arg(short, long, num_args = 1.., value_delimiter = ' ', required = true, 
-    help = "Names of the wikis to process (space separated so: e.g. enwiki dewiki)")]
+    #[arg(short, long, num_args = 1.., value_delimiter = ' ', required = true, help = "Names of the wikis to process (space separated so: e.g. enwiki dewiki)")]
     pub wikis: Vec<String>,
 
     /// Generate stats for all wikis found in --db-path (conflicts with --wikis / -w)
@@ -229,7 +225,7 @@ pub enum DebugCommands {
         path: PathBuf,
 
         #[arg(short, long, default_value_t = 2)]
-        num_pages: u16
+        num_pages: u16,
     },
     ValidateWikis {
         /// Path containing the json statistics files

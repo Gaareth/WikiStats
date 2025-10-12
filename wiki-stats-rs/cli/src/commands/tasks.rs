@@ -15,7 +15,9 @@ pub async fn handle_tasks_commands(subcommands: TasksCommands) {
             validate_wiki_names(&wikis)
                 .await
                 .unwrap_or_else(|e| print_error_and_exit!("Failed validating wiki names: {e}"));
-            println!("> Searching all dump dates for {wikis:?} where the tables {tables:?} are available");
+            println!(
+                "> Searching all dump dates for {wikis:?} where the tables {tables:?} are available"
+            );
 
             for wiki in wikis {
                 let dump_dates = download::get_all_available_dump_dates(&wiki, &tables).await;

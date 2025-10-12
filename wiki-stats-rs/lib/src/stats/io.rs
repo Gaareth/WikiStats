@@ -8,18 +8,15 @@ use log::info;
 use crate::{
     download::ALL_DB_TABLES,
     stats::{
-        create_wiki_idents,
+        WikiIdent, create_wiki_idents,
         samples::{sample_bfs_stats, sample_bidirectional_bfs_stats},
         stats::{Stats, WebWikiSizes},
         utils::{global_ignore, make_stat_record_async, make_stat_record_seq},
-        WikiIdent,
-    }, web::find_smallest_wikis,
+    },
+    web::find_smallest_wikis,
 };
 
-pub async fn add_web_wiki_sizes(
-    output_path: impl AsRef<Path>,
-    dump_date: Option<String>,
-) {
+pub async fn add_web_wiki_sizes(output_path: impl AsRef<Path>, dump_date: Option<String>) {
     let output_path = output_path.as_ref();
     let mut stats = load_stats(output_path);
 

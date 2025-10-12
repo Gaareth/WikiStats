@@ -62,8 +62,12 @@ pub fn bar_color(color: &str, length: u64) -> ProgressBar {
     let bar = indicatif::ProgressBar::new(length);
     bar.set_style(
         ProgressStyle::with_template(
-            &("{spinner:.blue} {bar:40.".to_owned() + "white/" + color + "}  [{elapsed_precise}] {pos:>7}/{len:7} [{percent}%] {eta_precise} {per_sec}"),
-        ).unwrap()
+            &("{spinner:.blue} {bar:40.".to_owned()
+                + "white/"
+                + color
+                + "}  [{elapsed_precise}] {pos:>7}/{len:7} [{percent}%] {eta_precise} {per_sec}"),
+        )
+        .unwrap(),
     );
     bar
 }
@@ -75,18 +79,15 @@ pub fn default_barstyle() -> ProgressStyle {
         .unwrap()
 }
 
-
 pub fn default_secondary_barstyle() -> ProgressStyle {
     ProgressStyle::with_template(
         "{spinner:.blue} {bar:40.green/green} [{elapsed_precise}] {pos:>7}/{len:7} {eta_precise}",
     )
-        .unwrap()
+    .unwrap()
 }
 
 pub fn default_barstyle_unknown() -> ProgressStyle {
-    ProgressStyle::with_template(
-        "{spinner:.cyan} [{elapsed_precise}] [{per_sec}] {pos:>7}/?",
-    )
+    ProgressStyle::with_template("{spinner:.cyan} [{elapsed_precise}] [{per_sec}] {pos:>7}/?")
         .unwrap()
 }
 
@@ -110,7 +111,8 @@ pub fn default_bar_unknown() -> ProgressBar {
 
 pub fn download_barstyle(name: &str) -> ProgressStyle {
     let mut tempate_str = "{spinner:.blue} [{elapsed_precise}] [ETA {eta_precise}] \
-    {bar:40.green/green} [{percent}%] [{total_bytes}] ({bytes_per_sec}): ".to_string();
+    {bar:40.green/green} [{percent}%] [{total_bytes}] ({bytes_per_sec}): "
+        .to_string();
     tempate_str.push_str(name);
     // tempate_str.push_str(" {msg}");
     ProgressStyle::with_template(&tempate_str).unwrap()
@@ -122,7 +124,6 @@ pub fn write_barstyle(name: &str) -> ProgressStyle {
     // tempate_str.push_str(" {msg}");
     ProgressStyle::with_template(&tempate_str).unwrap()
 }
-
 
 pub fn download_bar(length: u64, name: &str) -> ProgressBar {
     let bar = indicatif::ProgressBar::new(length);
@@ -149,7 +150,7 @@ pub async fn fake_bar() {
 
 pub async fn multi_fake_bar_async(m: &MultiProgress) {
     let b = m.add(default_bar(100));
-    
+
     for i in 1..=100 {
         b.inc(1);
         tokio::time::sleep(Duration::from_millis(30)).await;

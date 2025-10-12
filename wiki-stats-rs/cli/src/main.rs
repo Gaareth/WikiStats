@@ -1,11 +1,11 @@
 use clap::Parser;
 
-mod testdata;
-mod logging;
 mod args;
 mod commands;
-mod validation;
+mod logging;
+mod testdata;
 mod utils;
+mod validation;
 
 use args::Cli;
 
@@ -20,7 +20,7 @@ async fn main() {
 
 #[cfg(test)]
 mod cli_test {
-    use crate::{validation::validate_wiki_names, Cli};
+    use crate::{Cli, validation::validate_wiki_names};
 
     #[test]
     fn verify_cli() {
@@ -34,12 +34,16 @@ mod cli_test {
         assert!(validate_wiki_names(&["enwiki", "jawiki"]).await.is_ok());
 
         assert!(validate_wiki_names(&["DOESNOTEXIST"]).await.is_err());
-        assert!(validate_wiki_names(&["enwiki", "DOESNOTEXIST"])
-            .await
-            .is_err());
-        assert!(validate_wiki_names(Vec::<String>::new().as_slice())
-            .await
-            .is_err());
+        assert!(
+            validate_wiki_names(&["enwiki", "DOESNOTEXIST"])
+                .await
+                .is_err()
+        );
+        assert!(
+            validate_wiki_names(Vec::<String>::new().as_slice())
+                .await
+                .is_err()
+        );
     }
 
     // #[tokio::test]
@@ -48,5 +52,3 @@ mod cli_test {
     //     assert!(validate_wiki_names(&["jawiki"]).await.is_err());
     // }
 }
-
-

@@ -8,9 +8,9 @@ use parse_mediawiki_sql::field_types::PageId;
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 
-use crate::{DepthHistogram, PrevMap};
 use crate::sqlite::db_wiki_path;
 use crate::sqlite::title_id_conv::page_id_to_title;
+use crate::{DepthHistogram, PrevMap};
 
 // static PATHS_DB_LOCATION: &str = "/run/media/gareth/7FD71CF32A89EF6A/dev/paths.db";
 // static PATHS_DB_LOCATION: &str = "/run/media/gareth/7FD71CF32A89EF6A/dev/de_paths.db";
@@ -18,8 +18,7 @@ use crate::sqlite::title_id_conv::page_id_to_title;
 // static PATHS_DB_LOCATION: &str = "/run/media/gareth/7FD71CF32A89EF6A/dev/de_paths.db";
 
 pub(crate) fn create_db(path: impl AsRef<Path>) {
-    let conn = Connection::open(path)
-        .expect("Failed creating database connection");
+    let conn = Connection::open(path).expect("Failed creating database connection");
 
     // conn.execute(
     //     "CREATE TABLE if not exists SP_LinkData (
@@ -45,7 +44,8 @@ pub(crate) fn create_db(path: impl AsRef<Path>) {
             page_id INTEGER NOT NULL
         )",
         (),
-    ).expect("Failed creating table 'SP_Link'");
+    )
+    .expect("Failed creating table 'SP_Link'");
 
     conn.execute("PRAGMA synchronous = OFF", ()).unwrap();
 }
@@ -54,12 +54,12 @@ pub fn create_index(conn: &Connection) {
     conn.execute(
         "CREATE INDEX SP_Link_pid_sid ON SP_Link(page_id, source_id);",
         (),
-    ).expect("Failed creating INDEX SP_Link_pid_sid");
+    )
+    .expect("Failed creating INDEX SP_Link_pid_sid");
 }
 
 pub fn precalced_path_ids(path: impl AsRef<Path>) -> FxHashSet<PageId> {
-    let conn = Connection::open(path)
-        .expect("Failed creating database connection");
+    let conn = Connection::open(path).expect("Failed creating database connection");
     let mut stmt = conn.prepare("SELECT source_id FROM SP_Link").unwrap();
 
     let rows = stmt.query_map([], |row| row.get(0)).unwrap();
@@ -112,9 +112,12 @@ struct Data {
     source_ids: FxHashMap<PageId, FxHashSet<usize>>,
 }
 
-pub fn save_shortest_paths_json(path: impl AsRef<Path>, prev_map: &PrevMap,
-                                link_set: &mut FxHashMap<(PageId, PageId, PageId), usize>,
-                                start_link_id: &PageId) {
+pub fn save_shortest_paths_json(
+    path: impl AsRef<Path>,
+    prev_map: &PrevMap,
+    link_set: &mut FxHashMap<(PageId, PageId, PageId), usize>,
+    start_link_id: &PageId,
+) {
     let p = "./test-paths.json";
     let mut data: Data;
 
@@ -143,7 +146,10 @@ pub fn save_shortest_paths_json(path: impl AsRef<Path>, prev_map: &PrevMap,
     for (pid, previous_id) in prev_map {
         let data_idx = *link_set.get(&(*start_link_id, *pid, *previous_id)).unwrap();
         // dbg!(&data_idx);
-        data.source_ids.entry(*start_link_id).or_default().insert(data_idx);
+        data.source_ids
+            .entry(*start_link_id)
+            .or_default()
+            .insert(data_idx);
     }
 
     // let json = json!({
@@ -155,15 +161,16 @@ pub fn save_shortest_paths_json(path: impl AsRef<Path>, prev_map: &PrevMap,
     fs::write(&p, json).unwrap();
 }
 
-pub fn save_shortest_paths(path: impl AsRef<Path>, prev_map: &PrevMap,
-                           link_set: &mut FxHashMap<(PageId, PageId, PageId), usize>,
-                           start_link_id: &PageId) {
+pub fn save_shortest_paths(
+    path: impl AsRef<Path>,
+    prev_map: &PrevMap,
+    link_set: &mut FxHashMap<(PageId, PageId, PageId), usize>,
+    start_link_id: &PageId,
+) {
     create_db(&path);
 
-    let mut conn = Connection::open(path)
-        .expect("Failed creating database connection");
+    let mut conn = Connection::open(path).expect("Failed creating database connection");
     let tx = conn.transaction().unwrap();
-
 
     // {
     //     let mut stmt = tx.prepare_cached(
@@ -183,7 +190,6 @@ pub fn save_shortest_paths(path: impl AsRef<Path>, prev_map: &PrevMap,
     //     }
     // }
 
-
     // {
     //     let mut stmt = tx.prepare_cached(
     //         "INSERT INTO SP_Link (source_id, data_id) VALUES (?1, ?2)").unwrap();
@@ -194,11 +200,15 @@ pub fn save_shortest_paths(path: impl AsRef<Path>, prev_map: &PrevMap,
     // }
 
     {
-        let mut stmt = tx.prepare_cached(
-            "INSERT INTO SP_Link (source_id, previous_id, page_id) VALUES (?1, ?2, ?3)").unwrap();
+        let mut stmt = tx
+            .prepare_cached(
+                "INSERT INTO SP_Link (source_id, previous_id, page_id) VALUES (?1, ?2, ?3)",
+            )
+            .unwrap();
 
         for (pid, previous_id) in prev_map {
-            stmt.execute((start_link_id.0, previous_id.0, pid.0)).unwrap();
+            stmt.execute((start_link_id.0, previous_id.0, pid.0))
+                .unwrap();
         }
     }
 
@@ -211,7 +221,6 @@ pub struct SPStat {
     pub num_visited: u32,
     pub depth_histogram: DepthHistogram,
 }
-
 
 pub fn save_stats(wiki_name: String, page_title: String, stat: SPStat) {
     let path = format!("./sp-stats.json");

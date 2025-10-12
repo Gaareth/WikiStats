@@ -3,8 +3,8 @@ use std::fmt::Debug;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::process::exit;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 use std::{fs, vec};
 
@@ -15,12 +15,12 @@ use indicatif::MultiProgress;
 use parse_mediawiki_sql::utils::memory_map;
 use rusqlite::Connection;
 use tokio::sync::broadcast::Sender;
-use tokio::sync::{broadcast, mpsc, Mutex};
+use tokio::sync::{Mutex, broadcast, mpsc};
 use tokio::task::JoinHandle;
 use tokio::time::sleep;
 
 use crate::download::{self, clean_downloads};
-use crate::download::{unpack_gz_pb, ALL_DB_TABLES};
+use crate::download::{ALL_DB_TABLES, unpack_gz_pb};
 use crate::sqlite::load::load_linktarget_map;
 use crate::sqlite::title_id_conv::TitleIdMap;
 use crate::sqlite::to_sqlite::{LinkTargetTitleMap, ToSqlite};

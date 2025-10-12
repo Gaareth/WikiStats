@@ -13,9 +13,9 @@ use tokio::{
 };
 
 use crate::download::ALL_DB_TABLES;
-use crate::stats::stats::{get_local_wiki_sizes, Page};
+use crate::stats::stats::{Page, get_local_wiki_sizes};
 use crate::{
-    create_wiki_idents,
+    WikiIdent, create_wiki_idents,
     sqlite::title_id_conv::page_id_to_title,
     stats::{
         io::{save_stats, try_load_stats},
@@ -23,10 +23,9 @@ use crate::{
             get_num_dead_orphan_pages, get_num_dead_pages, get_num_linked_redirects,
             get_num_orphan_pages, longest_name, select_link_count_groupby,
         },
-        stats::{num_links_stat, num_pages_stat, num_redirects_stat, LinkCount, StatRecord},
-        utils::{make_stat_record, max_min_value_record, GLOBAL},
+        stats::{LinkCount, StatRecord, num_links_stat, num_pages_stat, num_redirects_stat},
+        utils::{GLOBAL, make_stat_record, max_min_value_record},
     },
-    WikiIdent,
 };
 
 mod io;

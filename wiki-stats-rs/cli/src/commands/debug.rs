@@ -2,7 +2,8 @@ use std::{
     collections::HashSet,
     fs::{self, File},
     os::unix::fs::MetadataExt,
-    path::Path, process::exit,
+    path::Path,
+    process::exit,
 };
 
 use colored::Colorize;
@@ -131,7 +132,9 @@ pub async fn handle_debug_commands(subcommands: DebugCommands) {
                                 println!("You may delete the download dir {download_dir:?}");
                             }
                         } else {
-                            println!("The following files were not processed correctly: {unprocessed_wikis:?}")
+                            println!(
+                                "The following files were not processed correctly: {unprocessed_wikis:?}"
+                            )
                         }
                     } else {
                         println!("{sqlite_dir:?} is empty!")

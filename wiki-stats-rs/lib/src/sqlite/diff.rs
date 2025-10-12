@@ -5,21 +5,23 @@ use std::path::Path;
 
 use fxhash::FxHashSet;
 use indicatif::MultiProgress;
-use parse_mediawiki_sql::{FromSqlTuple, iterate_sql_insertions};
 use parse_mediawiki_sql::utils::Mmap;
+use parse_mediawiki_sql::{FromSqlTuple, iterate_sql_insertions};
 use rusqlite::{Connection, Row};
 
 use crate::sqlite::load::load_sql_part_set_generic;
 use crate::utils::default_bar;
 
-pub fn select_all<T: Eq + Hash>(db_path: impl AsRef<Path>, table: &str, unwrap_row: fn(row: &Row) -> T)
-                                -> FxHashSet<T> {
+pub fn select_all<T: Eq + Hash>(
+    db_path: impl AsRef<Path>,
+    table: &str,
+    unwrap_row: fn(row: &Row) -> T,
+) -> FxHashSet<T> {
     let conn = Connection::open(db_path).unwrap();
 
     let mut stmt = conn.prepare(&format!("SELECT * FROM {table}")).unwrap();
 
-    let rows = stmt.query_map([], |row|
-        Ok(unwrap_row(&row))).unwrap();
+    let rows = stmt.query_map([], |row| Ok(unwrap_row(&row))).unwrap();
     // (row.get(0).unwrap(), row.get(1).unwrap(), row.get(2).unwrap())
 
     let mut data = FxHashSet::default();
@@ -30,17 +32,14 @@ pub fn select_all<T: Eq + Hash>(db_path: impl AsRef<Path>, table: &str, unwrap_r
     data
 }
 
-
 pub fn diff(path1: impl AsRef<Path>, path2: impl AsRef<Path>) {
-    let old_data = select_all::<(u32, u32)>(
-        &path1,
-        "WikiLink",
-        |row| (row.get(0).unwrap(), row.get(1).unwrap()));
+    let old_data = select_all::<(u32, u32)>(&path1, "WikiLink", |row| {
+        (row.get(0).unwrap(), row.get(1).unwrap())
+    });
 
-    let new_data = select_all::<(u32, u32)>(
-        &path1,
-        "WikiLink",
-        |row| (row.get(0).unwrap(), row.get(1).unwrap()));
+    let new_data = select_all::<(u32, u32)>(&path1, "WikiLink", |row| {
+        (row.get(0).unwrap(), row.get(1).unwrap())
+    });
 
     // let symm_diff = old_data.symmetric_difference(&new_data);
     // dbg!(&symm_diff.count());
@@ -51,13 +50,13 @@ pub fn diff(path1: impl AsRef<Path>, path2: impl AsRef<Path>) {
     dbg!(deleted.count());
 }
 
-pub fn diff_sqldump<'a, T: FromSqlTuple<'a> + 'a + Eq + Hash>(mmap1: &'a Mmap, mmap2: &'a Mmap,
-                                                              skip: fn(&T) -> bool,
-                                                              format: Box<dyn Fn(T) -> String>) {
-    let old_data = load_sql_part_set_generic::<T, T>
-        (mmap1, usize::MAX, 0,
-         |p| p,
-         skip);
+pub fn diff_sqldump<'a, T: FromSqlTuple<'a> + 'a + Eq + Hash>(
+    mmap1: &'a Mmap,
+    mmap2: &'a Mmap,
+    skip: fn(&T) -> bool,
+    format: Box<dyn Fn(T) -> String>,
+) {
+    let old_data = load_sql_part_set_generic::<T, T>(mmap1, usize::MAX, 0, |p| p, skip);
 
     let mut new_count = 0;
     let mut diffs = vec![];
