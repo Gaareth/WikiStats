@@ -227,6 +227,13 @@ pub enum DebugCommands {
         #[arg(short, long, default_value_t = 2)]
         num_pages: u16,
     },
+    PreValidate {
+        #[arg(short, long, value_name = "PATH", help = "download-path")]
+        downloads_path: PathBuf,
+
+        #[arg(short, long)]
+        wiki: String
+    },
     ValidateWikis {
         /// Path containing the json statistics files
         #[arg(short, long, value_name = "PATH")]

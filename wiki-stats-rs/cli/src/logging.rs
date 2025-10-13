@@ -1,6 +1,8 @@
 use dirs::home_dir;
 use log::LevelFilter;
-use simplelog::{ColorChoice, CombinedLogger, Config, TermLogger, TerminalMode, WriteLogger};
+use simplelog::{
+    ColorChoice, CombinedLogger, Config, ConfigBuilder, TermLogger, TerminalMode, WriteLogger,
+};
 use std::fs::OpenOptions;
 
 pub async fn setup_logging(verbose: u8) {
@@ -24,10 +26,14 @@ pub async fn setup_logging(verbose: u8) {
     };
     println!("LogLevel: {term_loglevel}");
 
+    let config = ConfigBuilder::new()
+        // .set_target_level(LevelFilter::Warn)
+        .build();
+
     CombinedLogger::init(vec![
         TermLogger::new(
             term_loglevel,
-            Config::default(),
+            config,
             TerminalMode::Mixed,
             ColorChoice::Auto,
         ),

@@ -1,4 +1,5 @@
-use std::collections::HashSet;
+use std::collections::hash_map::Entry;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::Path;
 use std::time::Instant;
@@ -7,16 +8,67 @@ use chrono::{DateTime, Utc};
 use colored::Colorize as _;
 use log::{debug, info, warn};
 use parse_mediawiki_sql::field_types::{PageId, PageTitle};
+use parse_mediawiki_sql::schemas::PageLink;
 use parse_mediawiki_sql::utils::{Mmap, memory_map};
 use rusqlite::Connection;
 
-use crate::sqlite::load::{load_linktarget_map, load_sql_part_map};
+use crate::sqlite::load::{
+    load_links_map, load_linktarget_map, load_map, load_sql_full, load_sql_part_map,
+};
 use crate::sqlite::page_links::{get_incoming_links_of_id, get_links_of_id};
 use crate::web::{
-    get_added_diff_to_current, get_creation_date, get_deleted_diff_to_current,
-    get_latest_revision_id_before_date,
+    WikipediaApiError, get_added_diff_to_current, get_creation_date, get_deleted_diff_to_current,
+    get_latest_revision_id_before_date, get_links_on_webpage,
 };
 use crate::{parse_dump_date, web};
+
+use anyhow::Result;
+use futures::FutureExt;
+use futures::future::BoxFuture;
+use std::future::Future; // for .boxed()
+
+/// Get the diff from the the wikipedia page at dumpdate til the current
+async fn get_or_insert_diff<F>(
+    map: &mut HashMap<String, Vec<String>>,
+    revid_map: &mut HashMap<String, u64>,
+    page: &str,
+    wiki_prefix: &str,
+    dump_date: &DateTime<Utc>,
+    get_fn: F,
+) -> anyhow::Result<(Vec<String>, Option<u64>)>
+where
+    F: for<'a> Fn(&'a str, &'a str, u64) -> BoxFuture<'a, Result<Vec<String>, WikipediaApiError>>
+        + Send
+        + Sync,
+{
+    let rev_id_opt = match revid_map.entry(page.to_string()) {
+        Entry::Occupied(o) => Some(*o.get()),
+        Entry::Vacant(v) => {
+            let rev_id_opt = get_latest_revision_id_before_date(page, wiki_prefix, dump_date)
+                .await
+                .map_err(anyhow::Error::new)?;
+            if let Some(rev_id) = rev_id_opt {
+                v.insert(rev_id);
+            }
+            rev_id_opt
+        }
+    };
+
+    if let Some(diff) = map.get(page) {
+        return Ok((diff.clone(), rev_id_opt));
+    }
+
+    let diff = if let Some(rev_id) = rev_id_opt {
+        get_fn(page, wiki_prefix, rev_id)
+            .await
+            .map_err(anyhow::Error::new)?
+    } else {
+        vec![]
+    };
+
+    map.insert(page.to_string(), diff.clone());
+    Ok((diff, rev_id_opt))
+}
 
 async fn compare_links(
     page_title: &str,
@@ -28,127 +80,219 @@ async fn compare_links(
 ) -> bool {
     let mut success = true;
 
-    let missing = expected_results.difference(db_results);
     debug!("expected: {:?}", expected_results);
     debug!("actual: {:?}", db_results);
 
-    // links missing in the database
-    for diff in missing {
-        let (from, to) = if link_type == "incoming" {
-            (diff.0.as_str(), page_title)
-        } else {
-            (page_title, diff.0.as_str())
-        };
+    let mut revid_map: HashMap<String, u64> = HashMap::new();
+    let mut links_on_old_page_map: HashMap<String, Vec<String>> = HashMap::new();
+    let mut diffs_added_map: HashMap<String, Vec<String>> = HashMap::new();
+    let mut diffs_deleted_map: HashMap<String, Vec<String>> = HashMap::new();
 
-        // if there is a missing link, check if the to link was added after the dump to the from page
-        let rev_id_of_from = get_latest_revision_id_before_date(&from, wiki_prefix, dump_date)
-            .await
-            .unwrap();
-        let diff_from = if let Some(rev_id) = rev_id_of_from {
-            get_added_diff_to_current(&from, wiki_prefix, rev_id)
-                .await
-                .unwrap()
-        } else {
-            vec![]
-        };
-
-        if diff_from.iter().any(|d| d.contains(&to)) {
-            println!(
-                "[{}] Link {} -> {} missing from db but seems to be added after {dump_date} db dump",
-                link_type, from, to
-            );
-            continue;
+    // Links missing in DB
+    for diff in expected_results.difference(db_results) {
+        let ok = check_missing_link(
+            page_title,
+            diff.0.as_str(),
+            link_type,
+            wiki_prefix,
+            dump_date,
+            &mut diffs_added_map,
+            &mut revid_map,
+            &mut links_on_old_page_map,
+        )
+        .await;
+        if !ok {
+            success = false;
         }
-
-        // if an incoming link is missing check if the from page was created after the dumpdate
-        if link_type == "incoming" {
-            let creation_date = get_creation_date(&from, wiki_prefix)
-                .await
-                .unwrap()
-                .unwrap();
-            if &creation_date > dump_date {
-                println!(
-                    "[{}] Link {} -> {} missing from db but seems to be CREATED after {dump_date} db dump",
-                    link_type, from, to
-                );
-                continue;
-            }
-        }
-
-        eprintln!(
-            "{}",
-            format!("[{}] Link {} -> {} missing from db", link_type, from, to).red()
-        );
-
-        if link_type == "incoming" {
-            info!(
-                "{}",
-                format!(
-                    "https://{}.wikipedia.org/wiki/{}",
-                    &wiki_prefix,
-                    urlencoding::encode(&from)
-                )
-            )
-        }
-        success = false;
     }
 
-    // links that are in the database but not online
-    // check if they are deleted after the dumpdate, or if the page was d
-    let outdated = db_results.difference(expected_results);
-    for diff in outdated {
-        let (from, to) = if link_type == "incoming" {
-            (diff.0.as_str(), page_title)
-        } else {
-            (page_title, diff.0.as_str())
-        };
-
-        // if there is a link to much, check if the to link was removed after the dump from the from page
-        let rev_id_of_from = get_latest_revision_id_before_date(&from, wiki_prefix, dump_date)
-            .await
-            .unwrap();
-        let diff_from = if let Some(rev_id) = rev_id_of_from {
-            get_deleted_diff_to_current(&from, wiki_prefix, rev_id)
-                .await
-                .unwrap()
-        } else {
-            vec![]
-        };
-
-        dbg!(&rev_id_of_from);
-
-        if diff_from.iter().any(|d| d.contains(&to)) {
-            println!(
-                "[{}] Link {} -> {} missing from db but seems to be deleted after {dump_date} db dump",
-                link_type, from, to
-            );
-            continue;
+    // Links that exist in DB but not online
+    for diff in db_results.difference(expected_results) {
+        let ok = check_outdated_link(
+            page_title,
+            diff.0.as_str(),
+            link_type,
+            wiki_prefix,
+            dump_date,
+            &mut diffs_deleted_map,
+            &mut revid_map,
+            &mut links_on_old_page_map,
+        )
+        .await;
+        if !ok {
+            success = false;
         }
-
-        eprintln!(
-            "{}",
-            format!(
-                "[{}] Link {} -> {} in db but not online (outdated)?",
-                link_type, from, to
-            )
-            .red()
-        );
-
-        if link_type == "incoming" {
-            info!(
-                "{}",
-                format!(
-                    "https://{}.wikipedia.org/wiki/{}",
-                    &wiki_prefix,
-                    urlencoding::encode(&from)
-                )
-            )
-        }
-
-        success = false;
     }
 
     success
+}
+
+async fn check_missing_link(
+    page_title: &str,
+    other: &str,
+    link_type: &str,
+    wiki_prefix: &str,
+    dump_date: &DateTime<Utc>,
+    diffs_added_map: &mut HashMap<String, Vec<String>>,
+    revid_map: &mut HashMap<String, u64>,
+    links_cache: &mut HashMap<String, Vec<String>>,
+) -> bool {
+    let (from, to) = if link_type == "incoming" {
+        (other, page_title)
+    } else {
+        (page_title, other)
+    };
+
+    // check if the to link was added after the dump to the from page
+    let (diff_added, rev_id_opt) = get_or_insert_diff(
+        diffs_added_map,
+        revid_map,
+        from,
+        wiki_prefix,
+        dump_date,
+        |page, prefix, rev_id| get_added_diff_to_current(page, prefix, rev_id).boxed(),
+    )
+    .await
+    .unwrap();
+
+    if diff_added.iter().any(|d| d.contains(to)) {
+        println!(
+            "[{}] Link {} -> {} missing from db but added after {dump_date}",
+            link_type, from, to
+        );
+        return true;
+    }
+
+    // if an incoming link is missing check if the from page was created after the dumpdate
+    if link_type == "incoming" {
+        if let Some(creation_date) = get_creation_date(from, wiki_prefix).await.unwrap() {
+            if &creation_date > dump_date {
+                println!(
+                    "[{}] Link {} -> {} missing from db but created after {dump_date}",
+                    link_type, from, to
+                );
+                return true;
+            }
+        }
+    }
+
+    // check if the old wikipedia page even contains this link
+    // the problem is that the diff does not render links inside templates, so we need to look at the actual html
+    if let Some(rev_id) = rev_id_opt {
+        let links_on_old_page = get_or_cache_links(from, wiki_prefix, rev_id, links_cache).await;
+        if !link_exists(&links_on_old_page, to) {
+            return true;
+        }
+    }
+
+    eprintln!(
+        "{}",
+        format!("[{}] Link {} -> {} missing from db", link_type, from, to).red()
+    );
+
+    if link_type == "incoming" {
+        info!(
+            "{}",
+            format!(
+                "https://{}.wikipedia.org/wiki/{}",
+                wiki_prefix,
+                urlencoding::encode(from)
+            )
+        );
+    }
+
+    false
+}
+
+async fn check_outdated_link(
+    page_title: &str,
+    other: &str,
+    link_type: &str,
+    wiki_prefix: &str,
+    dump_date: &DateTime<Utc>,
+    diffs_deleted_map: &mut HashMap<String, Vec<String>>,
+    revid_map: &mut HashMap<String, u64>,
+    links_cache: &mut HashMap<String, Vec<String>>,
+) -> bool {
+    let (from, to) = if link_type == "incoming" {
+        (other, page_title)
+    } else {
+        (page_title, other)
+    };
+
+    let (diff_deleted, rev_id_opt) = get_or_insert_diff(
+        diffs_deleted_map,
+        revid_map,
+        from,
+        wiki_prefix,
+        dump_date,
+        |page, prefix, rev_id| get_deleted_diff_to_current(page, prefix, rev_id).boxed(),
+    )
+    .await
+    .unwrap();
+
+    if diff_deleted.iter().any(|d| d.contains(to)) {
+        println!(
+            "[{}] Link {} -> {} missing from db but seems to be deleted after {dump_date} db dump",
+            link_type, from, to
+        );
+        return true;
+    }
+
+    // TODO: check if from or to was deleted after dumpdate
+
+    if let Some(rev_id) = rev_id_opt {
+        let links_on_old_page = get_or_cache_links(from, wiki_prefix, rev_id, links_cache).await;
+        if !link_exists(&links_on_old_page, to) {
+            return true;
+        }
+    }
+
+    eprintln!(
+        "{}",
+        format!(
+            "[{}] Link {} -> {} in db but not online (outdated?)",
+            link_type, from, to
+        )
+        .red()
+    );
+
+    if link_type == "incoming" {
+        info!(
+            "{}",
+            format!(
+                "https://{}.wikipedia.org/wiki/{}",
+                wiki_prefix,
+                urlencoding::encode(from)
+            )
+        );
+    }
+
+    false
+}
+
+// Utility: fetch links, with caching
+async fn get_or_cache_links(
+    page: &str,
+    wiki_prefix: &str,
+    rev_id: u64,
+    cache: &mut HashMap<String, Vec<String>>,
+) -> Vec<String> {
+    match cache.entry(page.to_string()) {
+        Entry::Occupied(o) => o.get().clone(),
+        Entry::Vacant(v) => {
+            let links = get_links_on_webpage(page, wiki_prefix, rev_id)
+                .await
+                .unwrap();
+            v.insert(links.clone());
+            links
+        }
+    }
+}
+
+// Utility: compare link presence (handles underscores)
+fn link_exists(links: &[String], to: &str) -> bool {
+    links.contains(&to.to_string()) || links.contains(&to.replace(" ", "_"))
 }
 
 pub fn check_is_done(conn: &Connection) -> rusqlite::Result<bool> {
@@ -299,34 +443,52 @@ pub async fn post_validation(
         .await;
     }
 
-    conn.execute(
+    let r =conn.execute(
             "UPDATE Info SET is_validated = ?, num_pages_validated = ?, validation_time_s = ? WHERE id = 0",
             (success, pages_to_test.len(),t1.elapsed().as_secs_f64()),
-        )
-        .unwrap();
+        );
+    if let Err(e) = r {
+        log::error!("{}", format!("Error setting is_validated: {e}"));
+    }
+
     success
 }
 
-async fn pre_validation(
+pub async fn pre_validation(
     pl_sql_file_path: impl AsRef<Path>,
     lt_sql_file_path: impl AsRef<Path>,
+    page_ids_to_check: &[PageId],
 ) -> bool {
+    let pl_sql_file_path = pl_sql_file_path.as_ref();
+    let filename = &pl_sql_file_path.file_name().unwrap().to_str().unwrap();
+    let wikiname = filename.split("-").next().unwrap();
+    let wikiprefix = &wikiname[..2];
+
     let pl_mmap: Mmap = unsafe { memory_map(pl_sql_file_path).unwrap() };
-    let pl_map = load_sql_part_map(pl_mmap, 1, 1);
+    let pl_map = load_links_map::<_, _, PageLink>(
+        &pl_mmap,
+        |pl| (pl.from, pl.target),
+        |pl| pl.from_namespace.0 != 0 || pl.from.0 != 9360088,
+    );
 
     let lt_mmap: Mmap = unsafe { memory_map(lt_sql_file_path).unwrap() };
     let lt_map = load_linktarget_map(lt_mmap);
     dbg!(&lt_map.len());
+    dbg!(&pl_map.len());
 
     println!("Loaded map");
 
     let mut success = true;
 
     for (page_id, link_targets) in pl_map.iter() {
+        if !page_ids_to_check.contains(page_id) {
+            continue;
+        }
+
         dbg!(&page_id);
 
         let expected_results: HashSet<PageTitle> = HashSet::from_iter(
-            web::get_incoming_links_by_id(page_id.0, "de")
+            web::get_incoming_links_by_id(page_id.0, wikiprefix)
                 .await
                 .unwrap()
                 .into_iter()

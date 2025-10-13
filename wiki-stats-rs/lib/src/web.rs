@@ -153,7 +153,8 @@ pub async fn get_latest_revision_id_before_date(
     wiki_prefix: impl AsRef<str>,
     date: &DateTime<Utc>,
 ) -> Result<Option<u64>, WikipediaApiError> {
-    let dt_string = date.to_rfc3339_opts(SecondsFormat::Secs, true); // ISO 8601 recommended: https://www.mediawiki.org/w/api.php?action=help&modules=main#main/datatype/timestamp
+    // ISO 8601 recommended: https://www.mediawiki.org/w/api.php?action=help&modules=main#main/datatype/timestamp
+    let dt_string = date.to_rfc3339_opts(SecondsFormat::Secs, true);
 
     #[derive(Debug, Deserialize, Eq, PartialEq, Hash)]
     pub struct Revision {
@@ -203,7 +204,7 @@ pub async fn get_creation_date(
 
 pub async fn get_added_diff_to_current(
     page_name: &str,
-    wiki_prefix: impl AsRef<str>,
+    wiki_prefix: &str,
     rev_id: u64,
 ) -> Result<Vec<String>, WikipediaApiError> {
     get_diff_to_current(page_name, wiki_prefix, rev_id, true).await
@@ -253,6 +254,47 @@ pub async fn get_diff_to_current(
     }
 
     Err(anyhow!("Failed to get diff").into())
+}
+
+pub async fn get_links_on_webpage(
+    page_name: &str,
+    wiki_prefix: impl AsRef<str>,
+    rev_id: u64,
+) -> Result<Vec<String>, reqwest::Error> {
+    let wiki_prefix = wiki_prefix.as_ref();
+    let url =
+        format!("https://{wiki_prefix}.wikipedia.org/w/index.php?title={page_name}&oldid={rev_id}");
+
+    let client = reqwest::Client::new();
+
+    let resp = client
+        .get(&url)
+        .header("User-Agent", wikipedia_user_agent())
+        .send()
+        .await?;
+    let content = resp.text().await?;
+    let document = Html::parse_document(&content);
+
+    let selector = Selector::parse("a").unwrap();
+    let all_links: Vec<String> = document
+        .select(&selector)
+        .filter_map(|e| {
+            e.value().attr("href").and_then(|link| {
+                if link.starts_with("/wiki/") {
+                    let title = e.value().attr("title").map(|s| s.to_string());
+                    if title.is_some() {
+                        title
+                    } else {
+                        Some(link.split("/wiki/").next().unwrap().to_string())
+                    }
+                } else {
+                    None
+                }
+            })
+        })
+        .collect();
+
+    Ok(all_links)
 }
 
 pub async fn get_incoming_links(
@@ -346,6 +388,7 @@ pub async fn get_page_info_by_title(
     .await
 }
 
+// group this in batches of 50 
 pub async fn get_page_info_by_id(
     pageid: u64,
     wiki_prefix: impl AsRef<str>,
