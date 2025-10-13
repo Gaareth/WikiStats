@@ -16,6 +16,7 @@ use crate::sqlite::load::{
     load_links_map, load_linktarget_map, load_map, load_sql_full, load_sql_part_map,
 };
 use crate::sqlite::page_links::{get_incoming_links_of_id, get_links_of_id};
+use crate::sqlite::to_sqlite::INFO_TABLE;
 use crate::web::{
     WikipediaApiError, get_added_diff_to_current, get_creation_date, get_deleted_diff_to_current,
     get_latest_revision_id_before_date, get_links_on_webpage,
@@ -443,6 +444,8 @@ pub async fn post_validation(
         .await;
     }
 
+    conn.execute(INFO_TABLE, ()).unwrap();
+
     let r =conn.execute(
             "UPDATE Info SET is_validated = ?, num_pages_validated = ?, validation_time_s = ? WHERE id = 0",
             (success, pages_to_test.len(),t1.elapsed().as_secs_f64()),
@@ -454,6 +457,7 @@ pub async fn post_validation(
     success
 }
 
+/// Currently only checks outgoing links
 pub async fn pre_validation(
     pl_sql_file_path: impl AsRef<Path>,
     lt_sql_file_path: impl AsRef<Path>,
@@ -480,14 +484,12 @@ pub async fn pre_validation(
 
     let mut success = true;
 
-    let convert_pid_pt = move |pid: PageId| {
-        async move {
-            let pageinfo: web::PageInfo = web::get_page_info_by_id(pid.0 as u64, &wikiprefix)
-                .await
-                .unwrap()
-                .unwrap();
-            pageinfo.title
-        }
+    let convert_pid_pt = move |pid: PageId| async move {
+        let pageinfo: web::PageInfo = web::get_page_info_by_id(pid.0 as u64, &wikiprefix)
+            .await
+            .unwrap()
+            .unwrap();
+        pageinfo.title
     };
 
     for (page_id, link_targets) in pl_map.iter() {

@@ -82,6 +82,17 @@ pub struct ToSqlite<'a> {
     base_path: PathBuf,
 }
 
+pub const INFO_TABLE: &str = "CREATE TABLE if not exists Info (
+            id INTEGER PRIMARY KEY,
+            is_done INTEGER,
+            insertion_time_s DOUBLE,
+            index_creation_time_s DOUBLE,
+            
+            is_validated INTEGER,
+            num_pages_validated INTEGER,
+            validation_time_s DOUBLE
+        )";
+
 impl<'a> ToSqlite<'a> {
     // pub fn new(wiki_name: impl Into<String>, dump_date: impl Into<String>, base_path: impl Into<PathBuf>) -> Self {
     //     let m_pb = MultiProgress::new();
@@ -131,20 +142,7 @@ impl<'a> ToSqlite<'a> {
             )
         });
 
-        conn.execute(
-            "CREATE TABLE if not exists Info (
-            id INTEGER PRIMARY KEY,
-            is_done INTEGER,
-            insertion_time_s DOUBLE,
-            index_creation_time_s DOUBLE,
-            
-            is_validated INTEGER,
-            num_pages_validated INTEGER,
-            validation_time_s DOUBLE
-        )",
-            (),
-        )
-        .unwrap();
+        conn.execute(INFO_TABLE, ()).unwrap();
 
         conn.execute("INSERT INTO Info Values (?, ?, ?, ?)", (0, 0, Null, Null))
             .unwrap();
