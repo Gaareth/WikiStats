@@ -43,7 +43,8 @@ pub async fn handle_debug_commands(subcommands: DebugCommands) {
             dump_date,
         } => {
             let dump_date = dump_date.unwrap_or(
-                downloads_path.parent()
+                downloads_path
+                    .parent()
                     .and_then(Path::file_name)
                     .and_then(|s| s.to_str())
                     .expect(
@@ -96,12 +97,16 @@ pub async fn handle_debug_commands(subcommands: DebugCommands) {
 
             println!("Assuming dumpdate: {dump_date}");
 
-            let random_pages: Vec<PageTitle> = web::get_random_wikipedia_pages(num_pages, prefix)
-                .await
-                .unwrap()
-                .into_iter()
-                .map(|p| PageTitle(p.title))
-                .collect();
+            let random_pages: Vec<PageTitle> = if let Some(num_pages) = num_pages {
+                web::get_random_wikipedia_pages(num_pages, prefix)
+                    .await
+                    .unwrap()
+                    .into_iter()
+                    .map(|p| PageTitle(p.title))
+                    .collect()
+            } else {
+                page_titles.into_iter().map(|s| PageTitle(s)).collect()
+            };
 
             // let random_pages = vec![PageTitle("Karlo Butić".to_string())];
 

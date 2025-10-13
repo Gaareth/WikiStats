@@ -7,6 +7,7 @@ import {
     lazy,
     onMount,
 } from "solid-js";
+import { cn } from "../../utils";
 import {
     ErrorCircleIcon,
     LoadingSpinner,
@@ -100,7 +101,11 @@ export default function ShortestPath(props: Props) {
                 wiki_name={props.wiki_name}
                 paths={paths()}>
                 <div class="border min-h-14 flex items-center relative dark:border-dark_05">
-                    <div class="-z-10 top-0 w-full h-full absolute animate-pulse bg-slate-100 dark:bg-dark_01  "></div>
+                    <div
+                        class={cn(
+                            "-z-10 top-0 w-full h-full absolute bg-slate-100 dark:bg-dark_01",
+                            !error() && "animate-pulse",
+                        )}></div>
 
                     <div class="mx-auto w-fit py-2 px-2">
                         <Switch

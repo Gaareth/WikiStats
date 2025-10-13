@@ -26,7 +26,7 @@ export default function PageLinkPills(props: {
     const [num_links, { refetch: refetch_outgoing }] = createResource(
         async () => {
             // await sleep(1000);
-            const url = `/api/${props.wiki_name}/${props.title.replaceAll(
+            const url = `${import.meta.env.SITE}/api/${props.wiki_name}/${props.title.replaceAll(
                 " ",
                 "_",
             )}/links?num=true`;
@@ -42,7 +42,7 @@ export default function PageLinkPills(props: {
 
     const [times_linked, { refetch: refetch_incoming }] = createResource(
         async () => {
-            const url = `/api/${props.wiki_name}/${props.title.replaceAll(
+            const url = `${import.meta.env.SITE}/api/${props.wiki_name}/${props.title.replaceAll(
                 " ",
                 "_",
             )}/linked?num=true`;
@@ -90,7 +90,7 @@ export default function PageLinkPills(props: {
                         type="button">
                         <IncomingLinks />
                     </TooltipButton>
-                    <Suspense>{big_num_format(times_linked())}</Suspense>
+                   {big_num_format(times_linked())}
                 </ErrorBoundary>
             </Pill>
 
@@ -99,7 +99,7 @@ export default function PageLinkPills(props: {
                     fallback={
                         <FallBack error_msg={num_links.error.toString()} />
                     }>
-                    <Suspense>{big_num_format(num_links())}</Suspense>
+                    {big_num_format(num_links())}
                     <TooltipButton
                         class="w-5 h-5 block -mb-0.5"
                         tooltip="Outgoing Links"

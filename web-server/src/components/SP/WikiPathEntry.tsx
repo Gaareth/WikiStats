@@ -42,7 +42,7 @@ export default function WikiPathEntry(props: Props) {
     });
 
     const check_is_redirect = async () => {
-        const base = import.meta.env.SSR ? "http://localhost:4321" : "";
+        const base = import.meta.env.SITE;
 
         return (
             await fetch(

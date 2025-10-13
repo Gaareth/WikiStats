@@ -231,8 +231,8 @@ pub enum DebugCommands {
         page_titles: Vec<String>,
 
         /// How many random pages should be tested
-        #[arg(short, long, default_value_t = 2, group = "pages")]
-        num_pages: u16,
+        #[arg(short, long, group = "pages")]
+        num_pages: Option<u16>,
 
         /// Optionally specify which dump date to use (default: parsed from path). Format: YYYYMMDD
         #[arg(long)]
