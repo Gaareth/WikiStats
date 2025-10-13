@@ -220,19 +220,42 @@ pub enum DebugCommands {
         #[arg(short, long, num_args = 1.., default_values = & ["pagelinks", "page"])]
         tables: Vec<String>,
     },
+    /// Validate the processed sqlite fiels by checking if their links match whats is on the website
     ValidatePageLinks {
-        #[arg(short, long, value_name = "PATH", help = "Path to db file")]
+        /// Path of the sqlite db file
+        #[arg(short, long, value_name = "PATH")]
         path: PathBuf,
 
-        #[arg(short, long, default_value_t = 2)]
+        /// Which pages should be tested
+        #[arg(short, long, group = "pages")]
+        page_titles: Vec<String>,
+
+        /// How many random pages should be tested
+        #[arg(short, long, default_value_t = 2, group = "pages")]
         num_pages: u16,
+
+        /// Optionally specify which dump date to use (default: parsed from path). Format: YYYYMMDD
+        #[arg(long)]
+        dump_date: Option<String>,
     },
+
+    /// Validate the downloaded sql dumps by checking if their links match whats is on the website
     PreValidate {
-        #[arg(short, long, value_name = "PATH", help = "download-path")]
+        /// Path containing the sql.gz and sql files
+        #[arg(short, long, value_name = "PATH")]
         downloads_path: PathBuf,
 
+        /// The wikiname, e.g. dewiki
         #[arg(short, long)]
-        wiki: String
+        wiki: String,
+
+        /// The page_ids to check
+        #[arg(short, long)]
+        page_ids: Vec<u32>,
+
+        /// Optionally specify which dump date to use (default: parsed from downloads_path). Format: YYYYMMDD
+        #[arg(long)]
+        dump_date: Option<String>,
     },
     ValidateWikis {
         /// Path containing the json statistics files

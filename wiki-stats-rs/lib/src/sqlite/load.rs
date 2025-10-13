@@ -30,18 +30,21 @@ pub fn load_title_id_map(page_mmap: Mmap) -> FxHashMap<PageTitle, PageId> {
     load_map::<_, _, Page>(&page_mmap, |lt| (lt.title, lt.id), |lt| lt.namespace.0 != 0)
 }
 
-
-pub fn load_links_map<'a, K: Eq + Hash, V, I: FromSqlTuple<'a> + 'a>(
+pub fn load_links_map<'a, K: Eq + Hash, V, I: FromSqlTuple<'a> + 'a, FInsert, FSkip>(
     linktarget_map: &'a Mmap,
-    insert_fn: fn(I) -> (K, V),
-    skip_fn: fn(&I) -> bool,
-) -> FxHashMap<K, Vec<V>> {
+    insert_fn: FInsert,
+    skip_fn: FSkip,
+) -> FxHashMap<K, Vec<V>>
+where
+    FInsert: Fn(I) -> (K, V),
+    FSkip: Fn(&I) -> bool,
+{
     let bar = indicatif::ProgressBar::new(MAX_SIZE as u64);
     bar.set_style(
         ProgressStyle::with_template(
             "{spinner:.green} {bar:40.cyan/blue} [{elapsed_precise}] {pos:>7}/{len:7} {eta_precise}",
         )
-            .unwrap(),
+        .unwrap(),
     );
 
     let mut map: FxHashMap<K, Vec<V>> = FxHashMap::default();

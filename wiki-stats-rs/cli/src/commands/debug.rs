@@ -8,7 +8,10 @@ use std::{
 
 use colored::Colorize;
 use log::error;
-use parse_mediawiki_sql::{field_types::{PageId, PageTitle}, utils::memory_map};
+use parse_mediawiki_sql::{
+    field_types::{PageId, PageTitle},
+    utils::memory_map,
+};
 use schemars::schema_for;
 use wiki_stats::{
     sqlite::load::load_linktarget_map,
@@ -36,42 +39,71 @@ pub async fn handle_debug_commands(subcommands: DebugCommands) {
         DebugCommands::PreValidate {
             downloads_path,
             wiki,
+            page_ids,
+            dump_date,
         } => {
-            let dump_date = downloads_path
-                .parent()
-                .and_then(Path::file_name)
-                .and_then(|s| s.to_str())
-                .expect("Failed extracting dumpdate from path. Please provide using --dump-date");
+            let dump_date = dump_date.unwrap_or(
+                downloads_path.parent()
+                    .and_then(Path::file_name)
+                    .and_then(|s| s.to_str())
+                    .expect(
+                        "Failed extracting dumpdate from path. Please provide using --dump-date",
+                    )
+                    .to_string(),
+            );
 
-            let pl_sql_file_path = downloads_path.join(format!("{}-{}-pagelinks.sql", wiki, dump_date));
-            let lt_sql_file_path = downloads_path.join(format!("{}-{}-linktarget.sql", wiki, dump_date));
+            let pl_sql_file_path =
+                downloads_path.join(format!("{}-{}-pagelinks.sql", wiki, dump_date));
+            let lt_sql_file_path =
+                downloads_path.join(format!("{}-{}-linktarget.sql", wiki, dump_date));
 
-            let page_ids_to_check = vec![PageId(9360088)];
+            let page_ids_to_check: Vec<PageId> = page_ids.into_iter().map(|p| PageId(p)).collect();
 
-            validate::pre_validation(pl_sql_file_path, lt_sql_file_path, &page_ids_to_check).await;
+            let valid = validate::pre_validation(
+                pl_sql_file_path,
+                lt_sql_file_path,
+                &page_ids_to_check,
+                dump_date,
+            )
+            .await;
+
+            if !valid {
+                print_error_and_exit!("Validation failed!")
+            } else {
+                println!("{}", "Validation successful".green());
+            }
         }
-        DebugCommands::ValidatePageLinks { path, num_pages } => {
+        DebugCommands::ValidatePageLinks {
+            path,
+            num_pages,
+            page_titles,
+            dump_date,
+        } => {
             let filename = path.file_name().unwrap().to_str().unwrap().to_string();
             let prefix: &str = &filename.clone()[..2];
             println!("Assuming wikiprefix: {prefix}");
 
-            let dump_date = path
-                .parent()
-                .and_then(Path::parent)
-                .and_then(Path::file_name)
-                .and_then(|s| s.to_str())
-                .expect("Failed extracting dumpdate from path. Please provide using --dump-date");
+            let dump_date = dump_date.unwrap_or(
+                path.parent()
+                    .and_then(Path::parent)
+                    .and_then(Path::file_name)
+                    .and_then(|s| s.to_str())
+                    .expect(
+                        "Failed extracting dumpdate from path. Please provide using --dump-date",
+                    )
+                    .to_string(),
+            );
 
             println!("Assuming dumpdate: {dump_date}");
 
-            // let random_pages: Vec<PageTitle> = web::get_random_wikipedia_pages(num_pages, prefix)
-            //     .await
-            //     .unwrap()
-            //     .into_iter()
-            //     .map(|p| PageTitle(p.title))
-            //     .collect();
+            let random_pages: Vec<PageTitle> = web::get_random_wikipedia_pages(num_pages, prefix)
+                .await
+                .unwrap()
+                .into_iter()
+                .map(|p| PageTitle(p.title))
+                .collect();
 
-            let random_pages = vec![PageTitle("Karlo Butić".to_string())];
+            // let random_pages = vec![PageTitle("Karlo Butić".to_string())];
 
             let valid = validate::post_validation(&path, dump_date, prefix, &random_pages).await;
 

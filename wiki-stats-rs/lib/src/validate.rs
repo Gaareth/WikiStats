@@ -458,45 +458,50 @@ pub async fn pre_validation(
     pl_sql_file_path: impl AsRef<Path>,
     lt_sql_file_path: impl AsRef<Path>,
     page_ids_to_check: &[PageId],
+    dump_date: impl AsRef<str>,
 ) -> bool {
     let pl_sql_file_path = pl_sql_file_path.as_ref();
     let filename = &pl_sql_file_path.file_name().unwrap().to_str().unwrap();
     let wikiname = filename.split("-").next().unwrap();
     let wikiprefix = &wikiname[..2];
+    let dump_date = parse_dump_date(dump_date.as_ref()).expect("Failed parsing dumpdate");
 
     let pl_mmap: Mmap = unsafe { memory_map(pl_sql_file_path).unwrap() };
-    let pl_map = load_links_map::<_, _, PageLink>(
+    let pl_map = load_links_map::<_, _, PageLink, _, _>(
         &pl_mmap,
         |pl| (pl.from, pl.target),
-        |pl| pl.from_namespace.0 != 0 || pl.from.0 != 9360088,
+        |pl| pl.from_namespace.0 != 0 || !page_ids_to_check.contains(&pl.from),
     );
 
     let lt_mmap: Mmap = unsafe { memory_map(lt_sql_file_path).unwrap() };
     let lt_map = load_linktarget_map(lt_mmap);
-    dbg!(&lt_map.len());
-    dbg!(&pl_map.len());
 
     println!("Loaded map");
 
     let mut success = true;
 
-    for (page_id, link_targets) in pl_map.iter() {
-        if !page_ids_to_check.contains(page_id) {
-            continue;
+    let convert_pid_pt = move |pid: PageId| {
+        async move {
+            let pageinfo: web::PageInfo = web::get_page_info_by_id(pid.0 as u64, &wikiprefix)
+                .await
+                .unwrap()
+                .unwrap();
+            pageinfo.title
         }
+    };
+
+    for (page_id, link_targets) in pl_map.iter() {
+        let page_title = convert_pid_pt(*page_id).await;
 
         dbg!(&page_id);
 
         let expected_results: HashSet<PageTitle> = HashSet::from_iter(
-            web::get_incoming_links_by_id(page_id.0, wikiprefix)
+            web::get_outgoing_links_by_id(page_id.0, wikiprefix)
                 .await
                 .unwrap()
                 .into_iter()
-                .map(|link| link.title.into()),
+                .map(|link| link.title.replace(" ", "_").into()),
         );
-
-        dbg!(&expected_results);
-        dbg!(&link_targets);
 
         let sqlfile_results = HashSet::from_iter(
             link_targets
@@ -505,21 +510,15 @@ pub async fn pre_validation(
                 .cloned(),
         );
 
-        dbg!(&sqlfile_results);
-
-        // the pl_map will only return some links, so we can only test if the part of returned links is also in the expected links
-        let diffs = sqlfile_results.difference(&expected_results);
-        let mut diffs_count = 0;
-        for diff in diffs {
-            eprintln!(
-                "Diff: Link from {} -> {} not api results",
-                page_id.0, diff.0
-            );
-            success = false;
-            diffs_count += 1;
-        }
-
-        // println!("{} / {} = {}% WRONG", diffs_count, sqlfile_results.len(), (diffs_count / sqlfile_results.len()) * 100);
+        success &= compare_links(
+            &page_title,
+            &wikiprefix,
+            &dump_date,
+            &expected_results,
+            &sqlfile_results,
+            "outgoing",
+        )
+        .await;
     }
 
     success

@@ -336,6 +336,20 @@ pub async fn get_outgoing_links(
     .await
 }
 
+pub async fn get_outgoing_links_by_id(
+    page_id: u32,
+    wiki_prefix: impl AsRef<str>,
+) -> Result<Vec<Link>, WikipediaApiError> {
+    query_wikipedia_api(
+        wiki_prefix,
+        "links",
+        &format!("&pageids={page_id}&pllimit=max&plnamespace=0"),
+        Some("plcontinue"),
+    )
+    .await
+}
+
+
 pub fn get_most_popular_pages(wiki_name: &str) -> Vec<(String, u32)> {
     let now = chrono::Utc::now();
     let last_month = chrono::Utc
