@@ -349,7 +349,6 @@ pub async fn get_outgoing_links_by_id(
     .await
 }
 
-
 pub fn get_most_popular_pages(wiki_name: &str) -> Vec<(String, u32)> {
     let now = chrono::Utc::now();
     let last_month = chrono::Utc
@@ -402,7 +401,7 @@ pub async fn get_page_info_by_title(
     .await
 }
 
-// group this in batches of 50 
+// group this in batches of 50
 pub async fn get_page_info_by_id(
     pageid: u64,
     wiki_prefix: impl AsRef<str>,

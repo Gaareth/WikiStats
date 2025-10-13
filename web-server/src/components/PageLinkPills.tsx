@@ -4,7 +4,6 @@ import {
     createUniqueId,
     ErrorBoundary,
     onMount,
-    Suspense,
 } from "solid-js";
 import { big_num_format, reinitializeFlowBiteTooltips } from "../utils";
 import {
@@ -90,7 +89,7 @@ export default function PageLinkPills(props: {
                         type="button">
                         <IncomingLinks />
                     </TooltipButton>
-                   {big_num_format(times_linked())}
+                    {big_num_format(times_linked())}
                 </ErrorBoundary>
             </Pill>
 
