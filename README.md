@@ -20,6 +20,12 @@ Wikipedia statistics and shortest path finder
 - wiki-stats-rs: Rust services for processing wikipedia dumps and a blazingly fast webserver calculating shortest paths 
 - igraph: Graph experiements
 
+## Todo
+- Properly handle wikiprefixes: currently alot of stuff depends on wikiprefixes being two chars, and ending with "wiki". Also their url might be different
+- More tests, especially benchmarking
+- Download command
+- Code refactor
+
 ## Disclaimer
 
 The dumps may not always fully reflect the current links online, especially for websites that are frequently updated. 
