@@ -61,7 +61,8 @@ pub async fn handle_process_databases(command: Commands) {
                     post_validation(&db_file, &dump_date, &wiki_prefix, &random_pages).await;
 
                 if !valid {
-                    validate_post_validation(&dump_date, wiki, dumpdate_path, db_file, post_diffs).await;
+                    validate_post_validation(&dump_date, wiki, dumpdate_path, db_file, post_diffs)
+                        .await;
                 } else {
                     print!("{}", format!("Validation was successful").green())
                 }
@@ -71,4 +72,3 @@ pub async fn handle_process_databases(command: Commands) {
         unreachable!("This function should only be called with the ProcessDatabases command");
     }
 }
-

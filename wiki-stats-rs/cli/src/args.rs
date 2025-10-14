@@ -284,7 +284,7 @@ pub enum DebugCommands {
         #[arg(long)]
         from: String,
 
-        /// To title. If none print all 
+        /// To title. If none print all
         #[arg(long)]
         to: Option<String>,
 
