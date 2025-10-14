@@ -1,4 +1,5 @@
 ---
+import Alert from "../components/Alert.astro";
 import Layout from "../layouts/Layout.astro";
 import "../styles/prose.scss";
 ---
@@ -50,17 +51,43 @@ import "../styles/prose.scss";
                         https://meta.wikimedia.org/wiki/Data_dumps
                     </a>
                 </p>
-
-                <p>
-                    I hope to update this page monthly. It's likely that the
-                    results are slightly out of date for some pages though.
-                </p>
-
-                <p>
-                    I expect to opensource this as soon as I get the backend to
-                    look presentable/understandable
-                </p>
             </div>
+
+            <h3 id="data-validity">Validity</h3>
+            <p>
+                The pagelinks and linktarget table don't always accurately
+                reflect the actual links on the webpage. For example: the <a
+                    href="Nati il 21 aprile">
+                    https://it.wikipedia.org/wiki/Nati_il_21_aprile
+                </a> page is frequently updated. The link to <a
+                    href="https://it.wikipedia.org/wiki/Wesllem">
+                    Wesllem
+                </a> was removed on the <a
+                    href="https://it.wikipedia.org/w/index.php?title=Nati_il_21_aprile&oldid=147034440">
+                    second october at 1am
+                </a> and added back at <a
+                    href="https://it.wikipedia.org/w/index.php?title=Nati_il_21_aprile&oldid=147036038">
+                    8am
+                </a>. However it was present at the <a
+                    href="https://it.wikipedia.org/w/index.php?title=Nati_il_21_aprile&oldid=146885011">
+                    24th september
+                </a>
+                (See: <a
+                    href="https://it.wikipedia.org/w/index.php?title=Nati_il_21_aprile&action=history">
+                    history
+                </a>). It appears that as a result the 20251001 dumpdate does
+                not contain this link. Which makes sense as the corresponding
+                table dump was finished at <a
+                    href="https://dumps.wikimedia.org/itwiki/20251001/">
+                    2025-10-02 04:51:21.
+                </a>
+            </p>
+
+            <Alert type="error" className="text-xl">
+                The results shown here may not always fully reflect the current
+                links online, especially for websites that are frequently
+                updated.
+            </Alert>
         </section>
 
         <section>
@@ -112,6 +139,13 @@ import "../styles/prose.scss";
                     </a>. The Logo uses a modified search icon.
                 </li>
             </ul>
+        </section>
+
+        <section>
+            You can find the sourcecode at <a
+                href="https://github.com/Gaareth/WikiStats/">
+                GitHub
+            </a>
         </section>
     </div>
 </Layout>

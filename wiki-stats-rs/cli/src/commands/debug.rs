@@ -1,5 +1,5 @@
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     fs::{self, File},
     os::unix::fs::MetadataExt,
     path::Path,
@@ -7,15 +7,21 @@ use std::{
 };
 
 use colored::Colorize;
+use indicatif::ProgressStyle;
 use log::error;
 use parse_mediawiki_sql::{
     field_types::{PageId, PageTitle},
-    utils::memory_map,
+    iterate_sql_insertions,
+    schemas::{LinkTarget, PageLink},
+    utils::{Mmap, memory_map},
 };
 use schemars::schema_for;
 use wiki_stats::{
-    sqlite::load::load_linktarget_map,
-    stats, validate,
+    calc::MAX_SIZE,
+    parse_dump_date,
+    sqlite::load::{load_links_map, load_linktarget_map, load_map},
+    stats,
+    validate::{self, validate_post_validation},
     web::{self, find_smallest_wikis},
 };
 
@@ -39,7 +45,7 @@ pub async fn handle_debug_commands(subcommands: DebugCommands) {
         DebugCommands::PreValidate {
             downloads_path,
             wiki,
-            page_ids,
+            page_titles,
             dump_date,
         } => {
             let dump_date = dump_date.unwrap_or(
@@ -58,13 +64,15 @@ pub async fn handle_debug_commands(subcommands: DebugCommands) {
             let lt_sql_file_path =
                 downloads_path.join(format!("{}-{}-linktarget.sql", wiki, dump_date));
 
-            let page_ids_to_check: Vec<PageId> = page_ids.into_iter().map(|p| PageId(p)).collect();
+            let page_titles_to_check: Vec<PageTitle> =
+                page_titles.into_iter().map(|p| p.into()).collect();
 
-            let valid = validate::pre_validation(
+            let (valid, _) = validate::pre_validation(
                 pl_sql_file_path,
                 lt_sql_file_path,
-                &page_ids_to_check,
+                &page_titles_to_check,
                 dump_date,
+                true,
             )
             .await;
 
@@ -81,6 +89,7 @@ pub async fn handle_debug_commands(subcommands: DebugCommands) {
             dump_date,
         } => {
             let filename = path.file_name().unwrap().to_str().unwrap().to_string();
+            let wiki_name = filename.split("_").next().unwrap().to_string();
             let prefix: &str = &filename.clone()[..2];
             println!("Assuming wikiprefix: {prefix}");
 
@@ -110,12 +119,103 @@ pub async fn handle_debug_commands(subcommands: DebugCommands) {
 
             // let random_pages = vec![PageTitle("Karlo Butić".to_string())];
 
-            let valid = validate::post_validation(&path, dump_date, prefix, &random_pages).await;
+            let (valid, post_diffs) =
+                validate::post_validation(&path, &dump_date, prefix, &random_pages).await;
 
             if !valid {
-                print_error_and_exit!("Validation failed!")
+                print!("Validation failed!");
+                let dumpdate_path = path.parent().and_then(|p| p.parent()).unwrap().to_owned();
+                validate_post_validation(&dump_date, wiki_name, dumpdate_path, path, post_diffs)
+                    .await;
             } else {
                 println!("{}", "Validation successful".green());
+            }
+        }
+        DebugCommands::SearchDump {
+            downloads_path,
+            wiki,
+            from,
+            to,
+            dump_date,
+        } => {
+            let dump_date = dump_date.unwrap_or(
+                downloads_path
+                    .parent()
+                    .and_then(Path::file_name)
+                    .and_then(|s| s.to_str())
+                    .expect(
+                        "Failed extracting dumpdate from path. Please provide using --dump-date",
+                    )
+                    .to_string(),
+            );
+
+            let pl_sql_file_path =
+                downloads_path.join(format!("{}-{}-pagelinks.sql", wiki, &dump_date));
+            let lt_sql_file_path =
+                downloads_path.join(format!("{}-{}-linktarget.sql", wiki, &dump_date));
+
+            let filename_clone = pl_sql_file_path.clone();
+            let filename = filename_clone.file_name().unwrap().to_str().unwrap();
+
+            let wikiname = filename.split("-").next().unwrap();
+            let wikiprefix = &wikiname[..2];
+            let dump_date = parse_dump_date(dump_date.as_ref()).expect("Failed parsing dumpdate");
+
+            let page_id: PageId = web::page_title_to_id(from.into(), wikiprefix).await;
+
+            let pl_mmap: Mmap = unsafe { memory_map(pl_sql_file_path).unwrap() };
+            let pl_map = load_links_map::<_, _, PageLink, _, _>(
+                &pl_mmap,
+                |pl| (pl.from, pl.target),
+                |pl| pl.from_namespace.0 != 0 || pl.from != page_id,
+            );
+
+            println!("Loaded pl map");
+
+            let lt_mmap: Mmap = unsafe { memory_map(lt_sql_file_path).unwrap() };
+            let lt_map = load_map::<_, _, LinkTarget, _, _>(
+                &lt_mmap,
+                |lt| (lt.id, lt.title),
+                |lt| {
+                    lt.namespace.0 != 0
+                        || if let Some(to) = &to {
+                            lt.title != to.to_string().into()
+                        } else {
+                            false
+                        }
+                },
+            );
+
+            println!("Loaded lt map");
+
+            for (page_id, link_targets) in pl_map.iter() {
+                let page_title = web::page_id_to_title(*page_id, &wikiprefix).await;
+
+                let links: HashSet<PageTitle> = HashSet::from_iter(
+                    link_targets
+                        .iter()
+                        .filter_map(|lt| lt_map.get(&lt))
+                        .cloned(),
+                );
+
+                if let Some(ref to) = to {
+                    if links.contains(&PageTitle(to.clone())) {
+                        println!(
+                            "{}",
+                            format!("{} -> {} in sql dump", page_title.0, to).green()
+                        );
+                    } else {
+                        println!(
+                            "{}",
+                            format!("{} -> {} not in sql dump", page_title.0, to).red()
+                        );
+                    }
+                }
+
+                println!("{} links in {}", link_targets.len(), page_title.0);
+                for link in links {
+                    println!("{} -> {}", page_title.0, link.0);
+                }
             }
         }
         DebugCommands::FindSmallestWiki { tables } => {

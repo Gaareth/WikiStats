@@ -6,7 +6,7 @@ use std::time::Instant;
 
 use chrono::{DateTime, Utc};
 use colored::Colorize as _;
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use parse_mediawiki_sql::field_types::{PageId, PageTitle};
 use parse_mediawiki_sql::schemas::PageLink;
 use parse_mediawiki_sql::utils::{Mmap, memory_map};
@@ -25,7 +25,7 @@ use crate::{parse_dump_date, web};
 
 use anyhow::Result;
 use futures::FutureExt;
-use futures::future::BoxFuture;
+use futures::future::{BoxFuture, join_all};
 use std::future::Future; // for .boxed()
 
 /// Get the diff from the the wikipedia page at dumpdate til the current
@@ -78,7 +78,7 @@ async fn compare_links(
     expected_results: &HashSet<PageTitle>,
     db_results: &HashSet<PageTitle>,
     link_type: &str,
-) -> bool {
+) -> (bool, Vec<(PageTitle, PageTitle)>) {
     let mut success = true;
 
     debug!("expected: {:?}", expected_results);
@@ -88,6 +88,12 @@ async fn compare_links(
     let mut links_on_old_page_map: HashMap<String, Vec<String>> = HashMap::new();
     let mut diffs_added_map: HashMap<String, Vec<String>> = HashMap::new();
     let mut diffs_deleted_map: HashMap<String, Vec<String>> = HashMap::new();
+
+    let mut actually_diffs: Vec<(PageTitle, PageTitle)> = vec![];
+    info!(
+        "Found {} differences that are now going to be validated",
+        actually_diffs.len()
+    );
 
     // Links missing in DB
     for diff in expected_results.difference(db_results) {
@@ -104,6 +110,11 @@ async fn compare_links(
         .await;
         if !ok {
             success = false;
+            if link_type == "incoming" {
+                actually_diffs.push((diff.clone(), PageTitle(page_title.to_string())));
+            } else {
+                actually_diffs.push((PageTitle(page_title.to_string()), diff.clone()));
+            }
         }
     }
 
@@ -122,10 +133,15 @@ async fn compare_links(
         .await;
         if !ok {
             success = false;
+            if link_type == "incoming" {
+                actually_diffs.push((diff.clone(), PageTitle(page_title.to_string())));
+            } else {
+                actually_diffs.push((PageTitle(page_title.to_string()), diff.clone()));
+            }
         }
     }
 
-    success
+    (success, actually_diffs)
 }
 
 async fn check_missing_link(
@@ -323,19 +339,19 @@ pub async fn post_validation(
     dump_date: impl AsRef<str>,
     wiki_prefix: impl AsRef<str>,
     pages_to_test: &[PageTitle],
-) -> bool {
+) -> (bool, Vec<(PageTitle, PageTitle)>) {
     let t1 = Instant::now();
 
     let db_file = db_file.as_ref();
     if !fs::exists(&db_file).unwrap() {
         eprintln!("DB File {db_file:?} does not exist");
-        return false;
+        return (false, vec![]);
     }
 
     let conn = Connection::open(db_file).unwrap();
     if !check_is_done(&conn).unwrap_or(false) {
         eprintln!("DB File {db_file:?} is not done");
-        return false;
+        return (false, vec![]);
     }
 
     let wiki_prefix = wiki_prefix.as_ref();
@@ -385,6 +401,8 @@ pub async fn post_validation(
         pages.push((pt.0.as_str(), pid as u32));
     }
 
+    let mut diffs = vec![];
+
     for (page_title, page_id) in pages {
         let page_url = format!(
             "https://{}.wikipedia.org/wiki/{}",
@@ -396,19 +414,20 @@ pub async fn post_validation(
 
         // ### [incoming links]
         // online results
-        let all_links = web::get_incoming_links(&page_title, &wiki_prefix)
+        let expected_incoming = web::get_incoming_links(&page_title, &wiki_prefix)
             .await
             .unwrap()
             .into_iter()
-            .map(|link| PageId(link.pageid))
+            .map(|link| PageTitle(link.title))
             .collect();
         // filter to only include links that exist
-        let expected_incoming: HashSet<_> = filter_broken_pids(all_links).await;
+        // let expected_incoming: HashSet<_> = filter_broken_pids(all_links).await;
+        // let expected_incoming = all_links.
 
         // database results
         let db_incoming: HashSet<PageTitle> =
             filter_broken_pids(get_incoming_links_of_id(&conn, &PageId(page_id))).await;
-        success &= compare_links(
+        let (valid, mut d) = compare_links(
             &page_title,
             &wiki_prefix,
             &dump_date,
@@ -417,23 +436,24 @@ pub async fn post_validation(
             "incoming",
         )
         .await;
+        success &= valid;
+        diffs.append(&mut d);
 
         info!("Checking outgoing links..");
         // ### [outgoing] links
         // online results
-        let all_links = web::get_outgoing_links(&page_title, &wiki_prefix)
+        let expected_outgoing = web::get_outgoing_links(&page_title, &wiki_prefix)
             .await
             .unwrap()
             .into_iter()
             .map(|link| PageTitle(link.title))
             .collect();
         // filter to only include links that exist
-        let expected_outgoing: HashSet<_> = convert_pid_pt(all_links).await;
 
         // database results
         let db_outgoing: HashSet<PageTitle> =
             filter_broken_pids(get_links_of_id(&conn, &PageId(page_id))).await;
-        success &= compare_links(
+        let (valid, mut d) = compare_links(
             &page_title,
             &wiki_prefix,
             &dump_date,
@@ -442,6 +462,8 @@ pub async fn post_validation(
             "outgoing",
         )
         .await;
+        success &= valid;
+        diffs.append(&mut d);
     }
 
     conn.execute(INFO_TABLE, ()).unwrap();
@@ -454,21 +476,35 @@ pub async fn post_validation(
         log::error!("{}", format!("Error setting is_validated: {e}"));
     }
 
-    success
+    (success, diffs)
 }
 
 /// Currently only checks outgoing links
+/// # Args
+/// - verify_recency: if true, checks whether each detected difference is simply caused by the web version being more recent than the SQL dumps.
+///   This involves making API calls to confirm data freshness, and e.g., checking if a link was added/deleted after the dumpdate
+/// # Returns
+/// - Returns: (valid, outgoing_diffs)
+/// - outgoing_diffs: links that are missing or outdated
 pub async fn pre_validation(
     pl_sql_file_path: impl AsRef<Path>,
     lt_sql_file_path: impl AsRef<Path>,
-    page_ids_to_check: &[PageId],
+    page_titles_to_check: &[PageTitle],
     dump_date: impl AsRef<str>,
-) -> bool {
+    verify_recency: bool,
+) -> (bool, Vec<(PageTitle, PageTitle)>) {
     let pl_sql_file_path = pl_sql_file_path.as_ref();
     let filename = &pl_sql_file_path.file_name().unwrap().to_str().unwrap();
     let wikiname = filename.split("-").next().unwrap();
     let wikiprefix = &wikiname[..2];
     let dump_date = parse_dump_date(dump_date.as_ref()).expect("Failed parsing dumpdate");
+
+    let page_ids_to_check: Vec<PageId> = join_all(
+        page_titles_to_check
+            .into_iter()
+            .map(|pt| web::page_title_to_id(pt.clone(), wikiprefix)),
+    )
+    .await;
 
     let pl_mmap: Mmap = unsafe { memory_map(pl_sql_file_path).unwrap() };
     let pl_map = load_links_map::<_, _, PageLink, _, _>(
@@ -480,22 +516,12 @@ pub async fn pre_validation(
     let lt_mmap: Mmap = unsafe { memory_map(lt_sql_file_path).unwrap() };
     let lt_map = load_linktarget_map(lt_mmap);
 
-    println!("Loaded map");
-
     let mut success = true;
 
-    let convert_pid_pt = move |pid: PageId| async move {
-        let pageinfo: web::PageInfo = web::get_page_info_by_id(pid.0 as u64, &wikiprefix)
-            .await
-            .unwrap()
-            .unwrap();
-        pageinfo.title
-    };
+    let mut outgoing_diffs = vec![];
 
     for (page_id, link_targets) in pl_map.iter() {
-        let page_title = convert_pid_pt(*page_id).await;
-
-        dbg!(&page_id);
+        let page_title = web::page_id_to_title(*page_id, &wikiprefix).await;
 
         let expected_results: HashSet<PageTitle> = HashSet::from_iter(
             web::get_outgoing_links_by_id(page_id.0, wikiprefix)
@@ -512,18 +538,98 @@ pub async fn pre_validation(
                 .cloned(),
         );
 
-        success &= compare_links(
-            &page_title,
-            &wikiprefix,
-            &dump_date,
-            &expected_results,
-            &sqlfile_results,
-            "outgoing",
-        )
-        .await;
+        if verify_recency {
+            let (valid, mut diffs) = compare_links(
+                &page_title.0,
+                &wikiprefix,
+                &dump_date,
+                &expected_results,
+                &sqlfile_results,
+                "outgoing",
+            )
+            .await;
+            success &= valid;
+            outgoing_diffs.append(&mut diffs);
+        } else {
+            let mut diffs: Vec<(PageTitle, PageTitle)> = expected_results
+                .symmetric_difference(&sqlfile_results)
+                .cloned()
+                .map(|to| (page_title.clone(), to))
+                .collect();
+            success = false;
+            outgoing_diffs.append(&mut diffs);
+        }
     }
 
-    success
+    (success, outgoing_diffs)
+}
+
+pub async fn validate_post_validation(
+    dump_date: &String,
+    wiki: String,
+    dumpdate_path: std::path::PathBuf,
+    db_file: std::path::PathBuf,
+    post_diffs: Vec<(PageTitle, PageTitle)>,
+) -> bool {
+    let msg = format!("[{wiki}] Failed post validation for {db_file:?}");
+    error!("{}", &msg);
+    info!("> Checking if differences are also inside the downloaded sql dump files");
+
+    let downloads_path = dumpdate_path.join("downloads");
+
+    let pl_sql_file_path = downloads_path.join(format!("{}-{}-pagelinks.sql", wiki, &dump_date));
+    let lt_sql_file_path = downloads_path.join(format!("{}-{}-linktarget.sql", wiki, &dump_date));
+
+    if !pl_sql_file_path.exists() || !lt_sql_file_path.exists() {
+        error!("Missing download artifacts to check if differences also exist in the raw dump");
+        error!("{}", msg);
+        return false;
+    }
+
+    let pages_to_check: Vec<PageTitle> = post_diffs.iter().map(|(from, _)| from.clone()).collect();
+
+    let (valid, pre_diffs) = pre_validation(
+        pl_sql_file_path,
+        lt_sql_file_path,
+        &pages_to_check,
+        dump_date,
+        false, // skip recency check as done already by post validation
+    )
+    .await;
+
+    let set_post: HashSet<_> = post_diffs
+        .iter()
+        .map(|(from, to)| {
+            (
+                PageTitle(from.0.replace(" ", "_")),
+                PageTitle(to.0.replace(" ", "_")),
+            )
+        })
+        .collect();
+    let set_pre: HashSet<_> = pre_diffs
+        .into_iter()
+        .map(|(from, to)| {
+            (
+                PageTitle(from.0.replace(" ", "_")),
+                PageTitle(to.0.replace(" ", "_")),
+            )
+        })
+        .collect();
+
+    if set_post.is_subset(&set_pre) {
+        info!(
+            "All wrong links inside the database are also in the dumps. This is treated as a success. Yay!"
+        );
+        return true;
+    } else {
+        error!("There are some wrong links inside the database that are not in the dump");
+        error!("{}", msg);
+        let diffs: HashSet<_> = set_post.difference(&set_pre).collect();
+
+        dbg!(diffs);
+        // dbg!(&set_pre);
+        return false;
+    }
 }
 
 #[cfg(test)]
@@ -537,7 +643,7 @@ mod tests {
     async fn test_post_validation() {
         let random_pages = web::get_random_wikipedia_pages(2, "pwn").await.unwrap();
 
-        let res = post_validation(
+        let (valid, _) = post_validation(
             "tests/data/small/test_database.sqlite",
             "20240901",
             "pwn",
@@ -547,14 +653,14 @@ mod tests {
                 .collect::<Vec<PageTitle>>(),
         )
         .await;
-        assert!(res);
+        assert!(valid);
     }
 
     #[tokio::test]
     async fn test_post_validation_negative() {
         let random_pages = web::get_random_wikipedia_pages(2, "pwn").await.unwrap();
 
-        let res = post_validation(
+        let (valid, _) = post_validation(
             "tests/data/small/not_working_test_database.sqlite",
             "20240901",
             "pwn",
@@ -564,7 +670,7 @@ mod tests {
                 .collect::<Vec<PageTitle>>(),
         )
         .await;
-        assert!(!res);
+        assert!(!valid);
     }
 
     // #[tokio::test]

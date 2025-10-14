@@ -19,3 +19,31 @@ Wikipedia statistics and shortest path finder
 - task-scheduling: Celery, Redis, RabbitMQ scheduler wikipedia dump processing
 - wiki-stats-rs: Rust services for processing wikipedia dumps and a blazingly fast webserver calculating shortest paths 
 - igraph: Graph experiements
+
+## Disclaimer
+
+The dumps may not always fully reflect the current links online, especially for websites that are frequently updated. 
+### Example: 
+https://it.wikipedia.org/wiki/Nati_il_21_aprile
+Misses e.g. a link to https://it.wikipedia.org/wiki/Wesllem, as the it was removed shortly before the dump was made. And then later readded. 
+
+Demonstration:
+```
+ grep -R --color=always -o -E '.{0,20}Wesllem.{0,8}' itwiki-20251001-linktarget.sql
+_John'),(1020575,0,'Wesllem'),(1094
+```
+
+=> linktarget id of Wesllem is 1020575.
+
+Does pagelinks.sql contain any links from Nati_il_21_aprile (pageid=1276495) to this linktarget_id?
+
+```
+
+gareth@manjaro-kde ~/dev/WikiStats/wiki-folder/20251001/downloads main*
+❯ grep -o -E '\(1276495,[0-9]+,1020575\)' itwiki-20251001-pagelinks.sql
+
+gareth@manjaro-kde ~/dev/WikiStats/wiki-folder/20251001/downloads main* 6s
+❯ 
+```
+
+Does not seem like it?

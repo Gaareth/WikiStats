@@ -249,9 +249,9 @@ pub enum DebugCommands {
         #[arg(short, long)]
         wiki: String,
 
-        /// The page_ids to check
-        #[arg(short, long)]
-        page_ids: Vec<u32>,
+        /// Which pages should be tested
+        #[arg(short, long, group = "pages")]
+        page_titles: Vec<String>,
 
         /// Optionally specify which dump date to use (default: parsed from downloads_path). Format: YYYYMMDD
         #[arg(long)]
@@ -269,5 +269,27 @@ pub enum DebugCommands {
             help = "Path containing dump dates sub dirs with the download and sqlite sub directories"
         )]
         db_path: PathBuf,
+    },
+
+    SearchDump {
+        /// Path containing the sql.gz and sql files
+        #[arg(short, long, value_name = "PATH")]
+        downloads_path: PathBuf,
+
+        /// The wikiname, e.g. dewiki
+        #[arg(short, long)]
+        wiki: String,
+
+        /// From title
+        #[arg(long)]
+        from: String,
+
+        /// To title. If none print all 
+        #[arg(long)]
+        to: Option<String>,
+
+        /// Optionally specify which dump date to use (default: parsed from downloads_path). Format: YYYYMMDD
+        #[arg(long)]
+        dump_date: Option<String>,
     },
 }

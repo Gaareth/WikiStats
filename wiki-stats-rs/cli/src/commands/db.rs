@@ -2,12 +2,14 @@ use crate::args::Commands;
 use crate::print_error_and_exit;
 use crate::validation::validate_wiki_names;
 use colored::Colorize;
-use parse_mediawiki_sql::field_types::PageTitle;
+use log::{error, info};
+use parse_mediawiki_sql::field_types::{PageId, PageTitle};
+use std::collections::HashSet;
 use std::process::exit;
 use std::time::{Duration, Instant};
 use wiki_stats::process::process_wikis_seq;
 use wiki_stats::sqlite::join_db_wiki_path;
-use wiki_stats::validate::post_validation;
+use wiki_stats::validate::{self, post_validation, validate_post_validation};
 use wiki_stats::web;
 
 pub async fn handle_process_databases(command: Commands) {
@@ -50,11 +52,16 @@ pub async fn handle_process_databases(command: Commands) {
                         .into_iter()
                         .map(|p| PageTitle(p.title))
                         .collect();
-                let db_file = join_db_wiki_path(basepath.join(&dump_date).join("sqlite"), &wiki);
-                let valid =
+
+                let dumpdate_path = basepath.join(&dump_date);
+                let sqlite_path = dumpdate_path.join("sqlite");
+                let db_file = join_db_wiki_path(sqlite_path, &wiki);
+
+                let (valid, post_diffs) =
                     post_validation(&db_file, &dump_date, &wiki_prefix, &random_pages).await;
+
                 if !valid {
-                    print_error_and_exit!("[{wiki}] Failed post validation for {db_file:?}")
+                    validate_post_validation(&dump_date, wiki, dumpdate_path, db_file, post_diffs).await;
                 } else {
                     print!("{}", format!("Validation was successful").green())
                 }
@@ -64,3 +71,4 @@ pub async fn handle_process_databases(command: Commands) {
         unreachable!("This function should only be called with the ProcessDatabases command");
     }
 }
+

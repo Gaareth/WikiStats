@@ -8,6 +8,7 @@ use chrono::{DateTime, Datelike, FixedOffset, SecondsFormat, TimeZone, Utc};
 use indicatif::ProgressBar;
 use log::{debug, info, trace};
 use num_format::Locale::{el, ta};
+use parse_mediawiki_sql::field_types::{PageId, PageTitle};
 use regex::Regex;
 use reqwest::{Request, Response};
 use schemars::JsonSchema;
@@ -399,6 +400,24 @@ pub async fn get_page_info_by_title(
         wiki_prefix,
     )
     .await
+}
+
+pub async fn page_id_to_title(pid: PageId, wikiprefix: &str) -> PageTitle {
+    get_page_info_by_id(pid.0 as u64, wikiprefix)
+        .await
+        .unwrap()
+        .unwrap()
+        .title
+        .into()
+}
+
+pub async fn page_title_to_id(pt: PageTitle, wikiprefix: &str) -> PageId {
+    (get_page_info_by_title(pt.0, wikiprefix)
+        .await
+        .unwrap()
+        .unwrap()
+        .pageid as u32)
+        .into()
 }
 
 // group this in batches of 50

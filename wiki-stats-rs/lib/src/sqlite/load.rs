@@ -19,7 +19,7 @@ use crate::utils::default_bar;
 // }
 
 pub fn load_linktarget_map(linktarget_map: Mmap) -> FxHashMap<LinkTargetId, PageTitle> {
-    load_map::<_, _, LinkTarget>(
+    load_map::<_, _, LinkTarget, _, _>(
         &linktarget_map,
         |lt| (lt.id, lt.title),
         |lt| lt.namespace.0 != 0,
@@ -27,11 +27,11 @@ pub fn load_linktarget_map(linktarget_map: Mmap) -> FxHashMap<LinkTargetId, Page
 }
 
 pub fn load_title_id_map(page_mmap: Mmap) -> FxHashMap<PageTitle, PageId> {
-    load_map::<_, _, Page>(&page_mmap, |lt| (lt.title, lt.id), |lt| lt.namespace.0 != 0)
+    load_map::<_, _, Page, _, _>(&page_mmap, |lt| (lt.title, lt.id), |lt| lt.namespace.0 != 0)
 }
 
 pub fn load_links_map<'a, K: Eq + Hash, V, I: FromSqlTuple<'a> + 'a, FInsert, FSkip>(
-    linktarget_map: &'a Mmap,
+    mmap: &'a Mmap,
     insert_fn: FInsert,
     skip_fn: FSkip,
 ) -> FxHashMap<K, Vec<V>>
@@ -49,7 +49,7 @@ where
 
     let mut map: FxHashMap<K, Vec<V>> = FxHashMap::default();
 
-    for row in iterate_sql_insertions::<I>(&linktarget_map).into_iter() {
+    for row in iterate_sql_insertions::<I>(&mmap).into_iter() {
         bar.inc(1);
 
         if skip_fn(&row) {
@@ -64,11 +64,15 @@ where
     map
 }
 
-pub fn load_map<'a, K: Eq + Hash, V, I: FromSqlTuple<'a> + 'a>(
+pub fn load_map<'a, K: Eq + Hash, V, I: FromSqlTuple<'a> + 'a, FInsert, FSkip>(
     linktarget_map: &'a Mmap,
-    insert_fn: fn(I) -> (K, V),
-    skip_fn: fn(&I) -> bool,
-) -> FxHashMap<K, V> {
+    insert_fn: FInsert,
+    skip_fn: FSkip,
+) -> FxHashMap<K, V>
+where
+    FInsert: Fn(I) -> (K, V),
+    FSkip: Fn(&I) -> bool,
+{
     let bar = indicatif::ProgressBar::new(MAX_SIZE as u64);
     bar.set_style(
         ProgressStyle::with_template(
