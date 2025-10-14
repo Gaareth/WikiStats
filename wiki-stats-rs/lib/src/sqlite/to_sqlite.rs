@@ -82,8 +82,7 @@ pub struct ToSqlite<'a> {
     base_path: PathBuf,
 }
 
-pub const INFO_TABLE: &str = "CREATE TABLE if not exists Info (
-            id INTEGER PRIMARY KEY,
+pub const INFO_TABLE: &str = "CREATE TABLE if not exists Info (id INTEGER,
             is_done INTEGER,
             insertion_time_s DOUBLE,
             index_creation_time_s DOUBLE,
@@ -144,8 +143,11 @@ impl<'a> ToSqlite<'a> {
 
         conn.execute(INFO_TABLE, ()).unwrap();
 
-        conn.execute("INSERT INTO Info Values (?, ?, ?, ?)", (0, 0, Null, Null))
-            .unwrap();
+        conn.execute(
+            "INSERT INTO Info (id, is_done, insertion_time_s, index_creation_time_s) Values (?1, ?2, ?3, ?4)",
+            (0, 0, Null, Null),
+        )
+        .unwrap();
 
         conn.execute("PRAGMA synchronous = OFF", ()).unwrap();
         // conn.execute("PRAGMA journal_mode = OFF", ()).unwrap();

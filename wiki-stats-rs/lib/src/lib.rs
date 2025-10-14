@@ -68,3 +68,7 @@ pub fn parse_dump_date(date_str: &str) -> ParseResult<DateTime<Utc>> {
         .unwrap()
         .and_utc())
 }
+
+pub fn format_as_dumpdate(datetime: &DateTime<Utc>) -> String {
+    datetime.format("%Y%m%d").to_string()
+}

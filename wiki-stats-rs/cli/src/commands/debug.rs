@@ -8,7 +8,7 @@ use std::{
 
 use colored::Colorize;
 use indicatif::ProgressStyle;
-use log::error;
+use log::{error, info};
 use parse_mediawiki_sql::{
     field_types::{PageId, PageTitle},
     iterate_sql_insertions,
@@ -125,8 +125,21 @@ pub async fn handle_debug_commands(subcommands: DebugCommands) {
             if !valid {
                 print!("Validation failed!");
                 let dumpdate_path = path.parent().and_then(|p| p.parent()).unwrap().to_owned();
-                validate_post_validation(&dump_date, wiki_name, dumpdate_path, path, post_diffs)
-                    .await;
+                if post_diffs.len() > 0 {
+                    let msg = format!("[{wiki_name}] Failed post validation for {wiki_name:?}");
+                    error!("{}", &msg);
+                    info!(
+                        "> Checking if differences are also inside the downloaded sql dump files"
+                    );
+                    if !validate_post_validation(&dump_date, &wiki_name, &dumpdate_path, post_diffs)
+                        .await
+                    {
+                        print_error_and_exit!(
+                            "[{wiki_name}] Failed post and pre validation for {path:?}"
+                        )
+                    }
+                }
+                exit(-1);
             } else {
                 println!("{}", "Validation successful".green());
             }

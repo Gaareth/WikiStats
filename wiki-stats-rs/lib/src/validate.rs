@@ -12,16 +12,18 @@ use parse_mediawiki_sql::schemas::PageLink;
 use parse_mediawiki_sql::utils::{Mmap, memory_map};
 use rusqlite::Connection;
 
+use crate::download::ALL_DB_TABLES;
 use crate::sqlite::load::{
     load_links_map, load_linktarget_map, load_map, load_sql_full, load_sql_part_map,
 };
 use crate::sqlite::page_links::{get_incoming_links_of_id, get_links_of_id};
+use crate::sqlite::title_id_conv;
 use crate::sqlite::to_sqlite::INFO_TABLE;
 use crate::web::{
     WikipediaApiError, get_added_diff_to_current, get_creation_date, get_deleted_diff_to_current,
-    get_latest_revision_id_before_date, get_links_on_webpage,
+    get_dump_finish_date, get_latest_revision_id_before_date, get_links_on_webpage,
 };
-use crate::{parse_dump_date, web};
+use crate::{format_as_dumpdate, parse_dump_date, web};
 
 use anyhow::Result;
 use futures::FutureExt;
@@ -45,9 +47,18 @@ where
     let rev_id_opt = match revid_map.entry(page.to_string()) {
         Entry::Occupied(o) => Some(*o.get()),
         Entry::Vacant(v) => {
-            let rev_id_opt = get_latest_revision_id_before_date(page, wiki_prefix, dump_date)
-                .await
-                .map_err(anyhow::Error::new)?;
+            let dump_date_str = format_as_dumpdate(dump_date);
+            let wiki_name = format!("{}wiki", wiki_prefix); // this really does not always hold
+            // the dumps are typically finished 1 day or so after the dumpdate actually says
+            // this help getting the likely actual revision the dump is based on? more mostly equal with
+            let latest_all_tables_done_date =
+                get_dump_finish_date(&wiki_name, &dump_date_str, &ALL_DB_TABLES)
+                    .await
+                    .unwrap();
+            let rev_id_opt =
+                get_latest_revision_id_before_date(page, wiki_prefix, &latest_all_tables_done_date)
+                    .await
+                    .map_err(anyhow::Error::new)?;
             if let Some(rev_id) = rev_id_opt {
                 v.insert(rev_id);
             }
@@ -89,14 +100,19 @@ async fn compare_links(
     let mut diffs_added_map: HashMap<String, Vec<String>> = HashMap::new();
     let mut diffs_deleted_map: HashMap<String, Vec<String>> = HashMap::new();
 
-    let mut actually_diffs: Vec<(PageTitle, PageTitle)> = vec![];
-    info!(
-        "Found {} differences that are now going to be validated",
-        actually_diffs.len()
-    );
+    let missing_diffs: Vec<&PageTitle> = expected_results.difference(db_results).collect();
+    let outdated_diffs: Vec<&PageTitle> = db_results.difference(expected_results).collect();
 
+    let mut actually_diffs: Vec<(PageTitle, PageTitle)> = vec![];
+    let sum_diffs = missing_diffs.len() + outdated_diffs.len();
+    if sum_diffs > 0 {
+        info!(
+            "Found {} differences that are now going to be validated",
+            sum_diffs
+        );
+    }
     // Links missing in DB
-    for diff in expected_results.difference(db_results) {
+    for diff in missing_diffs {
         let ok = check_missing_link(
             page_title,
             diff.0.as_str(),
@@ -119,7 +135,7 @@ async fn compare_links(
     }
 
     // Links that exist in DB but not online
-    for diff in db_results.difference(expected_results) {
+    for diff in outdated_diffs {
         let ok = check_outdated_link(
             page_title,
             diff.0.as_str(),
@@ -359,33 +375,18 @@ pub async fn post_validation(
 
     let mut success = true;
 
+    // TODO: maybe just use the sql file???
     // removes links that don't exist and converts from pageid -> pagetitle
     let filter_broken_pids = |pids: Vec<PageId>| async {
         let mut filtered = HashSet::new();
         for pid in pids {
-            if let Some(pinfo) = web::get_page_info_by_id(pid.0 as u64, &wiki_prefix)
-                .await
-                .unwrap()
-            {
-                filtered.insert(PageTitle(pinfo.title));
+            // web::get_page_info_by_id(pid.0 as u64, &wiki_prefix).await.unwrap()
+            // title_id_conv::page_id_to_title(&pid, &conn)
+            if let Some(p) = title_id_conv::page_id_to_title(&pid, &conn) {
+                filtered.insert(p.0.replace("_", " ").into());
+                // filtered.insert(PageTitle(p.title));
             } else {
                 warn!("DB contains link to {pid:?} but this pid seems not to exist");
-            }
-        }
-        filtered
-    };
-
-    // removes links that don't exist
-    let convert_pid_pt = |pts: Vec<PageTitle>| async {
-        let mut filtered = HashSet::new();
-        for pt in pts {
-            if let Some(pinfo) = web::get_page_info_by_title(&pt.0, &wiki_prefix)
-                .await
-                .unwrap()
-            {
-                filtered.insert(PageTitle(pinfo.title));
-            } else {
-                warn!("webpage contains link to {pt:?} but this pagetitle seems not to exist");
             }
         }
         filtered
@@ -565,16 +566,11 @@ pub async fn pre_validation(
 }
 
 pub async fn validate_post_validation(
-    dump_date: &String,
-    wiki: String,
-    dumpdate_path: std::path::PathBuf,
-    db_file: std::path::PathBuf,
+    dump_date: &str,
+    wiki: &str,
+    dumpdate_path: &std::path::PathBuf,
     post_diffs: Vec<(PageTitle, PageTitle)>,
 ) -> bool {
-    let msg = format!("[{wiki}] Failed post validation for {db_file:?}");
-    error!("{}", &msg);
-    info!("> Checking if differences are also inside the downloaded sql dump files");
-
     let downloads_path = dumpdate_path.join("downloads");
 
     let pl_sql_file_path = downloads_path.join(format!("{}-{}-pagelinks.sql", wiki, &dump_date));
@@ -582,7 +578,6 @@ pub async fn validate_post_validation(
 
     if !pl_sql_file_path.exists() || !lt_sql_file_path.exists() {
         error!("Missing download artifacts to check if differences also exist in the raw dump");
-        error!("{}", msg);
         return false;
     }
 
@@ -623,7 +618,6 @@ pub async fn validate_post_validation(
         return true;
     } else {
         error!("There are some wrong links inside the database that are not in the dump");
-        error!("{}", msg);
         let diffs: HashSet<_> = set_post.difference(&set_pre).collect();
 
         dbg!(diffs);

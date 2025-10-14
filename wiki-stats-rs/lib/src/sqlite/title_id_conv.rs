@@ -10,32 +10,14 @@ use rusqlite::Connection;
 use std::sync::LazyLock;
 
 pub fn page_id_to_title(id: &PageId, conn: &Connection) -> Option<PageTitle> {
-    // let conn = Connection::open(DB_PAGE).unwrap();
-
-    // let where_wiki = where_wiki_name.map(|wiki_name| format!("AND WikiPage.wiki_name = '{wiki_name}'")).unwrap_or_default();
-
     let mut stmt = conn
         .prepare("SELECT page_title FROM WikiPage WHERE page_id = ?1")
         .unwrap();
     let mut rows = stmt.query_map([id.0], |row| row.get(0)).unwrap();
     let title = rows.next();
 
-    // return title.and_then(Result::ok);
-
-    // match title {
-    //     Some(title) => title.ok().and_then(PageTitle).and_then(),
-    //     None => None
-    // }
-
-    // match title {
-    //     Some(title) => match title {
-    //         Ok(s) => Some(PageTitle(s)),
-    //         Err(_) => None,
-    //     },
-    //     None => None
-    // }
-
-    title.and_then(|result| result.ok().map(PageTitle))
+    // not sure about unwrapping here? maybe return result<option>?
+    title.map(|title| PageTitle(title.unwrap()))
 }
 
 pub fn page_title_to_id(title: &PageTitle, conn: &Connection) -> Option<PageId> {
@@ -44,7 +26,7 @@ pub fn page_title_to_id(title: &PageTitle, conn: &Connection) -> Option<PageId> 
         .unwrap();
 
     let mut rows = stmt.query_map([title.clone().0], |row| row.get(0)).unwrap();
-    let title = rows.next();
+    let id = rows.next();
 
     // return title.and_then(Result::ok);
 
@@ -59,7 +41,7 @@ pub fn page_title_to_id(title: &PageTitle, conn: &Connection) -> Option<PageId> 
     //     },
     //     None => None
     // }
-    title.map(|title| PageId(title.unwrap()))
+    id.map(|id| PageId(id.unwrap()))
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]

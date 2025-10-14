@@ -1,15 +1,14 @@
+use std::process::exit;
+
 use crate::args::Commands;
 use crate::print_error_and_exit;
 use crate::validation::validate_wiki_names;
 use colored::Colorize;
 use log::{error, info};
-use parse_mediawiki_sql::field_types::{PageId, PageTitle};
-use std::collections::HashSet;
-use std::process::exit;
-use std::time::{Duration, Instant};
+use parse_mediawiki_sql::field_types::PageTitle;
 use wiki_stats::process::process_wikis_seq;
 use wiki_stats::sqlite::join_db_wiki_path;
-use wiki_stats::validate::{self, post_validation, validate_post_validation};
+use wiki_stats::validate::{post_validation, validate_post_validation};
 use wiki_stats::web;
 
 pub async fn handle_process_databases(command: Commands) {
@@ -25,17 +24,15 @@ pub async fn handle_process_databases(command: Commands) {
     {
         validate_wiki_names(&wikis)
             .await
-            .unwrap_or_else(|e| panic!("{}: {e}", "Failed validating wiki names".red()));
+            .unwrap_or_else(|e| print_error_and_exit!("Failed validating wiki names: {e}"));
 
         let basepath = &path;
 
         if !basepath.exists() {
-            eprintln!(
-                "{}: The specified path does not exist: {}",
-                "Error".red(),
+            print_error_and_exit!(
+                "The specified path does not exist: {}",
                 basepath.display().to_string().underline()
-            );
-            exit(-1);
+            )
         }
 
         let dump_date =
@@ -61,8 +58,21 @@ pub async fn handle_process_databases(command: Commands) {
                     post_validation(&db_file, &dump_date, &wiki_prefix, &random_pages).await;
 
                 if !valid {
-                    validate_post_validation(&dump_date, wiki, dumpdate_path, db_file, post_diffs)
-                        .await;
+                    if post_diffs.len() > 0 {
+                        let msg = format!("[{wiki}] Failed post validation for {db_file:?}");
+                        error!("{}", &msg);
+                        info!(
+                            "> Checking if differences are also inside the downloaded sql dump files"
+                        );
+                        if !validate_post_validation(&dump_date, &wiki, &dumpdate_path, post_diffs)
+                            .await
+                        {
+                            print_error_and_exit!(
+                                "[{wiki}] Failed post and pre validation for {db_file:?}"
+                            )
+                        }
+                    }
+                    exit(-1);
                 } else {
                     print!("{}", format!("Validation was successful").green())
                 }

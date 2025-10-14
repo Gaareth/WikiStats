@@ -12,6 +12,7 @@ use colored::Colorize;
 use crossbeam::queue::ArrayQueue;
 use futures_util::future::join_all;
 use indicatif::MultiProgress;
+use log::info;
 use parse_mediawiki_sql::utils::memory_map;
 use rusqlite::Connection;
 use tokio::sync::broadcast::Sender;
@@ -333,6 +334,9 @@ fn check_existing_sqlite_files(
                 output_file
             );
             done_wikis.push(wiki_name.to_string());
+        } else if overwrite_sql {
+            info!("Removing {output_file:?} as per --overwrite-sql");
+            fs::remove_file(&output_file).expect("Failed removing file {output_file}");
         }
     }
 

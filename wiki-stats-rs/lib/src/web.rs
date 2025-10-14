@@ -1,10 +1,11 @@
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::io::Write;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
 use anyhow::anyhow;
-use chrono::{DateTime, Datelike, FixedOffset, SecondsFormat, TimeZone, Utc};
+use chrono::{DateTime, Datelike, FixedOffset, NaiveDateTime, SecondsFormat, TimeZone, Utc};
 use indicatif::ProgressBar;
 use log::{debug, info, trace};
 use num_format::Locale::{el, ta};
@@ -111,7 +112,7 @@ pub async fn query_wikipedia_api<T: DeserializeOwned>(
             continue_param.clone().unwrap_or_default()
         );
 
-        info!("Requesting url: {}", &url);
+        debug!("Requesting url: {}", &url);
         // dbg!(&url);
 
         let resp = client
@@ -147,6 +148,75 @@ pub async fn query_wikipedia_api<T: DeserializeOwned>(
     }
 
     Ok(results)
+}
+
+/// Returns the latest date at which all of the provided tables were done
+/// Returns error if one is missing
+pub async fn get_dump_finish_date(
+    wiki_name: &str,
+    dump_date: &str,
+    tables: &[&str],
+) -> Result<DateTime<Utc>, anyhow::Error> {
+    let url = format!("https://dumps.wikimedia.org/{wiki_name}/{dump_date}/");
+    let client = reqwest::Client::new();
+
+    let resp = client
+        .get(&url)
+        .header("User-Agent", wikipedia_user_agent())
+        .send()
+        .await?;
+    let resp = resp.error_for_status()?;
+
+    let content = resp.text().await?;
+    let document = Html::parse_document(&content);
+
+    let selector = Selector::parse("body ul li.done").unwrap();
+    let selector_filename = Selector::parse("li.file a").unwrap();
+    let selector_updates = Selector::parse("span.updates").unwrap();
+
+    let table_name_regex: Regex = Regex::new(r"\d{8}-(.+?)\.sql").unwrap();
+
+    let mut done = vec![];
+    let mut remaining_tables: HashSet<String> = tables.iter().map(|s| s.to_string()).collect();
+
+    for dump in document.select(&selector) {
+        if let Some(updates_element) = dump.select(&selector_updates).next() {
+            let updates = updates_element.inner_html();
+            let filename: String = dump.select(&selector_filename).next().unwrap().inner_html();
+            if let Some(table_name) = table_name_regex
+                .captures(&filename)
+                .and_then(|captures| captures.get(1))
+            {
+                let table_name = table_name.as_str().to_owned();
+                if tables.contains(&table_name.as_str()) {
+                    done.push(updates);
+                    remaining_tables.remove(&table_name);
+                }
+            }
+        }
+    }
+
+    for not_found in remaining_tables {
+        log::error!("Table '{}' is not ready or not in the dump", not_found);
+        return Err(anyhow!("Missing table {}", not_found));
+    }
+
+    let parsed: anyhow::Result<Vec<DateTime<Utc>>> = done
+        .iter()
+        .map(|date_string| {
+            let naive = NaiveDateTime::parse_from_str(date_string, "%Y-%m-%d %H:%M:%S")
+                .map_err(|e| anyhow!("Failed to parse datetime '{}': {}", date_string, e))?;
+
+            Ok(Utc.from_utc_datetime(&naive))
+        })
+        .collect();
+
+    let latest_dump_date = parsed?
+        .into_iter()
+        .max()
+        .ok_or_else(|| anyhow!("No valid dates found"))?;
+
+    Ok(latest_dump_date)
 }
 
 pub async fn get_latest_revision_id_before_date(
@@ -234,7 +304,7 @@ pub async fn get_diff_to_current(
         &difftype=inline\
         &format=json&formatversion=2"
     );
-    info!("Requesting url: {}", &url);
+    debug!("Requesting url: {}", &url);
 
     let res = get_wikipedia_async(&url).await?;
     let json = res.json::<Value>().await?;
@@ -632,7 +702,7 @@ async fn calc_wiki_size(
     tables: &[impl AsRef<str>],
     link: String,
 ) -> Result<WebWikiSize, reqwest::Error> {
-    let re: Regex = Regex::new(r"\d{8}-(.+?)\.sql").unwrap();
+    let table_name_regex: Regex = Regex::new(r"\d{8}-(.+?)\.sql").unwrap();
     let tables = tables
         .into_iter()
         .map(|s| s.as_ref())
@@ -658,7 +728,10 @@ async fn calc_wiki_size(
         selected_tables_size: Some(0),
     };
     for (filename, filesize_bytes) in file_sizes {
-        if let Some(table_name) = re.captures(&filename).and_then(|captures| captures.get(1)) {
+        if let Some(table_name) = table_name_regex
+            .captures(&filename)
+            .and_then(|captures| captures.get(1))
+        {
             wiki_size.total_size = Some(wiki_size.total_size.unwrap_or(0) + filesize_bytes);
             if tables.contains(&table_name.as_str()) {
                 wiki_size.selected_tables_size =
@@ -677,13 +750,22 @@ mod tests {
         download::ALL_DB_TABLES,
         web::{
             calc_wiki_size, find_smallest_wikis, get_added_diff_to_current,
-            get_deleted_diff_to_current, get_incoming_links, get_latest_revision_id_before_date,
-            get_outgoing_links, get_page_info_by_id, get_page_info_by_title, parse_size_to_bytes,
+            get_deleted_diff_to_current, get_dump_finish_date, get_incoming_links,
+            get_latest_revision_id_before_date, get_outgoing_links, get_page_info_by_id,
+            get_page_info_by_title, parse_size_to_bytes,
         },
     };
 
     fn setup() {
         dotenv::dotenv().ok();
+    }
+
+    #[tokio::test]
+    async fn test_parse_dumpdates() {
+        setup();
+
+        let r = get_dump_finish_date("itwiki", "20251001", &ALL_DB_TABLES);
+        assert!(r.is_some());
     }
 
     #[tokio::test]
