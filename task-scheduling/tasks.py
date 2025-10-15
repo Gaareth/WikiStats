@@ -329,6 +329,8 @@ def finish_dump(dump_date):
         data["status"] = "DONE"
 
     except Exception as e:
+        logger.error(f"Exception: {e}")
+        data["message"] = f"Task failed. {e}"
         data["status"] = "FAILED"
         set_task_status(data)
         redis.set(f"{WIKI_TASKS_PREFIX}:{dump_date}", "FAILED")

@@ -46,7 +46,11 @@ pub async fn validate_wiki_names(wikis: &[impl AsRef<str>]) -> Result<(), String
 
 /// Validate the sqlite file
 /// Returns `Ok(())` if valid, or an `Err` with an error message if invalid.
-pub async fn validate_sqlite_file(db_path: impl AsRef<Path>, wiki: &str) -> anyhow::Result<()> {
+pub async fn validate_sqlite_file(
+    db_path: impl AsRef<Path>,
+    wiki: &str,
+    require_validation: bool,
+) -> anyhow::Result<()> {
     if wiki.is_empty() {
         return Err(anyhow!("Wiki name cannot be empty."));
     }
@@ -57,7 +61,7 @@ pub async fn validate_sqlite_file(db_path: impl AsRef<Path>, wiki: &str) -> anyh
     }
 
     let conn = Connection::open(&path)?;
-    if check_is_done(&conn)? && check_is_validated(&conn)? {
+    if check_is_done(&conn)? && (require_validation && check_is_validated(&conn)?) {
         return Ok(());
     }
     return Err(anyhow!("sqlite file {path:?} is not done"));
@@ -66,13 +70,14 @@ pub async fn validate_sqlite_file(db_path: impl AsRef<Path>, wiki: &str) -> anyh
 pub async fn validate_sqlite_files(
     db_path: impl AsRef<Path>,
     wikis: &[impl AsRef<str>],
+    require_validation: bool,
 ) -> Result<(), String> {
     if wikis.is_empty() {
         return Err("Please provide at least one name".to_string());
     }
 
     for wiki in wikis {
-        if let Err(e) = validate_sqlite_file(&db_path, wiki.as_ref()).await {
+        if let Err(e) = validate_sqlite_file(&db_path, wiki.as_ref(), require_validation).await {
             return Err(e.to_string());
         }
     }

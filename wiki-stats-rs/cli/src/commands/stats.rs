@@ -12,6 +12,7 @@ async fn handle_add_sample_stats(args: StatsArgs, sample_args: SampleOptions) {
         db_path,
         wikis,
         all_wikis,
+        require_validation,
     } = args;
 
     let wikis = if all_wikis {
@@ -27,7 +28,7 @@ async fn handle_add_sample_stats(args: StatsArgs, sample_args: SampleOptions) {
     validate_wiki_names(wikis)
         .await
         .unwrap_or_else(|e| print_error_and_exit!("Failed validating wiki names: {e}"));
-    validate_sqlite_files(&db_path, wikis)
+    validate_sqlite_files(&db_path, wikis, require_validation)
         .await
         .unwrap_or_else(|e| print_error_and_exit!("Failed validating wiki sqlite files: {e}"));
 
@@ -62,6 +63,7 @@ async fn handle_generate_stats(
         db_path,
         wikis,
         all_wikis,
+        require_validation,
     } = args;
 
     let wikis = if all_wikis {
@@ -76,7 +78,7 @@ async fn handle_generate_stats(
     validate_wiki_names(wikis)
         .await
         .unwrap_or_else(|e| print_error_and_exit!("Failed validating wiki names: {e}"));
-    validate_sqlite_files(&db_path, wikis)
+    validate_sqlite_files(&db_path, wikis, require_validation)
         .await
         .unwrap_or_else(|e| print_error_and_exit!("Failed validating wiki sqlite files: {e}"));
 
