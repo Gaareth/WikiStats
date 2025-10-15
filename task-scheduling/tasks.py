@@ -331,6 +331,7 @@ def finish_dump(dump_date):
     except Exception as e:
         data["status"] = "FAILED"
         set_task_status(data)
+        redis.set(f"{WIKI_TASKS_PREFIX}:{dump_date}", "FAILED")
         return -1
 
     data["finishedAt"] = datetime.now(timezone.utc).isoformat()

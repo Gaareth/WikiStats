@@ -147,7 +147,6 @@ pub async fn process_wikis_seq(
         process_wiki_to_db(wiki_name, &base_directory, &dump_date).await;
     }
 
-
     dump_date
 }
 
