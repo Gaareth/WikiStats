@@ -164,9 +164,9 @@ pub struct StatsArgs {
     #[arg(long, conflicts_with = "wikis")]
     pub all_wikis: bool,
 
-    /// Require validation
-    #[arg(long, default_value_t = true)]
-    pub require_validation: bool,
+    /// Don't require validation
+    #[arg(long)]
+    pub skip_validation: bool,
 }
 
 /// Common arguments for sample stats
