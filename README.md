@@ -53,3 +53,15 @@ gareth@manjaro-kde ~/dev/WikiStats/wiki-folder/20251001/downloads main* 6s
 ```
 
 Does not seem like it?
+
+### Other Examples
+Validating on ukwiki 20251001:
+Всесвітня премія фентезі за найкращу повість -> Премія Урсули К. Ле Ґуїн missing from db
+
+This link is also not in the dump, but Премія Урсули К. Ле Ґуїн is on the page in a navbox at the bottom. Which might be the reason its not in the dump?
+
+Also the latest update was the 26th october 2024, and its not frequently updated.
+
+The dump only contains with Ґуїн in the name:
+Всесвітня премія фентезі за найкращу повість -> Урсула_Ле_Ґуїн
+

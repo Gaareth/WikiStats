@@ -327,6 +327,7 @@ pub async fn get_diff_to_current(
     Err(anyhow!("Failed to get diff").into())
 }
 
+/// Returns the title param or the url part after /wiki/
 pub async fn get_links_on_webpage(
     page_name: &str,
     wiki_prefix: impl AsRef<str>,

@@ -6,6 +6,7 @@ use crate::validation::validate_wiki_names;
 use colored::Colorize;
 use log::{error, info};
 use parse_mediawiki_sql::field_types::PageTitle;
+use wiki_stats::download::clean_downloads;
 use wiki_stats::process::process_wikis_seq;
 use wiki_stats::sqlite::join_db_wiki_path;
 use wiki_stats::validate::{post_validation, validate_post_validation};
@@ -38,9 +39,12 @@ pub async fn handle_process_databases(command: Commands) {
         let dump_date =
             process_wikis_seq(&wikis, basepath, dump_date, remove_downloads, overwrite_sql).await;
 
+        let dumpdate_path = basepath.join(&dump_date);
+        let downloads_path = dumpdate_path.join("downloads");
+
         if validate {
             print!("> Validating");
-            for wiki in wikis {
+            for wiki in &wikis {
                 let wiki_prefix = &wiki[..2];
                 let random_pages: Vec<PageTitle> =
                     web::get_random_wikipedia_pages(num_pages, &wiki_prefix)
@@ -50,7 +54,6 @@ pub async fn handle_process_databases(command: Commands) {
                         .map(|p| PageTitle(p.title))
                         .collect();
 
-                let dumpdate_path = basepath.join(&dump_date);
                 let sqlite_path = dumpdate_path.join("sqlite");
                 let db_file = join_db_wiki_path(sqlite_path, &wiki);
 
@@ -74,9 +77,16 @@ pub async fn handle_process_databases(command: Commands) {
                     }
                     exit(-1);
                 } else {
+                    if remove_downloads {
+                        clean_downloads(&downloads_path, &wikis);
+                    }
                     print!("{}", format!("Validation was successful").green())
                 }
             }
+        }
+
+        if remove_downloads {
+            clean_downloads(&downloads_path, &wikis);
         }
     } else {
         unreachable!("This function should only be called with the ProcessDatabases command");

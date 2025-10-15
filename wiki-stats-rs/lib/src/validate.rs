@@ -209,7 +209,7 @@ async fn check_missing_link(
         }
     }
 
-    // check if the old wikipedia page even contains this link
+    // check if the old wikipedia page even contains this link. If not we are fine.
     // the problem is that the diff does not render links inside templates, so we need to look at the actual html
     if let Some(rev_id) = rev_id_opt {
         let links_on_old_page = get_or_cache_links(from, wiki_prefix, rev_id, links_cache).await;
@@ -237,6 +237,7 @@ async fn check_missing_link(
     false
 }
 
+// links that are in the db but not returned by the api call
 async fn check_outdated_link(
     page_title: &str,
     other: &str,
@@ -274,9 +275,10 @@ async fn check_outdated_link(
 
     // TODO: check if from or to was deleted after dumpdate
 
+    // if the old wikipedia pages contains it, it is probably fine
     if let Some(rev_id) = rev_id_opt {
         let links_on_old_page = get_or_cache_links(from, wiki_prefix, rev_id, links_cache).await;
-        if !link_exists(&links_on_old_page, to) {
+        if link_exists(&links_on_old_page, to) {
             return true;
         }
     }
