@@ -474,8 +474,6 @@ fn unpack_gz(out_path: &PathBuf, input_gz: fs::File) -> Result<(), Error> {
     Ok(())
 }
 
-
-
 // https://wikipedia.mirror.pdapps.org // russia 9-10 MiB/s BUT 2 Months behind
 // https://wikidata.aerotechnet.com/ // US 2MiB/s BUT 2 Months behind
 

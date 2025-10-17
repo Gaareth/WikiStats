@@ -36,8 +36,7 @@ pub async fn handle_process_databases(command: Commands) {
             )
         }
 
-        let dump_date =
-            process_wikis_seq(&wikis, basepath, dump_date, overwrite_sql).await;
+        let dump_date = process_wikis_seq(&wikis, basepath, dump_date, overwrite_sql).await;
 
         let dumpdate_path = basepath.join(&dump_date);
         let downloads_path = dumpdate_path.join("downloads");
@@ -77,10 +76,7 @@ pub async fn handle_process_databases(command: Commands) {
                     }
                     exit(-1);
                 } else {
-                    if remove_downloads {
-                        clean_downloads(&downloads_path, &wikis);
-                    }
-                    print!("{}", format!("Validation was successful").green())
+                    print!("{}", format!("Validation was successful").green());
                 }
             }
         }
