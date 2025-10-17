@@ -66,9 +66,9 @@ pub async fn handle_process_databases(command: Commands) {
                     post_validation(&db_file, &dump_date, &wiki_prefix, &random_pages).await;
 
                 if !valid {
+                    let msg = format!("[{wiki}] Failed post validation for {db_file:?}").red();
+                    error!("{}", msg);
                     if post_diffs.len() > 0 {
-                        let msg = format!("[{wiki}] Failed post validation for {db_file:?}");
-                        error!("{}", &msg);
                         info!(
                             "> Checking if differences are also inside the downloaded sql dump files"
                         );
@@ -79,12 +79,14 @@ pub async fn handle_process_databases(command: Commands) {
                                 "[{wiki}] Failed post and pre validation for {db_file:?}"
                             )
                         }
+                    } else {
+                        print_error_and_exit!(
+                            "[{wiki}] Failed post and pre validation for {db_file:?}"
+                        )
                     }
-                    exit(-1);
-                } else {
-                    print!("{}", format!("Validation was successful").green());
                 }
             }
+            print!("{}", format!("Validation was successful").green());
         }
 
         if remove_downloads {
