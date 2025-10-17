@@ -8,6 +8,7 @@ use std::process::exit;
 use std::time::{Duration, Instant};
 use std::{fs, io};
 
+use anyhow::{Context, anyhow};
 use chrono::{Datelike, Days, Months, Utc};
 use colored::Colorize;
 use futures::StreamExt;
@@ -17,6 +18,7 @@ use log::{debug, error, info, warn};
 use scraper::{Html, Selector};
 use tokio::fs::{File, OpenOptions};
 use tokio::io::AsyncWriteExt;
+use tokio::time::sleep;
 use url::Url;
 
 use crate::utils::{download_bar, spinner_bar};
@@ -202,12 +204,49 @@ static MIRROR_URLS: [&str; 5] = [
     "https://dumps.wikimedia.org",                        // only allows 2 concurrent connections
 ];
 
+async fn download_file_with_retries<F, Fut, T, E>(download_fn: F, retries: u32) -> Result<T, E>
+where
+    F: Fn() -> Fut,
+    Fut: Future<Output = Result<T, E>>,
+    E: Debug,
+{
+    let base_delay: u64 = 2;
+    let max_delay: u64 = 60 * 60; // 1h
+
+    let mut attempts = 0;
+    loop {
+        match download_fn().await {
+            Ok(value) => return Ok(value),
+            Err(e) => {
+                attempts += 1;
+
+                if attempts >= retries {
+                    eprintln!("All {retries} attempts failed: {e:?}");
+                    return Err(e);
+                }
+
+                // Exponential backoff: base delay doubles each time
+                let base_delay_secs = base_delay.pow(attempts).min(max_delay);
+
+                let delay = Duration::from_secs(base_delay_secs);
+
+                eprintln!(
+                    "Retry {attempts}/{retries} failed: {e:?}. Retrying in {:?}...",
+                    delay
+                );
+
+                sleep(delay).await;
+            }
+        }
+    }
+}
+
 async fn download_file_bar(
     url: String,
     dest_dir: PathBuf,
     multi_bar: MultiProgress,
     md5sums: HashMap<String, String>,
-) {
+) -> Result<(), anyhow::Error> {
     let t1 = Instant::now();
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(60 * 2 * 60))
@@ -215,23 +254,27 @@ async fn download_file_bar(
         .unwrap();
 
     let response = client.get(&url).send().await.unwrap();
+    let response = response.error_for_status()?;
+
     let dest = {
         let fname = response.url().path_segments().unwrap().last().unwrap();
         dest_dir.join(fname)
     };
 
-    if !response.status().is_success() {
-        eprintln!(
-            "{}",
-            format!("Error downloading: {}: {}", url, response.status()).red()
-        );
-        return;
-    }
+    // if !response.status().is_success() {
+    //     eprintln!(
+    //         "{}",
+    //         format!("Error downloading: {}: {}", url, response.status()).red()
+    //     );
+    //     return;
+    // }
 
-    let total_size = response.content_length().unwrap();
+    let total_size = response
+        .content_length()
+        .ok_or(anyhow!("Can't get content length"))?;
     let mut downloaded = 0;
     let filename = dest.file_name().and_then(OsStr::to_str).unwrap();
-    let url = Url::parse(&url).unwrap();
+    let url = Url::parse(&url)?;
     let domain_name = url.host_str().unwrap();
     let bar = multi_bar.add(download_bar(
         total_size,
@@ -247,7 +290,7 @@ async fn download_file_bar(
             .write(true)
             .open(dest.clone())
             .await
-            .unwrap_or_else(|_| panic!("Failed opening file {filename}"));
+            .with_context(|| format!("Failed opening file {filename}"))?;
 
         let filesize = file.metadata().await.unwrap().len();
 
@@ -261,7 +304,7 @@ async fn download_file_bar(
                         .to_string(),
                 )
                 .unwrap();
-            return;
+            return Ok(());
         }
 
         if !is_not_corrupted {
@@ -279,7 +322,7 @@ async fn download_file_bar(
     let mut file = File::create(&dest).await.unwrap();
 
     while let Some(item) = stream.next().await {
-        let chunk = item.unwrap();
+        let chunk = item.with_context(|| "Network error during download")?;
         file.write_all(&chunk).await.unwrap();
         downloaded = min(downloaded + (chunk.len() as u64), total_size);
         bar.set_position(downloaded);
@@ -306,7 +349,7 @@ async fn download_file_bar(
             .unwrap();
     }
 
-    return;
+    Ok(())
 }
 
 pub fn wikis(wiki_prefixes: &[impl AsRef<str> + Display]) -> Vec<String> {
@@ -374,9 +417,6 @@ pub fn unpack_gz_pb(
             );
         }
 
-        let input_file = fs::File::open(path)
-            .unwrap_or_else(|_| panic!("Failed opening compressed file: {path:?}"));
-
         let t1 = Instant::now();
         let spinner = multi_pb.add(spinner_bar(&format!(" Unpacking file {filename}")));
 
@@ -390,7 +430,7 @@ pub fn unpack_gz_pb(
                     attempts += 1;
                     eprintln!(
                         "{}",
-                        format!("Error unpacking file {filename}: {e}. Retrying ({attempts}/3)")
+                        format!("Error unpacking file {filename}: {e}. Retrying ({attempts}/{max_attempts})")
                             .red()
                     );
                     // sleep for a bit before retrying
@@ -434,28 +474,7 @@ fn unpack_gz(out_path: &PathBuf, input_gz: fs::File) -> Result<(), Error> {
     Ok(())
 }
 
-async fn download_table(
-    filename: String,
-    url: String,
-    dest_dir: PathBuf,
-    multi_bar: MultiProgress,
-    md5sums: HashMap<String, String>,
-    always_download: bool,
-) {
-    let path = dest_dir.join(&filename);
 
-    let mut out_path: PathBuf = path.clone();
-    out_path.set_extension("");
-
-    if !out_path.exists() || always_download {
-        download_file_bar(url, dest_dir.clone(), multi_bar.clone(), md5sums.clone()).await;
-    } else {
-        println!(
-            "sql file {} already downloaded: skipping",
-            out_path.file_name().and_then(OsStr::to_str).unwrap()
-        )
-    }
-}
 
 // https://wikipedia.mirror.pdapps.org // russia 9-10 MiB/s BUT 2 Months behind
 // https://wikidata.aerotechnet.com/ // US 2MiB/s BUT 2 Months behind
@@ -531,19 +550,45 @@ pub async fn download_wikis(
                 test_get_url(format!("{wiki}/{dump_date}/{wiki}-{dump_date}-{db}.sql.gz")).await;
             let filename = format!("{wiki}-{dump_date}-{db}.sql.gz");
 
-            let task = tokio::spawn(download_table(
-                filename,
-                url,
-                path.clone(),
-                multi_pb.clone(),
-                wiki_hashes.clone(),
-                false,
+            // download_table(
+            //                 filename,
+            //                 url,
+            //                 path.clone(),
+            //                 multi_pb.clone(),
+            //                 wiki_hashes.clone(),
+            //                 false,
+            //             )
+
+            let multi_pb_clone = multi_pb.clone();
+            let url_c = url.clone();
+            let path_c = path.clone();
+            let wiki_hashes_c = wiki_hashes.clone();
+
+            let task = tokio::spawn(download_file_with_retries(
+                move || {
+                    let url = url_c.clone();
+                    let path = path_c.clone();
+                    let multi_pb = multi_pb_clone.clone();
+                    let wiki_hashes = wiki_hashes_c.clone();
+
+                    async move { download_file_bar(url, path, multi_pb, wiki_hashes).await }
+                },
+                3,
             ));
+
             tasks.push(task);
         }
     }
 
-    join_all(tasks).await;
+    let results = join_all(tasks).await;
+    for (i, res) in results.into_iter().enumerate() {
+        match res {
+            Ok(_) => { /* task completed successfully */ }
+            Err(e) => {
+                panic!("Task {i} panicked or failed: {e}");
+            }
+        }
+    }
 }
 
 pub fn clean_downloads(download_path: &Path, wiki_names: &[String]) {

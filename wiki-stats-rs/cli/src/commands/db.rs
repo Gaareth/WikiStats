@@ -37,7 +37,7 @@ pub async fn handle_process_databases(command: Commands) {
         }
 
         let dump_date =
-            process_wikis_seq(&wikis, basepath, dump_date, remove_downloads, overwrite_sql).await;
+            process_wikis_seq(&wikis, basepath, dump_date, overwrite_sql).await;
 
         let dumpdate_path = basepath.join(&dump_date);
         let downloads_path = dumpdate_path.join("downloads");

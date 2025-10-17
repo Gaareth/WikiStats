@@ -43,6 +43,7 @@ def get_dump_dates_without_web_wiki_sizes():
 
     return get_done_dump_dates(does_not_contain_web_wiki_sizes)
 
+
 def get_dump_dates_without_samples_stats():
     def does_not_contain_samples_stats(filepath):
         try:
@@ -51,20 +52,22 @@ def get_dump_dates_without_samples_stats():
             return "bfs_sample_stats" not in data or data["bfs_sample_stats"] is None
         except Exception:
             return False
-        
+
     def has_sqlite_files(filepath):
         _, filename = os.path.split(filepath)
         dumpdate = filename.split(".json")[0]
         db_dir = os.path.join(WIKI_BASEPATH, dumpdate, "sqlite")
         return os.path.isdir(db_dir) and len(os.listdir(db_dir)) > 0
 
-    return get_done_dump_dates(lambda fp: does_not_contain_samples_stats(fp) and has_sqlite_files(fp))
+    return get_done_dump_dates(
+        lambda fp: does_not_contain_samples_stats(fp) and has_sqlite_files(fp)
+    )
 
 
-def get_done_dump_dates(filter: (Callable[[str], bool]) = lambda _: True):
+def get_done_dump_dates(filter: Callable[[str], bool] = lambda _: True):
     wikis_done_total: list[str] = []
     stats_file_pattern = r"(\d{8}).json"
-    
+
     for file in os.listdir(STATS_OUTPUT_PATH):
         filename = os.fsdecode(file)
         file_path = os.path.join(STATS_OUTPUT_PATH, filename)
@@ -72,13 +75,20 @@ def get_done_dump_dates(filter: (Callable[[str], bool]) = lambda _: True):
             wikis_done_total.append(filename.split(".json")[0])
     return wikis_done_total
 
+
 def get_done_wikis(dump_date):
     wikis_done_total = []
-    with open(os.path.join(STATS_OUTPUT_PATH, f"{dump_date}.json"), "r") as f:
-         data = json.load(f)
-         wikis_done_total = data["wikis"]
+
+    stats_path = os.path.join(STATS_OUTPUT_PATH, f"{dump_date}.json")
+    if not os.path.isfile(stats_path):
+        return []
+
+    with open(stats_path, "r") as f:
+        data = json.load(f)
+        wikis_done_total = data["wikis"]
 
     return wikis_done_total
+
 
 def check_stats_are_ready(supported_wikis, DB_DIR, name, dump_date):
     already_done = set(get_done_wikis(dump_date))
@@ -98,6 +108,7 @@ def get_sqlite_files(DB_DIR):
             wikis_done.append(filename.split("_")[0])
 
     return wikis_done
+
 
 def get_latest_dump_date(DB_WIKIS_BASEPATH):
     dump_dates: list[int] = []
@@ -120,9 +131,7 @@ def deleted_old_dump_dates(keep_date, DB_WIKIS_BASEPATH, STATS_OUTPUT_PATH):
     for file in os.listdir(DB_WIKIS_BASEPATH):
         filename = os.fsdecode(file)
         filepath = os.path.join(DB_WIKIS_BASEPATH, filename)
-        if os.path.isdir(filepath) and re.match(
-            dump_date_pattern, filename
-        ):
+        if os.path.isdir(filepath) and re.match(dump_date_pattern, filename):
             stats_exists = os.path.exists(
                 os.path.join(STATS_OUTPUT_PATH, f"{filename}.json")
             )
@@ -131,7 +140,7 @@ def deleted_old_dump_dates(keep_date, DB_WIKIS_BASEPATH, STATS_OUTPUT_PATH):
                     f"Stats file for dump date {filename} does not exist, skipping deletion."
                 )
                 continue
-            
+
             date_int = int(filename)
             if date_int < keep_date:
                 logger.info(f"Deleting old dump date directory: {filepath}")
@@ -139,7 +148,7 @@ def deleted_old_dump_dates(keep_date, DB_WIKIS_BASEPATH, STATS_OUTPUT_PATH):
 
 
 def build_server():
-    logger.info("> Rebuilding server")    
+    logger.info("> Rebuilding server")
     redis.set(f"{REDIS_PREFIX}:is-rebuilding", "true")
     subprocess.run([REBUILD_SERVER_BIN], stdout=subprocess.DEVNULL)
     logger.info("Finished rebuilding server")

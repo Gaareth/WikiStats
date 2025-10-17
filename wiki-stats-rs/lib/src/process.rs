@@ -101,7 +101,6 @@ pub async fn process_wikis_seq(
     wiki_names: &[impl AsRef<str> + Debug],
     base_directory: impl Into<PathBuf>,
     dump_date_option: Option<String>,
-    remove_after_finish: bool,
     overwrite_sql: bool,
 ) -> String {
     let tables = ALL_DB_TABLES;
