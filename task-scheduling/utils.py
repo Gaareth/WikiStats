@@ -98,6 +98,12 @@ def check_stats_are_ready(supported_wikis, DB_DIR, name, dump_date):
     return set(supported_wikis).issubset(wikis_done)
 
 
+def should_generate_stats(supported_wikis, DB_DIR, name, dump_date):
+    already_done = set(get_done_wikis(dump_date))
+    return check_stats_are_ready(supported_wikis, DB_DIR, name, dump_date) and name not in already_done
+
+
+
 def get_sqlite_files(DB_DIR):
     wikis_done = []
     for file in os.listdir(DB_DIR):

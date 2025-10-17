@@ -139,7 +139,6 @@ pub async fn handle_debug_commands(subcommands: DebugCommands) {
                         )
                     }
                 }
-                
             } else {
                 println!("{}", "Validation successful".green());
             }

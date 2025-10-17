@@ -95,6 +95,7 @@ from utils import (
     file_lock,
     safe_set_env_vars,
     get_latest_dump_date,
+    should_generate_stats,
 )
 from task_enqueuer import check_for_tasks, check_latest_dump_date_is_fully_complete
 
@@ -451,7 +452,7 @@ def process_wiki(self, name, dump_date, supported_wikis: List[str]):
 
     # if this tasks is the last of all SUPPORTED_WIKIS, then finish_dump
     # it is the last if all of supportedwikis are in wikis_done
-    if check_stats_are_ready(supported_wikis, DB_DIR, name, dump_date):
+    if should_generate_stats(supported_wikis, DB_DIR, name, dump_date):
         logging.info(f"[{name} {dump_date}] done")
         finish_dump(dump_date)
 
