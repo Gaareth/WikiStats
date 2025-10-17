@@ -6,10 +6,11 @@ use crate::validation::validate_wiki_names;
 use colored::Colorize;
 use log::{error, info};
 use parse_mediawiki_sql::field_types::PageTitle;
+use rusqlite::Connection;
 use wiki_stats::download::clean_downloads;
 use wiki_stats::process::process_wikis_seq;
 use wiki_stats::sqlite::join_db_wiki_path;
-use wiki_stats::validate::{post_validation, validate_post_validation};
+use wiki_stats::validate::{check_is_validated, post_validation, validate_post_validation};
 use wiki_stats::web;
 
 pub async fn handle_process_databases(command: Commands) {
@@ -55,6 +56,11 @@ pub async fn handle_process_databases(command: Commands) {
 
                 let sqlite_path = dumpdate_path.join("sqlite");
                 let db_file = join_db_wiki_path(sqlite_path, &wiki);
+                let conn = Connection::open(&db_file).unwrap();
+                if check_is_validated(&conn).unwrap() {
+                    info!("{db_file:?} was already validated");
+                    continue;
+                }
 
                 let (valid, post_diffs) =
                     post_validation(&db_file, &dump_date, &wiki_prefix, &random_pages).await;
