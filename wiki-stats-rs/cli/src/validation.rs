@@ -61,10 +61,15 @@ pub async fn validate_sqlite_file(
     }
 
     let conn = Connection::open(&path)?;
-    if check_is_done(&conn)? && (!require_validation || check_is_validated(&conn)?) {
-        return Ok(());
+    if !check_is_done(&conn)? {
+        return Err(anyhow!("sqlite file {path:?} is not done"));
     }
-    return Err(anyhow!("sqlite file {path:?} is not done"));
+
+    if require_validation && !check_is_validated(&conn)? {
+        return Err(anyhow!("sqlite file {path:?} is not validated"));
+    }
+
+    return Ok(())
 }
 
 pub async fn validate_sqlite_files(

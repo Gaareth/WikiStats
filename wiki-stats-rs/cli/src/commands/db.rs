@@ -78,6 +78,12 @@ pub async fn handle_process_databases(command: Commands) {
                             print_error_and_exit!(
                                 "[{wiki}] Failed post and pre validation for {db_file:?}"
                             )
+                        } else {
+                            let r =
+                                conn.execute("UPDATE Info SET is_validated = ? id = 0", (1, ));
+                            if let Err(e) = r {
+                                log::error!("{}", format!("Error setting is_validated: {e}"));
+                            }
                         }
                     } else {
                         print_error_and_exit!(
